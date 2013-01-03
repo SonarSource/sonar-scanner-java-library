@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -163,62 +164,16 @@ public final class Main {
 
   @VisibleForTesting
   Properties parseArguments(String[] args) {
+    RunnerParameters params = RunnerParameters.parseArguments(args);
     Properties props = new Properties();
-    for (int i = 0; i < args.length; i++) {
-      String arg = args[i];
-      if ("-h".equals(arg) || "--help".equals(arg)) {
-        printUsage();
-
-      } else if ("-X".equals(arg) || "--debug".equals(arg)) {
-        props.setProperty(Runner.PROPERTY_VERBOSE, "true");
-        debugMode = true;
-
-      } else if ("-D".equals(arg) || "--define".equals(arg)) {
-        i++;
-        if (i >= args.length) {
-          printError("Missing argument for option --define");
-        }
-        arg = args[i];
-        appendPropertyTo(arg, props);
-
-      } else if (arg.startsWith("-D")) {
-        arg = arg.substring(2);
-        appendPropertyTo(arg, props);
-
-      } else {
-        printError("Unrecognized option: " + arg);
-      }
+    if (params.isDebugMode()) {
+      props.setProperty(Runner.PROPERTY_VERBOSE, "true");
+      debugMode = true;
+    }
+    for (Map.Entry<String, String> prop : params.getProperties().entrySet()) {
+      props.setProperty(prop.getKey(), prop.getValue() != null ? prop.getValue() : "true");
     }
     return props;
   }
 
-  private void appendPropertyTo(String arg, Properties props) {
-    final String key, value;
-    int j = arg.indexOf('=');
-    if (j == -1) {
-      key = arg;
-      value = "true";
-    } else {
-      key = arg.substring(0, j);
-      value = arg.substring(j + 1);
-    }
-    props.setProperty(key, value);
-  }
-
-  private void printError(String message) {
-    Logs.info("");
-    Logs.info(message);
-    printUsage();
-  }
-
-  private void printUsage() {
-    Logs.info("");
-    Logs.info("usage: sonar-runner [options]");
-    Logs.info("");
-    Logs.info("Options:");
-    Logs.info(" -h,--help             Display help information");
-    Logs.info(" -X,--debug            Produce execution debug output");
-    Logs.info(" -D,--define <arg>     Define property");
-    System.exit(0); // NOSONAR
-  }
 }
