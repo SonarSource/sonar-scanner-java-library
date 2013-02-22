@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Bootstrapper used to download everything from the server and create the correct classloader required to execute a Sonar analysis in isolation.
@@ -54,6 +55,8 @@ class Bootstrapper {
 
   private File bootDir;
   private String serverUrl;
+  private String sonarUser;
+  private String sonarPassword;
   private String productToken;
   private String serverVersion;
   private SonarCache cache;
@@ -61,7 +64,7 @@ class Bootstrapper {
   /**
    * @param productToken part of User-Agent request-header field - see http://tools.ietf.org/html/rfc1945#section-10.15
    */
-  Bootstrapper(String productToken, String serverUrl, File workDir, SonarCache cache) {
+  Bootstrapper(String productToken, String serverUrl, File workDir, SonarCache cache,String sonarUser,String sonarPassword) {
     this.productToken = productToken;
     this.cache = cache;
     bootDir = new File(workDir, "batch");
@@ -71,6 +74,8 @@ class Bootstrapper {
     } else {
       this.serverUrl = serverUrl;
     }
+    this.sonarUser = sonarUser;
+    this.sonarPassword = sonarPassword;
   }
 
   /**
@@ -184,6 +189,12 @@ class Bootstrapper {
     connection.setInstanceFollowRedirects(true);
     connection.setRequestMethod("GET");
     connection.setRequestProperty("User-Agent", getUserAgent());
+    if (sonarUser != null && sonarPassword != null){
+        String userPassword = sonarUser + ":" + sonarPassword;
+        String encodedUserPass = new Base64().encodeToString(userPassword.getBytes());
+        connection.setRequestProperty("Authorization", "Basic " + encodedUserPass);
+    }
+
     return connection;
   }
 

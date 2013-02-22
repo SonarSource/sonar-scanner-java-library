@@ -121,6 +121,22 @@ public class RunnerTest {
   }
 
   @Test
+  public void shouldGetSonarUser() {
+    Properties properties = new Properties();
+    properties.setProperty("sonar.login", "sonar");
+    Runner runner = Runner.create(properties);
+    assertThat(runner.getSonarUser()).isEqualTo("sonar");
+  }
+
+  @Test
+  public void shouldGetSonarPassword() {
+    Properties properties = new Properties();
+    properties.setProperty("sonar.password", "sonarpass");
+    Runner runner = Runner.create(properties);
+    assertThat(runner.getSonarPassword()).isEqualTo("sonarpass");
+  }
+
+  @Test
   public void shouldInitDirs() throws Exception {
     Properties props = new Properties();
     File home = tempFolder.newFolder("shouldInitDirs").getCanonicalFile();
