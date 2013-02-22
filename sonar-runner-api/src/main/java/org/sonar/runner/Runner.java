@@ -185,13 +185,22 @@ public final class Runner {
    * Runs a Sonar analysis.
    */
   public void execute() {
-    Bootstrapper bootstrapper = new Bootstrapper("SonarRunner/" + Version.getVersion(), getSonarServerURL(), getWorkDir(), getCache());
+    Bootstrapper bootstrapper = new Bootstrapper("SonarRunner/" + Version.getVersion(), getSonarServerURL(), getWorkDir(), getCache(),
+            getSonarUser(),getSonarPassword());
     checkSonarVersion(bootstrapper);
     delegateExecution(createClassLoader(bootstrapper));
   }
 
   public String getSonarServerURL() {
     return projectProperties.getProperty("sonar.host.url", globalProperties.getProperty("sonar.host.url", "http://localhost:9000"));
+  }
+
+  public String getSonarUser(){
+    return projectProperties.getProperty("sonar.login", globalProperties.getProperty("sonar.login"));
+  }
+
+  public String getSonarPassword(){
+    return projectProperties.getProperty("sonar.password", globalProperties.getProperty("sonar.password"));
   }
 
   public SonarCache getCache() {
