@@ -37,12 +37,20 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ForkedRunnerTest {
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
+
+  private ProcessActivityController activityController =  mock(ProcessActivityController.class);
+
+  private final StreamConsumer out = mock(StreamConsumer.class);
+
+  private final StreamConsumer err = mock(StreamConsumer.class);
 
   @Test
   public void should_create_forked_runner() {
@@ -51,16 +59,20 @@ public class ForkedRunnerTest {
   }
 
   @Test
+  public void should_create_forked_runner_with_activity_controller() {
+    ForkedRunner runner = ForkedRunner.create(activityController);
+    assertThat(runner).isNotNull().isInstanceOf(ForkedRunner.class);
+  }
+
+  @Test
   public void should_print_to_standard_outputs_by_default() throws IOException {
-    JarExtractor jarExtractor = mock(JarExtractor.class);
-    final File jar = temp.newFile();
-    when(jarExtractor.extractToTemp("sonar-runner-impl")).thenReturn(jar);
+    JarExtractor jarExtractor = createMockExtractor();
 
     CommandExecutor commandExecutor = mock(CommandExecutor.class);
     ForkedRunner runner = new ForkedRunner(jarExtractor, commandExecutor);
     runner.execute();
 
-    verify(commandExecutor).execute(any(Command.class), argThat(new StdConsumerMatcher(System.out)), argThat(new StdConsumerMatcher(System.err)), anyLong());
+    verify(commandExecutor).execute(any(Command.class), argThat(new StdConsumerMatcher(System.out)), argThat(new StdConsumerMatcher(System.err)), anyLong(), any(ProcessActivityController.class));
   }
 
   static class StdConsumerMatcher extends ArgumentMatcher<StreamConsumer> {
@@ -77,11 +89,9 @@ public class ForkedRunnerTest {
 
   @Test
   public void properties_should_be_written_in_temp_file() throws Exception {
-    JarExtractor jarExtractor = mock(JarExtractor.class);
-    final File jar = temp.newFile();
-    when(jarExtractor.extractToTemp("sonar-runner-impl")).thenReturn(jar);
+    JarExtractor jarExtractor = createMockExtractor();
 
-    ForkedRunner runner = new ForkedRunner(jarExtractor, mock(CommandExecutor.class));
+    ForkedRunner runner = new ForkedRunner(jarExtractor, mock(CommandExecutor.class), any(ProcessActivityController.class));
     runner.setProperty("sonar.dynamicAnalysis", "false");
     runner.setProperty("sonar.login", "admin");
     runner.addJvmArguments("-Xmx512m");
@@ -136,21 +146,16 @@ public class ForkedRunnerTest {
         assertThat(command.envVariables().get("SONAR_HOME")).isEqualTo("/path/to/sonar");
         return true;
       }
-    }), any(PrintStreamConsumer.class), any(PrintStreamConsumer.class), anyLong());
+    }), any(PrintStreamConsumer.class), any(PrintStreamConsumer.class), anyLong(), any(ProcessActivityController.class));
 
   }
 
   @Test
   public void test_failure_of_java_command() throws IOException {
-    JarExtractor jarExtractor = mock(JarExtractor.class);
-    final File jar = temp.newFile();
-    when(jarExtractor.extractToTemp("sonar-runner-impl")).thenReturn(jar);
-    StreamConsumer out = mock(StreamConsumer.class);
-    StreamConsumer err = mock(StreamConsumer.class);
-    CommandExecutor commandExecutor = mock(CommandExecutor.class);
-    when(commandExecutor.execute(any(Command.class), eq(out), eq(err), anyLong())).thenReturn(3);
+    JarExtractor jarExtractor = createMockExtractor();
+    CommandExecutor commandExecutor = createMockRunnerWithExecutionStatus(3);
 
-    ForkedRunner runner = new ForkedRunner(jarExtractor, commandExecutor);
+    ForkedRunner runner = new ForkedRunner(jarExtractor, commandExecutor, activityController);
     runner.setStdOut(out);
     runner.setStdErr(err);
 
@@ -158,7 +163,31 @@ public class ForkedRunnerTest {
       runner.execute();
       fail();
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage()).matches("Error status \\[command: .*java.*\\]");
+      assertThat(e.getMessage()).matches("Error status \\[command: .*java.*\\].*");
     }
+  }
+
+  private CommandExecutor createMockRunnerWithExecutionStatus(int executionStatus) {
+    CommandExecutor commandExecutor = mock(CommandExecutor.class);
+    when(commandExecutor.execute(any(Command.class), eq(out), eq(err), anyLong(), eq(activityController))).thenReturn(executionStatus);
+    return commandExecutor;
+  }
+
+  private JarExtractor createMockExtractor() throws IOException {
+    JarExtractor jarExtractor = mock(JarExtractor.class);
+    final File jar = temp.newFile();
+    when(jarExtractor.extractToTemp("sonar-runner-impl")).thenReturn(jar);
+    return jarExtractor;
+  }
+
+
+  @Test
+  public void test_runner_was_requested_to_stop() throws Exception {
+
+    ForkedRunner runner = new ForkedRunner(createMockExtractor(), createMockRunnerWithExecutionStatus(143), activityController);
+    runner.setStdOut(out);
+    runner.setStdErr(err);
+    runner.execute();
+    verify(out).consumeLine("Sonar runner terminated with exit code 143");
   }
 }
