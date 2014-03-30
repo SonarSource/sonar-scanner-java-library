@@ -19,42 +19,53 @@
  */
 package org.sonar.runner.impl;
 
+import static org.sonar.runner.impl.Logs.Level.DEBUG;
+import static org.sonar.runner.impl.Logs.Level.ERROR;
+import static org.sonar.runner.impl.Logs.Level.INFO;
+import static org.sonar.runner.impl.Logs.Level.WARN;
+
 public class Logs {
+  public static enum Level { ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF }
+
   private Logs() {
   }
 
-  private static boolean debugEnabled = false;
+  private static Level logLevel = INFO;
 
-  public static void setDebugEnabled(boolean debugEnabled) {
-    Logs.debugEnabled = debugEnabled;
-  }
-
-  public static boolean isDebugEnabled() {
-    return debugEnabled;
+  public static void setLogLevel(Level logLevel) {
+    Logs.logLevel = logLevel;
   }
 
   public static void debug(String message) {
-    if (isDebugEnabled()) {
+    if (logLevel.ordinal() <= DEBUG.ordinal()) {
       System.out.println("DEBUG: " + message);
     }
   }
 
   public static void info(String message) {
-    System.out.println("INFO: " + message);
+    if (logLevel.ordinal() <= INFO.ordinal()) {
+      System.out.println("INFO: " + message);
+    }
   }
 
   public static void warn(String message) {
-    System.out.println("WARN: " + message);
+    if (logLevel.ordinal() <= WARN.ordinal()) {
+      System.out.println("WARN: " + message);
+    }
   }
 
   public static void error(String message) {
-    System.err.println("ERROR: " + message);
+    if (logLevel.ordinal() <= ERROR.ordinal()) {
+      System.err.println("ERROR: " + message);
+    }
   }
 
   public static void error(String message, Throwable t) {
-    System.err.println("ERROR: " + message);
-    if (t != null) {
-      t.printStackTrace(System.err);
+    if (logLevel.ordinal() <= ERROR.ordinal()) {
+      System.err.println("ERROR: " + message);
+      if (t != null) {
+        t.printStackTrace(System.err);
+      }
     }
   }
 }

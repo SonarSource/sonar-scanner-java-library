@@ -65,10 +65,10 @@ class Cli {
         displayStackTrace = true;
 
       } else if ("-X".equals(arg) || "--debug".equals(arg)) {
-        props.setProperty("sonar.verbose", "true");
+        props.setProperty("sonar.logLevel", "DEBUG");
         displayStackTrace = true;
         debugMode = true;
-        Logs.setDebugEnabled(true);
+        Logs.setLogLevel(Logs.Level.DEBUG);
 
       } else if ("-D".equals(arg) || "--define".equals(arg)) {
         i++;
@@ -81,6 +81,28 @@ class Cli {
       } else if (arg.startsWith("-D")) {
         arg = arg.substring(2);
         appendPropertyTo(arg, props);
+
+      } else if ("-l".equals(arg) || "--logLevel".equals(arg)) {
+        i++;
+        if (i >= args.length) {
+          printError("Missing argument for option --logLevel");
+        }
+        arg = args[i];
+        props.setProperty("sonar.logLevel", arg);
+        if (arg.equals("DEBUG")) {
+          displayStackTrace = true;
+          debugMode = true;
+        }
+        Logs.setLogLevel(Logs.Level.valueOf(arg));
+
+      } else if (arg.startsWith("-l")) {
+        arg = arg.substring(2);
+        props.setProperty("sonar.logLevel", arg);
+        if (arg.equals("DEBUG")) {
+          displayStackTrace = true;
+          debugMode = true;
+        }
+        Logs.setLogLevel(Logs.Level.valueOf(arg));
 
       } else {
         printError("Unrecognized option: " + arg);
@@ -124,6 +146,7 @@ class Cli {
     Logs.info(" -h,--help             Display help information");
     Logs.info(" -v,--version          Display version information");
     Logs.info(" -X,--debug            Produce execution debug output");
+    Logs.info(" -l,--logLevel         Set log level");
     System.exit(Exit.SUCCESS);
   }
 }

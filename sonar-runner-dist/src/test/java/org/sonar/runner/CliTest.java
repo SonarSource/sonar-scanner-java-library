@@ -58,7 +58,7 @@ public class CliTest {
     cli.parse(new String[]{"-X"});
     assertThat(cli.isDebugMode()).isTrue();
     assertThat(cli.isDisplayStackTrace()).isTrue();
-    assertThat(cli.properties().get("sonar.verbose")).isEqualTo("true");
+    assertThat(cli.properties().get("sonar.logLevel")).isEqualTo("DEBUG");
   }
 
   @Test
@@ -66,7 +66,7 @@ public class CliTest {
     cli.parse(new String[]{"-e"});
     assertThat(cli.isDebugMode()).isFalse();
     assertThat(cli.isDisplayStackTrace()).isTrue();
-    assertThat(cli.properties().get("sonar.verbose")).isNull();
+    assertThat(cli.properties().get("sonar.logLevel")).isNull();
   }
 
   @Test
@@ -74,6 +74,22 @@ public class CliTest {
     cli.parse(new String[0]);
     assertThat(cli.isDebugMode()).isFalse();
     assertThat(cli.isDisplayStackTrace()).isFalse();
-    assertThat(cli.properties().get("sonar.verbose")).isNull();
+    assertThat(cli.properties().get("sonar.logLevel")).isNull();
+  }
+
+  @Test
+  public void should_set_log_level() {
+    cli.parse(new String[]{"-l", "WARN"});
+    assertThat(cli.isDebugMode()).isFalse();
+    assertThat(cli.isDisplayStackTrace()).isFalse();
+    assertThat(cli.properties().get("sonar.logLevel")).isEqualTo("WARN");
+  }
+
+  @Test
+  public void should_enable_debug_mode_on_log_level_debug() {
+    cli.parse(new String[]{"-l", "DEBUG"});
+    assertThat(cli.isDebugMode()).isTrue();
+    assertThat(cli.isDisplayStackTrace()).isTrue();
+    assertThat(cli.properties().get("sonar.logLevel")).isEqualTo("DEBUG");
   }
 }
