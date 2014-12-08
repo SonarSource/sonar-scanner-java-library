@@ -108,7 +108,6 @@ class ServerConnection {
 
   private HttpRequest newHttpRequest(URL url) {
     HttpRequest request = HttpRequest.get(url);
-    request.trustAllCerts().trustAllHosts();
     request.acceptGzipEncoding().uncompress(true);
     request.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS).readTimeout(READ_TIMEOUT_MILLISECONDS);
     request.userAgent(userAgent);
