@@ -67,10 +67,33 @@ public class IsolatedLauncherTest {
   }
 
   @Test
+  public void testGetLogLevel() throws Exception {
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("INFO");
+
+    props.setProperty("sonar.logLevel", "WARN");
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("WARN");
+
+    props.setProperty("sonar.logLevel", "ERROR");
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("ERROR");
+
+    props.setProperty("sonar.logLevel", "DEBUG");
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("DEBUG");
+  }
+
+  @Test
   public void shouldDetermineVerboseMode() {
-    assertThat(launcher.isDebug(props)).isFalse();
+    assertThat(IsolatedLauncher.getLogLevel(props)).isNotEqualTo("DEBUG");
 
     props.setProperty("sonar.verbose", "true");
-    assertThat(launcher.isDebug(props)).isTrue();
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("DEBUG");
+  }
+
+  @Test
+  public void shouldIgnoreVerboseModeIfLogLevelIsSet() {
+    props.setProperty("sonar.verbose", "true");
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("DEBUG");
+
+    props.setProperty("sonar.logLevel", "WARN");
+    assertThat(IsolatedLauncher.getLogLevel(props)).isEqualTo("WARN");
   }
 }

@@ -20,6 +20,7 @@
 package org.sonar.runner;
 
 import org.sonar.runner.api.RunnerVersion;
+import org.sonar.runner.impl.Logs;
 
 class SystemInfo {
 
@@ -28,12 +29,12 @@ class SystemInfo {
   }
 
   static void print() {
-    System.out.println("SonarQube Runner " + RunnerVersion.version());
-    System.out.println(java());
-    System.out.println(os());
+    Logs.info("SonarQube Runner " + RunnerVersion.version());
+    Logs.info(java());
+    Logs.info(os());
     String runnerOpts = System.getenv("SONAR_RUNNER_OPTS");
     if (runnerOpts != null) {
-      System.out.println("SONAR_RUNNER_OPTS=" + runnerOpts);
+      Logs.info("SONAR_RUNNER_OPTS=" + runnerOpts);
     }
   }
 

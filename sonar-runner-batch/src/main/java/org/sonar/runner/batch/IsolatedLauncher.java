@@ -64,11 +64,14 @@ public class IsolatedLauncher {
     jc.setContext(context);
     context.reset();
     InputStream input = Batch.class.getResourceAsStream("/org/sonar/batch/logback.xml");
-    System.setProperty("ROOT_LOGGER_LEVEL", isDebug(props) ? DEBUG : "INFO");
+    System.setProperty("ROOT_LOGGER_LEVEL", getLogLevel(props));
     context.putProperty("SQL_LOGGER_LEVEL", getSqlLevel(props));
     context.putProperty("SQL_RESULTS_LOGGER_LEVEL", getSqlResultsLevel(props));
     try {
       jc.doConfigure(input);
+      if (props.containsKey("sonar.verbose")) {
+        LoggerFactory.getLogger(getClass()).warn("sonar.verbose is deprecated, use sonar.logLevel instead");
+      }
 
     } catch (JoranException e) {
       throw new SonarException("can not initialize logging", e);
@@ -79,8 +82,9 @@ public class IsolatedLauncher {
   }
 
   @VisibleForTesting
-  protected boolean isDebug(Properties props) {
-    return Boolean.parseBoolean(props.getProperty("sonar.verbose", FALSE));
+  protected static String getLogLevel(Properties props) {
+    String fallback = Boolean.parseBoolean(props.getProperty("sonar.verbose", FALSE)) ? DEBUG : "INFO";
+    return props.getProperty("sonar.logLevel", fallback);
   }
 
   @VisibleForTesting
