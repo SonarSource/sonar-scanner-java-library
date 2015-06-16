@@ -19,8 +19,10 @@
  */
 package org.sonar.runner.api;
 
+import org.sonar.home.log.LogListener.Level;
+import org.sonar.home.log.LogListener;
+import org.sonar.runner.impl.Logs;
 import org.mockito.Mockito;
-
 import org.mockito.ArgumentCaptor;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,9 +34,11 @@ import org.sonar.runner.impl.JarExtractor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static org.mockito.Matchers.any;
@@ -74,27 +78,46 @@ public class ForkedRunnerTest {
   }
 
   @Test
-  public void should_print_to_standard_outputs_by_default() throws IOException {
+  public void should_use_log_listener() throws IOException {
     JarExtractor jarExtractor = createMockExtractor();
 
     CommandExecutor commandExecutor = mock(CommandExecutor.class);
     ForkedRunner runner = new ForkedRunner(jarExtractor, commandExecutor);
     runner.execute();
+    LogListener listener = mock(LogListener.class);
+    Logs.setListener(listener);
 
-    verify(commandExecutor).execute(any(Command.class), argThat(new StdConsumerMatcher(System.out)), argThat(new StdConsumerMatcher(System.err)), anyLong(),
-        any(ProcessMonitor.class));
+    ArgumentCaptor<StreamConsumer> arg1 = ArgumentCaptor.forClass(StreamConsumer.class);
+    ArgumentCaptor<StreamConsumer> arg2 = ArgumentCaptor.forClass(StreamConsumer.class);
+
+    verify(commandExecutor).execute(any(Command.class), arg1.capture(), arg2.capture(), anyLong(), any(ProcessMonitor.class));
+    arg1.getValue().consumeLine("test1");
+    arg2.getValue().consumeLine("test2");
+
+    verify(listener).log("test1", Level.INFO);
+    verify(listener).log("test2", Level.ERROR);
+    verifyNoMoreInteractions(listener);
   }
 
-  static class StdConsumerMatcher extends ArgumentMatcher<StreamConsumer> {
-    PrintStream output;
+  @Test
+  public void should_print_to_consumers_by_default() throws IOException {
+    final List<String> printedLines = new LinkedList<>();
+    StreamConsumer consumer = new StreamConsumer() {
+      @Override
+      public void consumeLine(String line) {
+        printedLines.add(line);
+      }
+    };
+    JarExtractor jarExtractor = createMockExtractor();
 
-    StdConsumerMatcher(PrintStream output) {
-      this.output = output;
-    }
+    CommandExecutor commandExecutor = mock(CommandExecutor.class);
+    ForkedRunner runner = new ForkedRunner(jarExtractor, commandExecutor);
+    runner.setStdOut(consumer);
+    runner.setStdErr(consumer);
+    runner.execute();
 
-    public boolean matches(Object o) {
-      return ((PrintStreamConsumer) o).output == output;
-    }
+    verify(commandExecutor).execute(any(Command.class), eq(consumer), eq(consumer), anyLong(),
+      any(ProcessMonitor.class));
   }
 
   @Test
@@ -118,7 +141,7 @@ public class ForkedRunnerTest {
     assertThat(properties.getProperty("-Xmx512m")).isNull();
     assertThat(properties.getProperty("SONAR_HOME")).isNull();
   }
-  
+
   @Test
   public void should_merge_properties() throws IOException {
     JarExtractor jarExtractor = createMockExtractor();
@@ -132,7 +155,7 @@ public class ForkedRunnerTest {
     verify(spy).writeProperties(properties.capture());
     assertThat(properties.getValue().keySet()).contains("sonar.working.directory", "sonar.host.url", "sonar.sourceEncoding", "sonar.login");
   }
-  
+
   @Test
   public void test_java_command() throws IOException {
     JarExtractor jarExtractor = mock(JarExtractor.class);

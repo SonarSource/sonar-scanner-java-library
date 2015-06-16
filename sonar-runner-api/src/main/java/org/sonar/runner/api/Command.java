@@ -20,7 +20,12 @@
 package org.sonar.runner.api;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Collections;
 
 class Command {
   private final String executable;
@@ -94,7 +99,7 @@ class Command {
 
     Builder addArguments(List<String> args) {
       for (String arg : args) {
-        if (arg!=null && !"".equals(arg.trim())) {
+        if (arg != null && !"".equals(arg.trim())) {
           arguments.add(arg);
         }
       }

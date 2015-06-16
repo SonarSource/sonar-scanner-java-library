@@ -64,7 +64,7 @@ public class IsolatedLauncherProxy implements InvocationHandler {
 
   private static Throwable unwrapException(Throwable e) {
     Throwable cause = e;
-    
+
     while (cause.getCause() != null) {
       if (cause instanceof UndeclaredThrowableException || cause instanceof InvocationTargetException) {
         cause = cause.getCause();
