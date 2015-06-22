@@ -19,6 +19,8 @@
  */
 package org.sonar.runner.api;
 
+import org.sonar.runner.impl.Logs;
+
 import javax.annotation.Nullable;
 
 import java.io.BufferedReader;
@@ -80,7 +82,9 @@ class CommandExecutor {
       return exitCode;
 
     } catch (TimeoutException te) {
-      process.destroy();
+      if (process != null) {
+        process.destroy();
+      }
       throw new CommandException("Timeout exceeded: " + timeoutMilliseconds + " ms", command, te);
 
     } catch (CommandException e) {
@@ -99,7 +103,7 @@ class CommandExecutor {
     }
   }
 
-  private void monitorProcess(final ProcessMonitor processMonitor, final ExecutorService executor, final Process process) {
+  private static void monitorProcess(final ProcessMonitor processMonitor, final ExecutorService executor, final Process process) {
     new Thread() {
       @Override
       public void run() {
@@ -120,6 +124,7 @@ class CommandExecutor {
   private Future<Integer> executeProcess(ExecutorService executorService, Process process) {
     final Process finalProcess = process;
     return executorService.submit(new Callable<Integer>() {
+      @Override
       public Integer call() throws InterruptedException {
         return finalProcess.waitFor();
       }
@@ -146,8 +151,7 @@ class CommandExecutor {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        System.err.println("InterruptedException while waiting finish of " + thread.toString());
-        e.printStackTrace();
+        Logs.error("InterruptedException while waiting finish of " + thread.toString(), e);
       }
     }
   }

@@ -1,5 +1,5 @@
 /*
- * SonarQube Runner - Batch
+ * SonarQube Runner - Batch Interface
  * Copyright (C) 2011 SonarSource
  * dev@sonar.codehaus.org
  *
@@ -17,12 +17,23 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02
  */
-/**
- * Internal package that creates the project definition and launches the analyses based on it.
- * Should not be used by consumers.
- */
-@ParametersAreNonnullByDefault
 package org.sonar.runner.batch;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.sonar.home.log.LogListener;
 
+import java.util.List;
+import java.util.Properties;
+
+public interface IsolatedLauncher {
+  void start(Properties properties, List<Object> extensions);
+
+  void start(Properties properties, List<Object> extensions, LogListener logListener);
+
+  void stop();
+
+  void execute(Properties properties);
+
+  void executeOldVersion(Properties properties, List<Object> extensions);
+
+  String getVersion();
+}

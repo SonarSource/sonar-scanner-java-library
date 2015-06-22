@@ -19,8 +19,20 @@
  */
 package org.sonar.runner.api;
 
-class SimpleRunner extends Runner<SimpleRunner> {
+import java.util.Properties;
+
+class SimpleRunner extends Runner {
   @Override
-  protected void doExecute() {
+  protected void doExecute(Properties props) {
+  }
+
+  @Override
+  protected void doStart() {
+    
+  }
+
+  @Override
+  protected void doStop() {
+    
   }
 }

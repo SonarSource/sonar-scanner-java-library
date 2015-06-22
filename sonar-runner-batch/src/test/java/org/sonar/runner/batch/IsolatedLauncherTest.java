@@ -29,7 +29,7 @@ import static org.fest.assertions.Assertions.assertThat;
 public class IsolatedLauncherTest {
 
   Properties props = new Properties();
-  IsolatedLauncher launcher = new IsolatedLauncher();
+  BatchIsolatedLauncher launcher = new BatchIsolatedLauncher();
 
   @Test
   public void should_create_batch() {
@@ -38,38 +38,8 @@ public class IsolatedLauncherTest {
     props.setProperty("sonar.projectName", "Sample");
     props.setProperty("sonar.projectVersion", "1.0");
     props.setProperty("sonar.sources", "src");
-    Batch batch = launcher.createBatch(props, Collections.emptyList());
+    Batch batch = launcher.createBatch(props, Collections.emptyList(), null);
 
     assertThat(batch).isNotNull();
-  }
-
-  @Test
-  public void testGetSqlLevel() throws Exception {
-    assertThat(IsolatedLauncher.getSqlLevel(props)).isEqualTo("WARN");
-
-    props.setProperty("sonar.showSql", "true");
-    assertThat(IsolatedLauncher.getSqlLevel(props)).isEqualTo("DEBUG");
-
-    props.setProperty("sonar.showSql", "false");
-    assertThat(IsolatedLauncher.getSqlLevel(props)).isEqualTo("WARN");
-  }
-
-  @Test
-  public void testGetSqlResultsLevel() throws Exception {
-    assertThat(IsolatedLauncher.getSqlResultsLevel(props)).isEqualTo("WARN");
-
-    props.setProperty("sonar.showSqlResults", "true");
-    assertThat(IsolatedLauncher.getSqlResultsLevel(props)).isEqualTo("DEBUG");
-
-    props.setProperty("sonar.showSqlResults", "false");
-    assertThat(IsolatedLauncher.getSqlResultsLevel(props)).isEqualTo("WARN");
-  }
-
-  @Test
-  public void shouldDetermineVerboseMode() {
-    assertThat(launcher.isDebug(props)).isFalse();
-
-    props.setProperty("sonar.verbose", "true");
-    assertThat(launcher.isDebug(props)).isTrue();
   }
 }
