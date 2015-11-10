@@ -1,10 +1,7 @@
-SonarQube Runner [![Build Status](https://travis-ci.org/SonarSource/sonar-runner.svg?branch=master)](https://travis-ci.org/SonarSource/sonar-runner)
+SonarQube Scanner API [![Build Status](https://travis-ci.org/SonarSource/sonar-runner.svg?branch=master)](https://travis-ci.org/SonarSource/sonar-runner)
 =========================
 
-Bootstrapper of code analysis
-
-Documentation:
-http://docs.sonarqube.org/display/SONAR/Analyzing+with+SonarQube+Runner
+Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scanner for Gradle, SQ Scanner for Ant, ...) and by SonarLint. Used to programmatically run SQ analysis.
 
 Issue Tracker:
 http://jira.sonarsource.com/browse/SONARUNNER

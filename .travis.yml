@@ -7,14 +7,10 @@ jdk:
 install: true
 script: ./travis.sh
 
-env:
-  - TESTS=CI
-  - TESTS=IT-DEV
-  - TESTS=IT-DEV-SQ51
-  - TESTS=IT-DEV-LTS
-
 matrix:
-  fast_finish: true
+  env:
+    - JOB=CI
+    - PR_ANALYSIS=true
 
 cache:
   directories:
