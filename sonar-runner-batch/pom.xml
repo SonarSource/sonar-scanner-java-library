@@ -11,6 +11,7 @@
 
   <properties>
     <sonarBatchVersion>4.5.1</sonarBatchVersion>
+    <sonar.exclusions>src/main/java/org/sonar/batch/**/*</sonar.exclusions>
   </properties>
 
   <dependencies>
