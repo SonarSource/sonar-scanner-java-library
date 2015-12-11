@@ -19,167 +19,148 @@
  */
 package org.sonar.runner.impl;
 
-import com.github.kevinsawicki.http.HttpRequest;
-import com.github.kevinsawicki.http.HttpRequest.HttpRequestException;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.text.MessageFormat;
+import java.io.OutputStream;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.sonar.runner.cache.Logger;
 import org.sonar.runner.cache.PersistentCache;
 
+import static java.lang.String.format;
+import static org.sonar.runner.impl.InternalProperties.RUNNER_APP;
+import static org.sonar.runner.impl.InternalProperties.RUNNER_APP_VERSION;
+
 class ServerConnection {
 
-  private static final String SONAR_SERVER_CAN_NOT_BE_REACHED = "SonarQube server ''{0}'' can not be reached";
-  private static final String STATUS_RETURNED_BY_URL_IS_INVALID = "Status returned by url : ''{0}'' is invalid : {1}";
-  static final int CONNECT_TIMEOUT_MILLISECONDS = 5000;
-  static final int READ_TIMEOUT_MILLISECONDS = 60000;
-  private static final Pattern CHARSET_PATTERN = Pattern.compile("(?i)\\bcharset=\\s*\"?([^\\s;\"]*)");
-
-  private final String serverUrl;
+  private final String baseUrlWithoutTrailingSlash;
   private final String userAgent;
+  private final OkHttpClient httpClient;
 
   private final PersistentCache wsCache;
   private final boolean preferCache;
   private final Logger logger;
   private final boolean isCacheEnabled;
 
-  private ServerConnection(String serverUrl, String app, String appVersion, boolean preferCache, boolean cacheEnabled, PersistentCache cache, Logger logger) {
+  ServerConnection(String baseUrl, String userAgent, boolean preferCache, boolean cacheEnabled, PersistentCache cache, Logger logger) {
     this.isCacheEnabled = cacheEnabled;
     this.logger = logger;
-    this.serverUrl = removeEndSlash(serverUrl);
-    this.userAgent = app + "/" + appVersion;
+    this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
+    this.userAgent = userAgent;
     this.wsCache = cache;
     this.preferCache = preferCache;
+    this.httpClient = OkHttpClientFactory.create();
   }
 
-  private static String removeEndSlash(String url) {
-    return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+  private static String removeTrailingSlash(String url) {
+    return url.replaceAll("(/)+$", "");
   }
 
-  static ServerConnection create(Properties properties, PersistentCache cache, Logger logger, boolean preferCache) {
-    String serverUrl = properties.getProperty("sonar.host.url");
-    String app = properties.getProperty(InternalProperties.RUNNER_APP);
-    String appVersion = properties.getProperty(InternalProperties.RUNNER_APP_VERSION);
-    boolean enableCache = isCacheEnabled(properties);
-
-    return new ServerConnection(serverUrl, app, appVersion, preferCache, enableCache, cache, logger);
+  public static ServerConnection create(Properties props, PersistentCache cache, Logger logger, boolean preferCache) {
+    String serverUrl = props.getProperty("sonar.host.url");
+    String userAgent = format("%s/%s", props.getProperty(RUNNER_APP), props.getProperty(RUNNER_APP_VERSION));
+    boolean enableCache = "issues".equalsIgnoreCase(props.getProperty("sonar.analysis.mode"));
+    return new ServerConnection(serverUrl, userAgent, preferCache, enableCache, cache, logger);
   }
 
-  private static boolean isCacheEnabled(Properties properties) {
-    String analysisMode = properties.getProperty("sonar.analysis.mode");
-    return "issues".equalsIgnoreCase(analysisMode);
+  boolean isCacheEnabled() {
+    return isCacheEnabled;
   }
 
   /**
-   * 
-   * @throws HttpRequestException If there is an underlying IOException related to the connection
-   * @throws IOException If the HTTP response code is != 200
+   * Download file, without any caching mechanism.
+   *
+   * @param urlPath path starting with slash, for instance {@code "/batch/index"}
+   * @param toFile  the target file
+   * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
+   * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  private String downloadString(String url, boolean saveCache) throws HttpRequestException, IOException {
-    logger.debug("Download: " + url);
-    HttpRequest httpRequest = null;
-    try {
-      httpRequest = newHttpRequest(new URL(url));
-      String charset = getCharsetFromContentType(httpRequest.contentType());
-      if (charset == null || "".equals(charset)) {
-        charset = "UTF-8";
-      }
-      if (!httpRequest.ok()) {
-        throw new IOException(MessageFormat.format(STATUS_RETURNED_BY_URL_IS_INVALID, url, httpRequest.code()));
-      }
-
-      byte[] body = httpRequest.bytes();
-      if (saveCache) {
-        try {
-          wsCache.put(url, body);
-        } catch (IOException e) {
-          logger.warn("Failed to cache WS call: " + e.getMessage());
-        }
-      }
-      return new String(body, charset);
-    } finally {
-      if (httpRequest != null) {
-        httpRequest.disconnect();
-      }
+  public void downloadFile(String urlPath, File toFile) throws IOException, IllegalStateException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
     }
-  }
+    String url = baseUrlWithoutTrailingSlash + urlPath;
+    logger.debug(format("Download %s to %s", url, toFile.getAbsolutePath()));
+    ResponseBody responseBody = callUrl(url);
 
-  void download(String path, File toFile) {
-    String fullUrl = serverUrl + path;
-    try {
-      logger.debug("Download " + fullUrl + " to " + toFile.getAbsolutePath());
-      HttpRequest httpRequest = newHttpRequest(new URL(fullUrl));
-      if (!httpRequest.ok()) {
-        throw new IOException(MessageFormat.format(STATUS_RETURNED_BY_URL_IS_INVALID, fullUrl, httpRequest.code()));
-      }
-      httpRequest.receive(toFile);
-
-    } catch (Exception e) {
-      if (isCausedByConnection(e)) {
-        logger.error(MessageFormat.format(SONAR_SERVER_CAN_NOT_BE_REACHED, serverUrl));
-      }
+    try (OutputStream fileOutput = new FileOutputStream(toFile)) {
+      IOUtils.copyLarge(responseBody.byteStream(), fileOutput);
+    } catch (IOException | RuntimeException e) {
       FileUtils.deleteQuietly(toFile);
-      throw new IllegalStateException("Fail to download: " + fullUrl, e);
+      throw e;
     }
   }
 
   /**
-   * Tries to fetch from cache and server. If both attempts fail, it throws the exception linked to the server connection failure.
+   * Fetches from cache, if enabled, then request server if not cached. If both attempts fail, it throws the exception linked to the server connection failure.
    */
-  String loadString(String path) throws IOException {
-    String fullUrl = serverUrl + path;
-
-    if (isCacheEnabled && preferCache) {
-      return tryCacheFirst(fullUrl);
-    } else {
-      return tryServerFirst(fullUrl, isCacheEnabled);
+  public String download(String urlPath) throws IOException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
     }
-
+    String url = baseUrlWithoutTrailingSlash + urlPath;
+    if (isCacheEnabled && preferCache) {
+      return tryCacheFirst(url);
+    }
+    return tryServerFirst(url);
   }
 
-  private String tryCacheFirst(String fullUrl) throws IOException {
-    String cached = getFromCache(fullUrl);
+  /**
+   * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
+   * @throws IllegalStateException if HTTP response code is different than 2xx
+   */
+  private String downloadString(String url, boolean saveCache) throws IOException {
+    logger.debug(format("Download: %s", url));
+    ResponseBody responseBody = callUrl(url);
+    String content = responseBody.string();
+    if (saveCache) {
+      try {
+        wsCache.put(url, content.getBytes());
+      } catch (IOException e) {
+        logger.warn("Failed to cache WS call: " + e.getMessage());
+      }
+    }
+    // Response Content-Type is used when reading the body string
+    return content;
+  }
+
+  private String tryCacheFirst(String url) throws IOException {
+    String cached = getFromCache(url);
     if (cached != null) {
       return cached;
     }
-
     try {
-      return downloadString(fullUrl, preferCache);
-    } catch (Exception e) {
-      logger.error(MessageFormat.format("Data is not cached and " + SONAR_SERVER_CAN_NOT_BE_REACHED, serverUrl));
+      return downloadString(url, preferCache);
+    } catch (IOException | RuntimeException e) {
+      logger.error(format("Data is not cached and SonarQube server [%s] can not be reached", baseUrlWithoutTrailingSlash));
       throw e;
     }
   }
 
-  private String tryServerFirst(String fullUrl, boolean cacheEnabled) throws IOException {
+  private String tryServerFirst(String url) throws IOException {
     try {
-      return downloadString(fullUrl, cacheEnabled);
-    } catch (HttpRequest.HttpRequestException e) {
-      if (cacheEnabled && isCausedByConnection(e)) {
-        logger.info(MessageFormat.format(SONAR_SERVER_CAN_NOT_BE_REACHED + ", trying cache", serverUrl));
-        String cached = getFromCache(fullUrl);
+      return downloadString(url, isCacheEnabled);
+    } catch (IOException e) {
+      // connectivity error, response not received
+      if (isCacheEnabled) {
+        logger.info(format("SonarQube server [%s] can not be reached, trying cache", baseUrlWithoutTrailingSlash));
+        String cached = getFromCache(url);
         if (cached != null) {
           return cached;
         }
-        logger.error(MessageFormat.format(SONAR_SERVER_CAN_NOT_BE_REACHED + " and data is not cached", serverUrl));
+        logger.error(format("SonarQube server [%s] can not be reached and data is not cached", baseUrlWithoutTrailingSlash));
         throw e;
       }
 
-      logger.error(MessageFormat.format(SONAR_SERVER_CAN_NOT_BE_REACHED, serverUrl));
+      logger.error(format("SonarQube server [%s] can not be reached", baseUrlWithoutTrailingSlash));
       throw e;
     }
-  }
-
-  private static boolean isCausedByConnection(Exception e) {
-    return e.getCause() instanceof ConnectException || e.getCause() instanceof UnknownHostException ||
-      e.getCause() instanceof java.net.SocketTimeoutException;
   }
 
   private String getFromCache(String fullUrl) {
@@ -190,29 +171,20 @@ class ServerConnection {
     }
   }
 
-  private HttpRequest newHttpRequest(URL url) {
-    HttpRequest request = HttpRequest.get(url);
-    request.trustAllCerts().trustAllHosts();
-    request.acceptGzipEncoding().uncompress(true);
-    request.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS).readTimeout(READ_TIMEOUT_MILLISECONDS);
-    request.userAgent(userAgent);
-    return request;
-  }
-
   /**
-   * Parse out a charset from a content type header.
-   *
-   * @param contentType e.g. "text/html; charset=EUC-JP"
-   * @return "EUC-JP", or null if not found. Charset is trimmed and upper-cased.
+   * @throws IOException           if connectivity error/timeout (network)
+   * @throws IllegalStateException if HTTP code is different than 2xx
    */
-  static String getCharsetFromContentType(String contentType) {
-    if (contentType == null) {
-      return null;
+  private ResponseBody callUrl(String url) throws IOException, IllegalStateException {
+    Request request = new Request.Builder()
+      .url(url)
+      .addHeader("User-Agent", userAgent)
+      .get()
+      .build();
+    Response response = httpClient.newCall(request).execute();
+    if (!response.isSuccessful()) {
+      throw new IllegalStateException(format("Status returned by url [%s] is not valid: [%s]", response.request().url(), response.code()));
     }
-    Matcher m = CHARSET_PATTERN.matcher(contentType);
-    if (m.find()) {
-      return m.group(1).trim().toUpperCase();
-    }
-    return null;
+    return response.body();
   }
 }

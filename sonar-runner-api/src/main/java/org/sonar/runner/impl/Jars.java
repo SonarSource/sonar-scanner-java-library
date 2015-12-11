@@ -28,9 +28,9 @@ import org.sonar.runner.cache.FileCache;
 import org.sonar.runner.cache.FileCacheBuilder;
 import org.sonar.runner.cache.Logger;
 
+import static java.lang.String.format;
+
 class Jars {
-  private static final String BOOTSTRAP_INDEX_PATH = "/batch_bootstrap/index";
-  static final String BATCH_PATH = "/batch/";
 
   private final FileCache fileCache;
   private final ServerConnection connection;
@@ -67,15 +67,15 @@ class Jars {
     List<File> files = new ArrayList<>();
     logger.debug("Extract sonar-runner-batch in temp...");
     files.add(jarExtractor.extractToTemp("sonar-runner-batch"));
-    files.addAll(dowloadFiles());
+    files.addAll(downloadFiles());
     return files;
   }
 
-  private List<File> dowloadFiles() {
+  private List<File> downloadFiles() {
     try {
       List<File> files = new ArrayList<>();
       logger.debug("Get bootstrap index...");
-      String libs = connection.loadString(BOOTSTRAP_INDEX_PATH);
+      String libs = connection.download("/batch_bootstrap/index");
       logger.debug("Get bootstrap completed");
       String[] lines = libs.split("[\r\n]+");
       BatchFileDownloader batchFileDownloader = new BatchFileDownloader(connection);
@@ -103,7 +103,7 @@ class Jars {
 
     @Override
     public void download(String filename, File toFile) throws IOException {
-      connection.download(BATCH_PATH + filename, toFile);
+      connection.downloadFile(format("/batch/%s", filename), toFile);
     }
   }
 }

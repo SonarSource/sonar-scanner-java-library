@@ -19,16 +19,15 @@
  */
 package org.sonar.runner.impl;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.runner.cache.FileCache;
 import org.sonar.runner.cache.Logger;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
@@ -53,7 +52,7 @@ public class JarsTest {
     File batchJar = temp.newFile("sonar-runner-batch.jar");
     when(jarExtractor.extractToTemp("sonar-runner-batch")).thenReturn(batchJar);
     // index of the files to download
-    when(connection.loadString("/batch_bootstrap/index")).thenReturn(
+    when(connection.download("/batch_bootstrap/index")).thenReturn(
       "cpd.jar|CA124VADFSDS\n" +
         "squid.jar|34535FSFSDF\n");
 
@@ -61,7 +60,7 @@ public class JarsTest {
     List<File> files = jars35.download();
 
     assertThat(files).isNotNull();
-    verify(connection, times(1)).loadString("/batch_bootstrap/index");
+    verify(connection, times(1)).download("/batch_bootstrap/index");
     verifyNoMoreInteractions(connection);
     verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), any(FileCache.Downloader.class));
     verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), any(FileCache.Downloader.class));
@@ -82,7 +81,7 @@ public class JarsTest {
     File batchJar = temp.newFile("sonar-runner-batch.jar");
     when(jarExtractor.extractToTemp("sonar-runner-batch")).thenReturn(batchJar);
     // index of the files to download
-    when(connection.loadString("/batch_bootstrap/index")).thenThrow(new IllegalStateException());
+    when(connection.download("/batch_bootstrap/index")).thenThrow(new IllegalStateException());
 
     Jars jars35 = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
     try {
@@ -98,6 +97,6 @@ public class JarsTest {
     Jars.BatchFileDownloader downloader = new Jars.BatchFileDownloader(connection);
     File toFile = temp.newFile();
     downloader.download("squid.jar", toFile);
-    verify(connection).download("/batch/squid.jar", toFile);
+    verify(connection).downloadFile("/batch/squid.jar", toFile);
   }
 }
