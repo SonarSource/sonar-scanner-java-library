@@ -32,7 +32,8 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class Tls12Java7SocketFactory extends SSLSocketFactory {
 
-  public static final String[] TLS_PROTOCOLS = new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"};
+  // visible for testing
+  static final String[] TLS_PROTOCOLS = new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"};
 
   private final SSLSocketFactory delegate;
 
@@ -83,7 +84,7 @@ public class Tls12Java7SocketFactory extends SSLSocketFactory {
   /**
    * Enables TLS v1.0, 1.1 and 1.2 on the socket
    */
-  private Socket overrideProtocol(Socket socket) {
+  private static Socket overrideProtocol(Socket socket) {
     if (socket instanceof SSLSocket) {
       ((SSLSocket) socket).setEnabledProtocols(TLS_PROTOCOLS);
     }

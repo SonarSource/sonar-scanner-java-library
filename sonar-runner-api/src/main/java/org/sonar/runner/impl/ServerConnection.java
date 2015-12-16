@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -81,7 +82,7 @@ class ServerConnection {
    * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  public void downloadFile(String urlPath, File toFile) throws IOException, IllegalStateException {
+  public void downloadFile(String urlPath, File toFile) throws IOException {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
     }
@@ -121,12 +122,11 @@ class ServerConnection {
     String content = responseBody.string();
     if (saveCache) {
       try {
-        wsCache.put(url, content.getBytes());
+        wsCache.put(url, content.getBytes(StandardCharsets.UTF_8));
       } catch (IOException e) {
         logger.warn("Failed to cache WS call: " + e.getMessage());
       }
     }
-    // Response Content-Type is used when reading the body string
     return content;
   }
 
