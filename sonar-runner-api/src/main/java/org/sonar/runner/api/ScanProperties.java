@@ -1,7 +1,7 @@
 /*
  * SonarQube Runner - API
- * Copyright (C) 2011 SonarSource
- * sonarqube@googlegroups.com
+ * Copyright (C) 2011-2016 SonarSource SA
+ * mailto:contact AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -13,9 +13,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package org.sonar.runner.api;
 
@@ -42,7 +42,7 @@ public interface ScanProperties {
   String PROJECT_KEY = "sonar.projectKey";
 
   /**
-   * Used to define the exact key of each module. If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be <parent module key>:<PROJECT_KEY>.
+   * Used to define the exact key of each module. If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be &lt;parent module key&gt;:&lt;PROJECT_KEY&gt;.
    * @since SonarQube 4.1
    */
   String MODULE_KEY = "sonar.moduleKey";

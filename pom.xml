@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>24</version>
+    <version>25</version>
   </parent>
 
   <groupId>org.sonarsource.sonar-runner</groupId>
