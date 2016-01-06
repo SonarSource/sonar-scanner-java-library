@@ -31,9 +31,7 @@ public interface ScanProperties {
    * Default task
    *
    * @see RunnerProperties#TASK
-   * @deprecated since 2.5 No more task since SQ 5.2
    */
-  @Deprecated
   String SCAN_TASK = "scan";
 
   /**
@@ -42,7 +40,8 @@ public interface ScanProperties {
   String PROJECT_KEY = "sonar.projectKey";
 
   /**
-   * Used to define the exact key of each module. If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be &lt;parent module key&gt;:&lt;PROJECT_KEY&gt;.
+   * Used to define the exact key of each module. 
+   * If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be &lt;parent module key&gt;:&lt;PROJECT_KEY&gt;.
    * @since SonarQube 4.1
    */
   String MODULE_KEY = "sonar.moduleKey";
