@@ -19,21 +19,37 @@
  */
 package org.sonar.runner.cache;
 
+import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 public class PersistentCacheBuilderTest {
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
+  private Map<String, String> savedEnv;
+
+  @Before
+  public void saveEnv() {
+    savedEnv = new HashMap<>(System.getenv());
+  }
+
+  @After
+  public void restoreEnv() throws Exception {
+    setEnvForTesting(savedEnv);
+  }
 
   @Test
   public void user_home_property_can_be_null() {
@@ -52,14 +68,24 @@ public class PersistentCacheBuilderTest {
   }
 
   @Test
-  public void read_system_env() {
-    assumeTrue(System.getenv("SONAR_USER_HOME") == null);
+  public void read_system_env() throws Exception {
+    File homeFromEnv = temp.newFolder();
+    File homeFromSysProp = temp.newFolder();
 
-    System.setProperty("user.home", temp.getRoot().getAbsolutePath());
+    HashMap<String, String> env = new HashMap<>();
+    env.put("SONAR_USER_HOME", homeFromEnv.getAbsolutePath());
+    setEnvForTesting(env);
 
     PersistentCache cache = new PersistentCacheBuilder(mock(Logger.class)).setAreaForGlobal("url").build();
     assertTrue(Files.isDirectory(cache.getDirectory()));
-    assertThat(cache.getDirectory()).startsWith(temp.getRoot().toPath());
+    assertThat(cache.getDirectory()).startsWith(homeFromEnv.toPath());
+
+    setEnvForTesting(new HashMap<String, String>());
+    System.setProperty("user.home", homeFromSysProp.getAbsolutePath());
+
+    cache = new PersistentCacheBuilder(mock(Logger.class)).setAreaForGlobal("url").build();
+    assertTrue(Files.isDirectory(cache.getDirectory()));
+    assertThat(cache.getDirectory()).startsWith(homeFromSysProp.toPath());
   }
 
   @Test
@@ -74,5 +100,32 @@ public class PersistentCacheBuilderTest {
 
     cache = new PersistentCacheBuilder(mock(Logger.class)).setAreaForGlobal("url").build();
     assertThat(cache.getDirectory()).endsWith(Paths.get(".sonar", "ws_cache", "url", "global"));
+  }
+
+  protected static void setEnvForTesting(Map<String, String> newenv) throws Exception {
+    try {
+      Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+      Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+      theEnvironmentField.setAccessible(true);
+      Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+      env.putAll(newenv);
+      Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
+      theCaseInsensitiveEnvironmentField.setAccessible(true);
+      Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
+      cienv.putAll(newenv);
+    } catch (NoSuchFieldException e) {
+      Class[] classes = Collections.class.getDeclaredClasses();
+      Map<String, String> env = System.getenv();
+      for (Class cl : classes) {
+        if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+          Field field = cl.getDeclaredField("m");
+          field.setAccessible(true);
+          Object obj = field.get(env);
+          Map<String, String> map = (Map<String, String>) obj;
+          map.clear();
+          map.putAll(newenv);
+        }
+      }
+    }
   }
 }

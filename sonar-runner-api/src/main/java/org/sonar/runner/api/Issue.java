@@ -76,17 +76,9 @@ public final class Issue {
     private Integer endLine;
     private Integer endLineOffset;
 
-    public Integer getStartLine() {
-      return startLine;
-    }
-
     public Builder setStartLine(Integer startLine) {
       this.startLine = startLine;
       return this;
-    }
-
-    public Integer getStartLineOffset() {
-      return startLineOffset;
     }
 
     public Builder setStartLineOffset(Integer startLineOffset) {
@@ -94,17 +86,9 @@ public final class Issue {
       return this;
     }
 
-    public Integer getEndLine() {
-      return endLine;
-    }
-
     public Builder setEndLine(Integer endLine) {
       this.endLine = endLine;
       return this;
-    }
-
-    public Integer getEndLineOffset() {
-      return endLineOffset;
     }
 
     public Builder setEndLineOffset(Integer endLineOffset) {
@@ -112,17 +96,9 @@ public final class Issue {
       return this;
     }
 
-    public String getKey() {
-      return key;
-    }
-
     public Builder setKey(String key) {
       this.key = key;
       return this;
-    }
-
-    public String getComponentKey() {
-      return componentKey;
     }
 
     public Builder setComponentKey(String componentKey) {
@@ -130,17 +106,9 @@ public final class Issue {
       return this;
     }
 
-    public String getMessage() {
-      return message;
-    }
-
     public Builder setMessage(String message) {
       this.message = message;
       return this;
-    }
-
-    public String getRuleKey() {
-      return ruleKey;
     }
 
     public Builder setRuleKey(String ruleKey) {
@@ -148,17 +116,9 @@ public final class Issue {
       return this;
     }
 
-    public String getRuleName() {
-      return ruleKey;
-    }
-
     public Builder setRuleName(String ruleName) {
       this.ruleName = ruleName;
       return this;
-    }
-
-    public String getStatus() {
-      return status;
     }
 
     public Builder setStatus(String status) {
@@ -166,17 +126,9 @@ public final class Issue {
       return this;
     }
 
-    public String getResolution() {
-      return resolution;
-    }
-
     public Builder setResolution(String resolution) {
       this.resolution = resolution;
       return this;
-    }
-
-    public boolean isNew() {
-      return isNew;
     }
 
     public Builder setNew(boolean isNew) {
@@ -184,26 +136,14 @@ public final class Issue {
       return this;
     }
 
-    public String getAssigneeLogin() {
-      return assigneeLogin;
-    }
-
     public Builder setAssigneeLogin(String assigneeLogin) {
       this.assigneeLogin = assigneeLogin;
       return this;
     }
 
-    public String getAssigneeName() {
-      return assigneeName;
-    }
-
     public Builder setAssigneeName(String assigneeName) {
       this.assigneeName = assigneeName;
       return this;
-    }
-
-    public String getSeverity() {
-      return severity;
     }
 
     public Builder setSeverity(String severity) {
