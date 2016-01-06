@@ -108,12 +108,16 @@ public class PersistentCacheBuilderTest {
       Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
       theEnvironmentField.setAccessible(true);
       Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+      env.clear();
       env.putAll(newenv);
+      // For Windows
       Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
       theCaseInsensitiveEnvironmentField.setAccessible(true);
       Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
+      cienv.clear();
       cienv.putAll(newenv);
     } catch (NoSuchFieldException e) {
+      // For Linux
       Class[] classes = Collections.class.getDeclaredClasses();
       Map<String, String> env = System.getenv();
       for (Class cl : classes) {
