@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import javax.net.ssl.SSLSocketFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.sonar.runner.cache.Logger;
@@ -57,6 +58,7 @@ class ServerConnection {
     this.wsCache = cache;
     this.preferCache = preferCache;
     this.httpClient = OkHttpClientFactory.create();
+    this.httpClient.setSslSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
   }
 
   private static String removeTrailingSlash(String url) {
