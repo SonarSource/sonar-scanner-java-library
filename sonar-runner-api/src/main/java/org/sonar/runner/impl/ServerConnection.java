@@ -57,6 +57,7 @@ class ServerConnection {
     this.wsCache = cache;
     this.preferCache = preferCache;
     this.httpClient = OkHttpClientFactory.create();
+    this.httpClient.setSslSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
   }
 
   private static String removeTrailingSlash(String url) {
