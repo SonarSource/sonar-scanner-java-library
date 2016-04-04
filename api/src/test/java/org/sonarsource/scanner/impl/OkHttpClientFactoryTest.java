@@ -22,6 +22,7 @@ package org.sonarsource.scanner.impl;
 import com.squareup.okhttp.ConnectionSpec;
 import com.squareup.okhttp.OkHttpClient;
 import java.util.List;
+import javax.net.ssl.SSLSocketFactory;
 import org.junit.Test;
 import org.sonarsource.scanner.impl.OkHttpClientFactory;
 
@@ -49,8 +50,7 @@ public class OkHttpClientFactoryTest {
     OkHttpClient underTest = OkHttpClientFactory.create(javaVersion);
 
     assertTlsAndClearTextSpecifications(underTest);
-    // do not override the default TLS context provided by java 8
-    assertThat(underTest.getSslSocketFactory()).isNull();
+    assertThat(underTest.getSslSocketFactory()).isInstanceOf(SSLSocketFactory.getDefault().getClass());
   }
 
   private void assertTlsAndClearTextSpecifications(OkHttpClient client) {

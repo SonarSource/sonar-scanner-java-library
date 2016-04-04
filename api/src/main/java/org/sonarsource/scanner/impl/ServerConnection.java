@@ -28,7 +28,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Properties;
-import javax.net.ssl.SSLSocketFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.sonarsource.scanner.cache.Logger;
@@ -50,7 +49,6 @@ class ServerConnection {
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
     this.userAgent = userAgent;
     this.httpClient = OkHttpClientFactory.create();
-    this.httpClient.setSslSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
   }
 
   private static String removeTrailingSlash(String url) {
