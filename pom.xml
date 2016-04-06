@@ -3,21 +3,21 @@
   <parent>
     <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>26</version>
+    <version>31</version>
   </parent>
 
-  <groupId>org.sonarsource.sonar-runner</groupId>
-  <artifactId>sonar-runner</artifactId>
+  <groupId>org.sonarsource.scanner.api</groupId>
+  <artifactId>sonar-scanner-api-parent</artifactId>
   <version>2.6-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>SonarQube Scanner API</name>
-  <url>https://github.com/SonarSource/sonar-runner</url>
+  <name>SonarQube Scanner API - Parent</name>
+  <url>https://github.com/SonarSource/sonar-scanner-api</url>
   <inceptionYear>2011</inceptionYear>
 
   <modules>
-    <module>sonar-runner-api</module>
-    <module>sonar-runner-batch</module>
-    <module>sonar-runner-batch-interface</module>
+    <module>api</module>
+    <module>batch</module>
+    <module>batch-interface</module>
   </modules>
 
   <organization>
@@ -34,15 +34,14 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git@github.com:SonarSource/sonar-runner.git</connection>
-    <developerConnection>scm:git:git@github.com:SonarSource/sonar-runner.git</developerConnection>
-    <url>https://github.com/SonarSource/sonar-runner</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:git@github.com:SonarSource/sonar-scanner-api.git</connection>
+    <developerConnection>scm:git:git@github.com:SonarSource/sonar-scanner-api.git</developerConnection>
+    <url>https://github.com/SonarSource/sonar-scanner-api</url>
   </scm>
 
   <issueManagement>
     <system>JIRA</system>
-    <url>https://jira.sonarsource.com/browse/SONARUNNER</url>
+    <url>https://jira.sonarsource.com/browse/SCANNERAPI</url>
   </issueManagement>
 
   <properties>
@@ -137,14 +136,5 @@
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <releaseProfiles>sign</releaseProfiles>
-        </configuration>
-      </plugin>
-    </plugins>
   </build>
 </project>
