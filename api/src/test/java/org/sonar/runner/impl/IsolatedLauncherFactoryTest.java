@@ -19,16 +19,14 @@
  */
 package org.sonar.runner.impl;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.sonar.runner.batch.IsolatedLauncher;
-import org.sonar.runner.batch.IssueListener;
-import org.sonar.runner.batch.LogOutput;
-import org.sonar.runner.cache.Logger;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import org.junit.Before;
+import org.junit.Test;
+import org.sonar.runner.batch.IsolatedLauncher;
+import org.sonar.runner.batch.LogOutput;
+import org.sonar.runner.cache.Logger;
 
 import static org.fest.assertions.Fail.fail;
 import static org.mockito.Mockito.mock;
@@ -59,10 +57,9 @@ public class IsolatedLauncherFactoryTest {
 
   public static class FakeIsolatedLauncher implements IsolatedLauncher {
     public static Properties props = null;
-    public static IssueListener listener = null;
 
     @Override
-    public void start(Properties properties, LogOutput logger, boolean preferCache) {
+    public void start(Properties properties, LogOutput logger) {
     }
 
     @Override
@@ -83,14 +80,5 @@ public class IsolatedLauncherFactoryTest {
       return null;
     }
 
-    @Override
-    public void execute(Properties properties, IssueListener listener) {
-      FakeIsolatedLauncher.props = properties;
-      FakeIsolatedLauncher.listener = listener;
-    }
-
-    @Override
-    public void syncProject(String projectKey) {
-    }
   }
 }

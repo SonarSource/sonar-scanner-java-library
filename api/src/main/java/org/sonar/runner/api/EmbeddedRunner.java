@@ -19,12 +19,7 @@
  */
 package org.sonar.runner.api;
 
-import org.sonar.runner.cache.Logger;
-
-import org.sonar.runner.impl.ClassloadRules;
-
 import java.nio.charset.Charset;
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -32,10 +27,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
-
 import javax.annotation.Nullable;
-
 import org.sonar.runner.batch.IsolatedLauncher;
+import org.sonar.runner.cache.Logger;
+import org.sonar.runner.impl.ClassloadRules;
 import org.sonar.runner.impl.InternalProperties;
 import org.sonar.runner.impl.IsolatedLauncherFactory;
 import org.sonar.runner.impl.VersionUtils;
@@ -145,46 +140,20 @@ public class EmbeddedRunner {
   }
 
   /**
-   * Launch an analysis. 
+   * Launch an analysis.
    * Runner must have been started - see {@link #start()}.
    */
   public void runAnalysis(Properties analysisProperties) {
-    runAnalysis(analysisProperties, null);
-  }
-
-  /**
-   * Launch an analysis, providing optionally a issue listener.
-   * Runner must have been started - see {@link #start()}.
-   * Issue listener is supported starting in SQ 5.2. If a non-null listener is given for older versions, an exception is thrown
-   */
-  public void runAnalysis(Properties analysisProperties, @Nullable IssueListener issueListener) {
     checkLauncherExists();
     Properties copy = new Properties();
     copy.putAll(analysisProperties);
     initAnalysisProperties(copy);
-    doExecute(copy, issueListener);
-  }
-
-  /**
-   * Synchronizes the project's data in the local cache with the server, allowing analysis of the project to be done offline.
-   * Runner must have been started - see {@link #start()}.
-   * Only supported starting in SQ 5.2. For older versions, an exception is thrown
-   */
-  public void syncProject(String projectKey) {
-    checkLauncherExists();
-    if (!VersionUtils.isAtLeast52(launcher.getVersion())) {
-      throw new IllegalStateException("not supported in current SonarQube version: " + launcher.getVersion());
-    }
-    launcher.syncProject(projectKey);
+    doExecute(copy);
   }
 
   public void start() {
-    start(false);
-  }
-
-  public void start(boolean preferCache) {
     initGlobalDefaultValues();
-    doStart(preferCache);
+    doStart();
   }
 
   /**
@@ -243,10 +212,10 @@ public class EmbeddedRunner {
     }
   }
 
-  protected void doStart(boolean preferCache) {
+  protected void doStart() {
     checkLauncherDoesntExist();
     ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
-    launcher = launcherFactory.createLauncher(globalProperties(), rules, preferCache);
+    launcher = launcherFactory.createLauncher(globalProperties(), rules);
     if (VersionUtils.isAtLeast52(launcher.getVersion())) {
       launcher.start(globalProperties(), new org.sonar.runner.batch.LogOutput() {
 
@@ -255,7 +224,7 @@ public class EmbeddedRunner {
           logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name()));
         }
 
-      }, preferCache);
+      });
     }
   }
 
@@ -266,17 +235,10 @@ public class EmbeddedRunner {
     }
   }
 
-  protected void doExecute(Properties analysisProperties, @Nullable IssueListener issueListener) {
+  protected void doExecute(Properties analysisProperties) {
     if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      if (issueListener != null) {
-        launcher.execute(analysisProperties, new IssueListenerAdapter(issueListener));
-      } else {
-        launcher.execute(analysisProperties);
-      }
+      launcher.execute(analysisProperties);
     } else {
-      if (issueListener != null) {
-        throw new InvalidParameterException("Issue listeners not supported in current version: " + launcher.getVersion());
-      }
       Properties prop = new Properties();
       prop.putAll(globalProperties());
       prop.putAll(analysisProperties);

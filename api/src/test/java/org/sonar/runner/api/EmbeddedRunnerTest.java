@@ -19,6 +19,12 @@
  */
 package org.sonar.runner.api;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.LinkedList;
+import java.util.Properties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,16 +35,6 @@ import org.sonar.runner.batch.IsolatedLauncher;
 import org.sonar.runner.cache.Logger;
 import org.sonar.runner.impl.ClassloadRules;
 import org.sonar.runner.impl.IsolatedLauncherFactory;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
-
-import static org.mockito.Matchers.anyBoolean;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Matchers.any;
@@ -70,16 +66,8 @@ public class EmbeddedRunnerTest {
     batchLauncher = mock(IsolatedLauncherFactory.class);
     launcher = mock(IsolatedLauncher.class);
     when(launcher.getVersion()).thenReturn("5.2");
-    when(batchLauncher.createLauncher(any(Properties.class), any(ClassloadRules.class), anyBoolean())).thenReturn(launcher);
+    when(batchLauncher.createLauncher(any(Properties.class), any(ClassloadRules.class))).thenReturn(launcher);
     runner = new EmbeddedRunner(batchLauncher, mock(Logger.class), mock(LogOutput.class));
-  }
-
-  @Test
-  public void test_sync_project() {
-    String projectKey = "proj";
-    runner.start();
-    runner.syncProject(projectKey);
-    verify(launcher).syncProject(projectKey);
   }
 
   @Test
@@ -94,18 +82,6 @@ public class EmbeddedRunnerTest {
     expectedException.expectMessage("started");
 
     runner.runAnalysis(new Properties());
-  }
-
-  @Test
-  public void test_fail_project_sync_old_sq() {
-    when(launcher.getVersion()).thenReturn("5.0");
-
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("version");
-
-    runner.setGlobalProperty("sonar.projectKey", "foo");
-    runner.start();
-    runner.syncProject("foo");
   }
 
   @Test
@@ -132,7 +108,7 @@ public class EmbeddedRunnerTest {
       public boolean matches(Object o) {
         return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
       }
-    }), any(ClassloadRules.class), anyBoolean());
+    }), any(ClassloadRules.class));
 
     // it should have added a few properties to analysisProperties, and have merged global props
     final String[] mustHaveKeys = {"sonar.working.directory", "sonar.sourceEncoding", "sonar.projectBaseDir",
@@ -181,7 +157,7 @@ public class EmbeddedRunnerTest {
       public boolean matches(Object o) {
         return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
       }
-    }), any(ClassloadRules.class), anyBoolean());
+    }), any(ClassloadRules.class));
 
     // it should have added a few properties to analysisProperties
     final String[] mustHaveKeys = {"sonar.working.directory", "sonar.sourceEncoding", "sonar.projectBaseDir"};
@@ -201,40 +177,6 @@ public class EmbeddedRunnerTest {
   }
 
   @Test
-  public void test_issue_adapter() {
-    final List<Issue> issuesRecorded = new LinkedList<>();
-    IssueListener apiIssueListener = new IssueListener() {
-      @Override
-      public void handle(Issue issue) {
-        issuesRecorded.add(issue);
-      }
-    };
-    IssueListenerAdapter adapter = new IssueListenerAdapter(apiIssueListener);
-
-    org.sonar.runner.batch.IssueListener.Issue batchIssue = new org.sonar.runner.batch.IssueListener.Issue();
-    batchIssue.setAssigneeName("assignee");
-    adapter.handle(batchIssue);
-
-    assertThat(issuesRecorded).hasSize(1);
-    assertThat(issuesRecorded.get(0).getAssigneeName()).isEqualTo("assignee");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void reject_issue_listener_old_version() {
-    when(launcher.getVersion()).thenReturn("4.5");
-    launch_with_issue_listener();
-  }
-
-  @Test
-  public void launch_with_issue_listener() {
-    runner.start();
-    runner.runAnalysis(mock(Properties.class), mock(IssueListener.class));
-    runner.stop();
-
-    verify(launcher).execute(any(Properties.class), any(org.sonar.runner.batch.IssueListener.class));
-  }
-
-  @Test
   public void should_launch_batch_analysisProperties() {
     runner.setGlobalProperty("sonar.projectKey", "foo");
     runner.start();
@@ -249,7 +191,7 @@ public class EmbeddedRunnerTest {
       public boolean matches(Object o) {
         return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
       }
-    }), any(ClassloadRules.class), anyBoolean());
+    }), any(ClassloadRules.class));
 
     verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
       @Override

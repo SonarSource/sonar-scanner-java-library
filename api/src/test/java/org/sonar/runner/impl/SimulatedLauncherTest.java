@@ -19,24 +19,21 @@
  */
 package org.sonar.runner.impl;
 
-import org.sonar.runner.batch.IssueListener;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Properties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.runner.cache.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Properties;
-
-import static org.mockito.Mockito.doThrow;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 public class SimulatedLauncherTest {
@@ -62,20 +59,8 @@ public class SimulatedLauncherTest {
     Properties analysis = new Properties();
     analysis.putAll(createProperties(false));
 
-    launcher.start(global, null, false);
+    launcher.start(global, null);
     launcher.execute(analysis);
-    assertDump(global, analysis);
-  }
-
-  @Test
-  public void testDump_with_issue_listener() throws IOException {
-    Properties global = new Properties();
-    global.putAll(createProperties(true));
-    Properties analysis = new Properties();
-    analysis.putAll(createProperties(false));
-
-    launcher.start(global, null, false);
-    launcher.execute(analysis, mock(IssueListener.class));
     assertDump(global, analysis);
   }
 
@@ -92,18 +77,13 @@ public class SimulatedLauncherTest {
   }
 
   @Test
-  public void no_ops() {
-    launcher.syncProject(null);
-  }
-
-  @Test
   public void testOldExecute() {
     Properties global = new Properties();
     global.putAll(createProperties(true));
     Properties analysis = new Properties();
     analysis.putAll(createProperties(false));
 
-    launcher.start(global, null, false);
+    launcher.start(global, null);
     launcher.executeOldVersion(analysis, null);
 
   }

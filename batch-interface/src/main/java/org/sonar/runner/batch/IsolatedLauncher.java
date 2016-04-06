@@ -24,16 +24,12 @@ import java.util.Properties;
 
 public interface IsolatedLauncher {
 
-  void start(Properties properties, LogOutput logOutput, boolean preferCache);
+  void start(Properties properties, LogOutput logOutput);
 
   void stop();
 
   void execute(Properties properties);
-  
-  void execute(Properties properties, IssueListener listener);
-  
-  void syncProject(String projectKey);
-  
+
   void executeOldVersion(Properties properties, List<Object> extensions);
 
   String getVersion();

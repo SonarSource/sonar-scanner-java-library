@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.sonar.batch.bootstrapper.Batch;
 
 /**
@@ -52,9 +51,9 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
   }
 
   @Override
-  public void start(Properties globalProperties, org.sonar.runner.batch.LogOutput logOutput, boolean preferCache) {
+  public void start(Properties globalProperties, org.sonar.runner.batch.LogOutput logOutput) {
     batch = factory.createBatch(globalProperties, logOutput, null);
-    batch.start(preferCache);
+    batch.start();
   }
 
   @Override
@@ -65,17 +64,6 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
   @Override
   public void execute(Properties properties) {
     batch.executeTask((Map) properties);
-  }
-
-  @Override
-  public void execute(Properties properties, IssueListener listener) {
-    org.sonar.batch.bootstrapper.IssueListener batchIssueListener = Compatibility.getBatchIssueListener(listener, hasPreciseIssueLocation(getVersion()));
-    batch.executeTask((Map) properties, batchIssueListener);
-  }
-
-  @Override
-  public void syncProject(String projectKey) {
-    batch.syncProject(projectKey);
   }
 
   /**

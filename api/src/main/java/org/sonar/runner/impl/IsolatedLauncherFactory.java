@@ -19,17 +19,13 @@
  */
 package org.sonar.runner.impl;
 
-import org.sonar.runner.batch.IsolatedLauncher;
-import org.sonar.runner.cache.Logger;
-import org.sonar.runner.cache.PersistentCache;
-import org.sonar.runner.cache.PersistentCacheBuilder;
-
 import java.io.File;
-import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Properties;
+import org.sonar.runner.batch.IsolatedLauncher;
+import org.sonar.runner.cache.Logger;
 
 public class IsolatedLauncherFactory {
   static final String ISOLATED_LAUNCHER_IMPL = "org.sonar.runner.batch.BatchIsolatedLauncher";
@@ -50,18 +46,6 @@ public class IsolatedLauncherFactory {
     this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
   }
 
-  private PersistentCache getCache(Properties props) {
-    PersistentCacheBuilder builder = new PersistentCacheBuilder(logger);
-    String serverUrl = props.getProperty("sonar.host.url");
-    String home = props.getProperty("sonar.userHome");
-
-    builder.setAreaForGlobal(serverUrl);
-    if (home != null) {
-      builder.setSonarHome(Paths.get(home));
-    }
-    return builder.build();
-  }
-
   private ClassLoader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
     IsolatedClassloader classloader = new IsolatedClassloader(getClass().getClassLoader(), maskRules);
     classloader.addFiles(jarFiles);
@@ -69,7 +53,7 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncher createLauncher(Properties props, ClassloadRules rules, boolean preferCache) {
+  public IsolatedLauncher createLauncher(Properties props, ClassloadRules rules) {
     if (props.containsKey(InternalProperties.RUNNER_DUMP_TO_FILE)) {
       String version = props.getProperty(InternalProperties.RUNNER_VERSION_SIMULATION);
       if (version == null) {
@@ -77,7 +61,7 @@ public class IsolatedLauncherFactory {
       }
       return new SimulatedLauncher(version, logger);
     }
-    ServerConnection serverConnection = ServerConnection.create(props, getCache(props), logger, preferCache);
+    ServerConnection serverConnection = ServerConnection.create(props, logger);
     JarDownloader jarDownloader = new JarDownloader(serverConnection, logger, props);
 
     return createLauncher(jarDownloader, rules);

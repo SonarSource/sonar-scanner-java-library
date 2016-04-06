@@ -19,24 +19,21 @@
  */
 package org.sonar.runner.batch;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.sonar.batch.bootstrapper.Batch;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.junit.Before;
+import org.junit.Test;
+import org.sonar.batch.bootstrapper.Batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class BatchIsolatedLauncherTest {
   private Batch batch;
@@ -85,39 +82,16 @@ public class BatchIsolatedLauncherTest {
     verifyNoMoreInteractions(factory);
   }
 
-  @Test(expected = NullPointerException.class)
-  public void executeWithoutStart() {
-    IssueListener issueListener = mock(IssueListener.class);
-    Properties prop = new Properties();
-    launcher.execute(prop, issueListener);
-  }
-
-  @Test
-  public void executeWithListener() {
-    IssueListener issueListener = mock(IssueListener.class);
-    Properties prop = new Properties();
-
-    launcher.start(null, null, true);
-    launcher.execute(prop, issueListener);
-
-    verify(batch).start(true);
-    verify(batch).executeTask(eq((Map) prop), any(org.sonar.batch.bootstrapper.IssueListener.class));
-
-    verifyNoMoreInteractions(batch);
-  }
-
   @Test
   public void proxy() {
     Properties prop = new Properties();
 
-    launcher.start(prop, null, true);
-    launcher.syncProject("proj");
+    launcher.start(prop, null);
     launcher.execute(prop);
     launcher.stop();
 
     verify(factory).createBatch(any(Properties.class), any(LogOutput.class), anyListOf(Object.class));
-    verify(batch).start(true);
-    verify(batch).syncProject("proj");
+    verify(batch).start();
     verify(batch).executeTask((Map) prop);
     verify(batch).stop();
 

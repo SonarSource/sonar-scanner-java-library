@@ -19,18 +19,15 @@
  */
 package org.sonar.runner.impl;
 
-import org.sonar.runner.batch.IsolatedLauncher;
-import org.sonar.runner.batch.IssueListener;
-import org.sonar.runner.batch.LogOutput;
-import org.sonar.runner.cache.Logger;
-
-import javax.annotation.Nullable;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Properties;
+import javax.annotation.Nullable;
+import org.sonar.runner.batch.IsolatedLauncher;
+import org.sonar.runner.batch.LogOutput;
+import org.sonar.runner.cache.Logger;
 
 public class SimulatedLauncher implements IsolatedLauncher {
   private final String version;
@@ -43,7 +40,7 @@ public class SimulatedLauncher implements IsolatedLauncher {
   }
 
   @Override
-  public void start(Properties properties, LogOutput logOutput, boolean preferCache) {
+  public void start(Properties properties, LogOutput logOutput) {
     globalProperties = properties;
   }
 
@@ -54,11 +51,6 @@ public class SimulatedLauncher implements IsolatedLauncher {
 
   @Override
   public void execute(Properties properties) {
-    dumpProperties(globalProperties, properties);
-  }
-
-  @Override
-  public void execute(Properties properties, IssueListener listener) {
     dumpProperties(globalProperties, properties);
   }
 
@@ -93,11 +85,6 @@ public class SimulatedLauncher implements IsolatedLauncher {
     } catch (Exception e) {
       throw new IllegalStateException("Fail to export sonar-runner properties", e);
     }
-  }
-
-  @Override
-  public void syncProject(String projectKey) {
-    // no op
   }
 
   @Override

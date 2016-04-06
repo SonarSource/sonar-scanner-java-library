@@ -75,7 +75,7 @@ class Jars {
     try {
       List<File> files = new ArrayList<>();
       logger.debug("Get bootstrap index...");
-      String libs = connection.download("/batch_bootstrap/index");
+      String libs = connection.downloadString("/batch_bootstrap/index");
       logger.debug("Get bootstrap completed");
       String[] lines = libs.split("[\r\n]+");
       BatchFileDownloader batchFileDownloader = new BatchFileDownloader(connection);
