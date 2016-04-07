@@ -27,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sonar.batch.bootstrapper.Batch;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.mock;
@@ -46,26 +45,6 @@ public class BatchIsolatedLauncherTest {
     batch = mock(Batch.class);
     when(factory.createBatch(any(Properties.class), any(LogOutput.class), anyListOf(Object.class))).thenReturn(batch);
     launcher = new BatchIsolatedLauncher(factory);
-  }
-
-  @Test
-  public void supportsPreciseLocation() {
-    assertThat(launcher.hasPreciseIssueLocation("5.2.9")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("5.2")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("5.")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation(null)).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("4.5")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("4.5-SNAPSHOT")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("4-RC1")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("6")).isFalse();
-    assertThat(launcher.hasPreciseIssueLocation("e6.0")).isFalse();
-
-    assertThat(launcher.hasPreciseIssueLocation("5.3")).isTrue();
-    assertThat(launcher.hasPreciseIssueLocation("5.10.1")).isTrue();
-    assertThat(launcher.hasPreciseIssueLocation("5.3.1")).isTrue();
-    assertThat(launcher.hasPreciseIssueLocation("6.0")).isTrue();
-    assertThat(launcher.hasPreciseIssueLocation("5.3-SNAPSHOT")).isTrue();
-    assertThat(launcher.hasPreciseIssueLocation("5.3-RC1")).isTrue();
   }
 
   @Test

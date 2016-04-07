@@ -10,8 +10,7 @@
   <name>SonarQube Scanner API - Batch</name>
 
   <properties>
-    <sonarBatchVersion>4.5.1</sonarBatchVersion>
-    <sonar.exclusions>src/main/java/org/sonar/batch/**/*</sonar.exclusions>
+    <sonarQubeVersion>5.3</sonarQubeVersion>
   </properties>
 
   <dependencies>
@@ -22,17 +21,17 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.sonar</groupId>
+      <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-batch</artifactId>
-      <version>${sonarBatchVersion}</version>
+      <version>${sonarQubeVersion}</version>
       <scope>provided</scope>
     </dependency>
 
     <!-- Unit tests -->
     <dependency>
-      <groupId>org.codehaus.sonar</groupId>
+      <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-testing-harness</artifactId>
-      <version>${sonarBatchVersion}</version>
+      <version>${sonarQubeVersion}</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -66,15 +65,6 @@
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/org/sonar/batch/bootstrapper/*</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

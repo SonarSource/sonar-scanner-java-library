@@ -27,8 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.sonar.batch.bootstrapper.Batch;
 
 /**
@@ -36,10 +34,8 @@ import org.sonar.batch.bootstrapper.Batch;
  * the same version of sonar-batch as the server.
  */
 public class BatchIsolatedLauncher implements IsolatedLauncher {
-  private static final String VERSION_FORMAT = "^(\\d+)\\.(\\d+)";
   private Batch batch = null;
   private final BatchFactory factory;
-  private final Pattern versionPattern;
 
   public BatchIsolatedLauncher() {
     this(new DefaultBatchFactory());
@@ -47,7 +43,6 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
 
   public BatchIsolatedLauncher(BatchFactory factory) {
     this.factory = factory;
-    this.versionPattern = Pattern.compile(VERSION_FORMAT);
   }
 
   @Override
@@ -72,22 +67,6 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
   @Override
   public void executeOldVersion(Properties properties, List<Object> extensions) {
     factory.createBatch(properties, null, extensions).execute();
-  }
-
-  boolean hasPreciseIssueLocation(String version) {
-    if (version == null) {
-      return false;
-    }
-
-    Matcher matcher = versionPattern.matcher(version);
-    if (!matcher.find() || matcher.groupCount() < 2) {
-      return false;
-    }
-
-    Integer major = Integer.parseInt(matcher.group(1));
-    Integer minor = Integer.parseInt(matcher.group(2));
-
-    return major > 5 || (major == 5 && minor >= 3);
   }
 
   @Override

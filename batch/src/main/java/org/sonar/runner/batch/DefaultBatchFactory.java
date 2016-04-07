@@ -19,13 +19,12 @@
  */
 package org.sonar.runner.batch;
 
-import org.picocontainer.annotations.Nullable;
-import org.sonar.batch.bootstrapper.Batch;
-import org.sonar.batch.bootstrapper.EnvironmentInformation;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.picocontainer.annotations.Nullable;
+import org.sonar.batch.bootstrapper.Batch;
+import org.sonar.batch.bootstrapper.EnvironmentInformation;
 
 class DefaultBatchFactory implements BatchFactory {
   @Override
@@ -40,7 +39,7 @@ class DefaultBatchFactory implements BatchFactory {
     }
 
     if (logOutput != null) {
-      // Do that is a separate class to avoid NoClassDefFoundError for org/sonar/batch/bootstrapper/LogOutput
+      // Do that in a separate class to avoid NoClassDefFoundError for org/sonar/batch/bootstrapper/LogOutput
       Compatibility.setLogOutputFor5dot2(builder, logOutput);
     }
 
