@@ -17,44 +17,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.api;
+package org.sonarsource.scanner.api.internal;
 
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.File;
+import java.util.List;
+import java.util.Properties;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-class LoggerAdapter implements Logger {
-  private LogOutput logOutput;
+class JarDownloader {
+  private final ServerConnection serverConnection;
+  private final Logger logger;
+  private final Properties props;
 
-  LoggerAdapter(LogOutput logOutput) {
-    this.logOutput = logOutput;
+  JarDownloader(ServerConnection conn, Logger logger, Properties props) {
+    this.serverConnection = conn;
+    this.logger = logger;
+    this.props = props;
   }
 
-  @Override
-  public void warn(String msg) {
-    logOutput.log(msg, LogOutput.Level.WARN);
-  }
-
-  @Override
-  public void info(String msg) {
-    logOutput.log(msg, LogOutput.Level.INFO);
-  }
-
-  @Override
-  public void error(String msg, Throwable t) {
-    StringWriter errors = new StringWriter();
-    t.printStackTrace(new PrintWriter(errors));
-    logOutput.log(msg + "\n" + errors.toString(), LogOutput.Level.ERROR);
-  }
-
-  @Override
-  public void error(String msg) {
-    logOutput.log(msg, LogOutput.Level.ERROR);
-  }
-
-  @Override
-  public void debug(String msg) {
-    logOutput.log(msg, LogOutput.Level.DEBUG);
+  List<File> download() {
+    return new Jars(serverConnection, new JarExtractor(), logger, props).download();
   }
 }

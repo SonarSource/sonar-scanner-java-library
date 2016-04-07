@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
-import org.sonarsource.scanner.cache.Logger;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 
 class Dirs {

@@ -28,7 +28,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sonarsource.scanner.api.Dirs;
 import org.sonarsource.scanner.api.ScanProperties;
 import org.sonarsource.scanner.api.ScannerProperties;
-import org.sonarsource.scanner.cache.Logger;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;

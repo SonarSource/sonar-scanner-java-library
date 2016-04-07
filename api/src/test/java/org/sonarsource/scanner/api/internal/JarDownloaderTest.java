@@ -17,44 +17,32 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.api;
+package org.sonarsource.scanner.api.internal;
 
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import org.junit.Test;
+import org.sonarsource.scanner.api.internal.JarDownloader;
+import org.sonarsource.scanner.api.internal.ServerConnection;
 import org.sonarsource.scanner.api.internal.cache.Logger;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
-class LoggerAdapter implements Logger {
-  private LogOutput logOutput;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
-  LoggerAdapter(LogOutput logOutput) {
-    this.logOutput = logOutput;
-  }
+public class JarDownloaderTest {
 
-  @Override
-  public void warn(String msg) {
-    logOutput.log(msg, LogOutput.Level.WARN);
-  }
+  ServerConnection serverConnection = mock(ServerConnection.class);
+  Properties props = new Properties();
+  JarDownloader downloader = spy(new JarDownloader(serverConnection, mock(Logger.class), props));
 
-  @Override
-  public void info(String msg) {
-    logOutput.log(msg, LogOutput.Level.INFO);
-  }
-
-  @Override
-  public void error(String msg, Throwable t) {
-    StringWriter errors = new StringWriter();
-    t.printStackTrace(new PrintWriter(errors));
-    logOutput.log(msg + "\n" + errors.toString(), LogOutput.Level.ERROR);
-  }
-
-  @Override
-  public void error(String msg) {
-    logOutput.log(msg, LogOutput.Level.ERROR);
-  }
-
-  @Override
-  public void debug(String msg) {
-    logOutput.log(msg, LogOutput.Level.DEBUG);
+  @Test
+  public void should_download_jar_files() {
+    doReturn(new ArrayList<File>()).when(downloader).download();
+    List<File> jarFiles = downloader.download();
+    assertThat(jarFiles).isNotNull();
   }
 }

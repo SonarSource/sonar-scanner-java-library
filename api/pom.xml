@@ -86,34 +86,6 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>sonar-scanner-api-batch</artifactId>
-                  <version>${project.version}</version>
-                  <type>jar</type>
-                  <overWrite>false</overWrite>
-                  <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                  <destFileName>sonar-runner-batch.jar</destFileName>
-                </artifactItem>
-              </artifactItems>
-              <overWriteReleases>true</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <executions>
           <execution>
@@ -127,19 +99,15 @@
               <relocations>
                 <relocation>
                   <pattern>com.squareup.okhttp</pattern>
-                  <shadedPattern>org.sonarsource.scanner.shaded.okhttp</shadedPattern>
+                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.okhttp</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>okio</pattern>
-                  <shadedPattern>org.sonarsource.scanner.shaded.okio</shadedPattern>
+                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.okio</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons.io</pattern>
-                  <shadedPattern>org.sonarsource.scanner.shaded.commonsio</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.sonar.home</pattern>
-                  <shadedPattern>org.sonarsource.scanner.shaded.home</shadedPattern>
+                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.commonsio</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>

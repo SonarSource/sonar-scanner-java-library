@@ -28,12 +28,12 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import javax.annotation.Nullable;
-import org.sonar.runner.batch.IsolatedLauncher;
-import org.sonarsource.scanner.cache.Logger;
-import org.sonarsource.scanner.impl.ClassloadRules;
-import org.sonarsource.scanner.impl.InternalProperties;
-import org.sonarsource.scanner.impl.IsolatedLauncherFactory;
-import org.sonarsource.scanner.impl.VersionUtils;
+import org.sonarsource.scanner.api.internal.ClassloadRules;
+import org.sonarsource.scanner.api.internal.InternalProperties;
+import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.api.internal.VersionUtils;
+import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 /**
  * Entry point to run SonarQube analysis programmatically.
@@ -217,7 +217,7 @@ public class EmbeddedScanner {
     ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
     launcher = launcherFactory.createLauncher(globalProperties(), rules);
     if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.start(globalProperties(), new org.sonar.runner.batch.LogOutput() {
+      launcher.start(globalProperties(), new org.sonarsource.scanner.api.internal.batch.LogOutput() {
 
         @Override
         public void log(String formattedMessage, Level level) {

@@ -31,12 +31,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentMatcher;
-import org.sonar.runner.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.EmbeddedScanner;
 import org.sonarsource.scanner.api.LogOutput;
-import org.sonarsource.scanner.cache.Logger;
-import org.sonarsource.scanner.impl.ClassloadRules;
-import org.sonarsource.scanner.impl.IsolatedLauncherFactory;
+import org.sonarsource.scanner.api.internal.ClassloadRules;
+import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Matchers.any;
