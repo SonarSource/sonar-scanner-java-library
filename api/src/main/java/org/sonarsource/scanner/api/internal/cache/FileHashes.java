@@ -47,7 +47,7 @@ class FileHashes {
    * Computes the hash of given stream. The stream is closed by this method.
    */
   String of(InputStream input) {
-    try(InputStream is = input) {
+    try (InputStream is = input) {
       MessageDigest digest = MessageDigest.getInstance("MD5");
       byte[] hash = digest(is, digest);
       return toHex(hash);
@@ -68,6 +68,7 @@ class FileHashes {
 
   static String toHex(byte[] bytes) {
     BigInteger bi = new BigInteger(1, bytes);
-    return String.format("%0" + (bytes.length << 1) + "x", bi);
+    String hexFormat = "%0" + (bytes.length << 1) + "x";
+    return String.format(hexFormat, bi);
   }
 }

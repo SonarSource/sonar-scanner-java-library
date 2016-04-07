@@ -11,6 +11,7 @@
   <version>2.6-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>SonarQube Scanner API - Parent</name>
+  <description>API used by all SonarQube Scanners (Maven, Gradle, Ant, CLI)</description>
   <url>https://github.com/SonarSource/sonar-scanner-api</url>
   <inceptionYear>2011</inceptionYear>
 

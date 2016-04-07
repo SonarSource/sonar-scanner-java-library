@@ -103,7 +103,7 @@ class ServerConnection {
    * @throws IOException           if connectivity error/timeout (network)
    * @throws IllegalStateException if HTTP code is different than 2xx
    */
-  private ResponseBody callUrl(String url) throws IOException, IllegalStateException {
+  private ResponseBody callUrl(String url) throws IOException {
     Request request = new Request.Builder()
       .url(url)
       .addHeader("User-Agent", userAgent)
