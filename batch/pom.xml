@@ -10,7 +10,7 @@
   <name>SonarQube Scanner API - Batch</name>
 
   <properties>
-    <sonarQubeVersion>5.3</sonarQubeVersion>
+    <sonarQubeVersion>5.4</sonarQubeVersion>
   </properties>
 
   <dependencies>
