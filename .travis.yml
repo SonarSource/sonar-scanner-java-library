@@ -9,12 +9,12 @@ script: ./travis.sh
 
 env:
   matrix:
-    - JOB=CI
-    - PR_ANALYSIS=true
+    - TARGET=CI
 
 cache:
   directories:
     - '$HOME/.m2/repository'
+    - '$HOME/.sonar'
 
 notifications:
   email: false
