@@ -65,8 +65,8 @@ class Jars {
 
   List<File> download() {
     List<File> files = new ArrayList<>();
-    logger.debug("Extract sonar-runner-batch in temp...");
-    files.add(jarExtractor.extractToTemp("sonar-runner-batch"));
+    logger.debug("Extract sonar-scanner-api-batch in temp...");
+    files.add(jarExtractor.extractToTemp("sonar-scanner-api-batch"));
     files.addAll(downloadFiles());
     return files;
   }

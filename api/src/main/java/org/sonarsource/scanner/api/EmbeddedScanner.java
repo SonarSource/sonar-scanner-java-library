@@ -53,7 +53,7 @@ public class EmbeddedScanner {
     this.logger = logger;
     this.launcherFactory = bl;
     this.logOutput = logOutput;
-    this.classloaderUnmask.add("org.sonar.runner.batch.");
+    this.classloaderUnmask.add("org.sonarsource.scanner.api.internal.batch.");
   }
 
   public static EmbeddedScanner create(final LogOutput logOutput) {

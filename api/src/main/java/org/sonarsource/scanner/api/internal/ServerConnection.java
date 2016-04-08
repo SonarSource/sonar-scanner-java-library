@@ -26,6 +26,7 @@ import com.squareup.okhttp.ResponseBody;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -77,8 +78,8 @@ class ServerConnection {
     logger.debug(format("Download %s to %s", url, toFile.getAbsolutePath()));
     ResponseBody responseBody = callUrl(url);
 
-    try (OutputStream fileOutput = new FileOutputStream(toFile)) {
-      IOUtils.copyLarge(responseBody.byteStream(), fileOutput);
+    try (OutputStream fileOutput = new FileOutputStream(toFile); InputStream byteStream = responseBody.byteStream()) {
+      IOUtils.copyLarge(byteStream, fileOutput);
     } catch (IOException | RuntimeException e) {
       FileUtils.deleteQuietly(toFile);
       throw e;

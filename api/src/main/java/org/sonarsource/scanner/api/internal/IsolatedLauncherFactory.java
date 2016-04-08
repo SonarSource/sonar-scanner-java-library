@@ -28,7 +28,7 @@ import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 public class IsolatedLauncherFactory {
-  static final String ISOLATED_LAUNCHER_IMPL = "org.sonar.runner.batch.BatchIsolatedLauncher";
+  static final String ISOLATED_LAUNCHER_IMPL = "org.sonarsource.scanner.api.internal.batch.BatchIsolatedLauncher";
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
