@@ -105,15 +105,20 @@ class ServerConnection {
    * @throws IllegalStateException if HTTP code is different than 2xx
    */
   private ResponseBody callUrl(String url) throws IOException {
-    Request request = new Request.Builder()
-      .url(url)
-      .addHeader("User-Agent", userAgent)
-      .get()
-      .build();
-    Response response = httpClient.newCall(request).execute();
-    if (!response.isSuccessful()) {
-      throw new IllegalStateException(format("Status returned by url [%s] is not valid: [%s]", response.request().url(), response.code()));
+    try {
+      Request request = new Request.Builder()
+        .url(url)
+        .addHeader("User-Agent", userAgent)
+        .get()
+        .build();
+      Response response = httpClient.newCall(request).execute();
+      if (!response.isSuccessful()) {
+        throw new IllegalStateException(format("Status returned by url [%s] is not valid: [%s]", response.request().url(), response.code()));
+      }
+      return response.body();
+    } catch (Exception e) {
+      logger.error(format("SonarQube server [%s] can not be reached", baseUrlWithoutTrailingSlash));
+      throw e;
     }
-    return response.body();
   }
 }
