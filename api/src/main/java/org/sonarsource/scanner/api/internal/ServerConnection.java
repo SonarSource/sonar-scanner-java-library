@@ -20,6 +20,8 @@
 package org.sonarsource.scanner.api.internal;
 
 import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Authenticator;
+import com.squareup.okhttp.Credentials;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
@@ -56,10 +58,27 @@ class ServerConnection {
     return url.replaceAll("(/)+$", "");
   }
 
-  public static ServerConnection create(Properties props, Logger logger) {
+  public static ServerConnection create(final Properties props, Logger logger) {
     String serverUrl = props.getProperty("sonar.host.url");
     String userAgent = format("%s/%s", props.getProperty(RUNNER_APP), props.getProperty(RUNNER_APP_VERSION));
-    return new ServerConnection(serverUrl, userAgent, logger);
+    ServerConnection sc = new ServerConnection(serverUrl, userAgent, logger);
+    sc.httpClient.setAuthenticator(new Authenticator() {
+       private Properties localProps = props;
+       @Override public Request authenticate(java.net.Proxy proxy, com.squareup.okhttp.Response  response) throws IOException {
+           String login = localProps.getProperty("sonar.http.login");
+           String pass = localProps.getProperty("sonar.http.password");
+           Request result = null;
+           if (login != null && pass != null)
+           {
+               String credential = Credentials.basic(login, pass);
+               result = response.request().newBuilder().header("Authorization", credential).build();
+           }
+           return result;
+       }
+
+       @Override public Request authenticateProxy(java.net.Proxy proxy, com.squareup.okhttp.Response response) throws IOException { return authenticate(proxy, response); }
+    });
+    return sc;
   }
 
   /**
