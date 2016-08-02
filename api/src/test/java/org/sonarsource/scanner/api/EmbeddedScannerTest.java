@@ -45,6 +45,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.anyListOf;
 
 public class EmbeddedScannerTest {
 
@@ -62,14 +64,16 @@ public class EmbeddedScannerTest {
   private IsolatedLauncherFactory batchLauncher;
   private IsolatedLauncher launcher;
   private EmbeddedScanner runner;
+  private Logger logger;
 
   @Before
   public void setUp() {
     batchLauncher = mock(IsolatedLauncherFactory.class);
     launcher = mock(IsolatedLauncher.class);
+    logger = mock(Logger.class);
     when(launcher.getVersion()).thenReturn("5.2");
     when(batchLauncher.createLauncher(any(Properties.class), any(ClassloadRules.class))).thenReturn(launcher);
-    runner = new EmbeddedScanner(batchLauncher, mock(Logger.class), mock(LogOutput.class));
+    runner = new EmbeddedScanner(batchLauncher, logger, mock(LogOutput.class));
   }
 
   @Test
@@ -176,6 +180,20 @@ public class EmbeddedScannerTest {
         return true;
       }
     }));
+  }
+
+  @Test
+  public void should_skip() {
+    runner.start();
+
+    Properties analysisProperties = new Properties();
+    analysisProperties.put("sonar.scanner.skip", "true");
+    runner.runAnalysis(analysisProperties);
+    runner.stop();
+
+    verify(launcher, never()).execute(any(Properties.class));
+    verify(launcher, never()).executeOldVersion(any(Properties.class), anyListOf(Object.class));
+    verify(logger).info("SonarQube Scanner analysis skipped");
   }
 
   @Test

@@ -75,4 +75,9 @@ public interface ScanProperties {
    */
   String PROJECT_SOURCE_ENCODING = "sonar.sourceEncoding";
 
+  /**
+   * Skip analysis.
+   */
+  String SKIP = "sonar.scanner.skip";
+
 }

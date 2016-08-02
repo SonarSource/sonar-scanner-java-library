@@ -145,6 +145,9 @@ public class EmbeddedScanner {
    */
   public void runAnalysis(Properties analysisProperties) {
     checkLauncherExists();
+    if (isSkip(analysisProperties)) {
+      return;
+    }
     Properties copy = new Properties();
     copy.putAll(analysisProperties);
     initAnalysisProperties(copy);
@@ -233,6 +236,14 @@ public class EmbeddedScanner {
       launcher.stop();
       launcher = null;
     }
+  }
+
+  private boolean isSkip(Properties analysisProperties) {
+    if ("true".equalsIgnoreCase(analysisProperties.getProperty(ScanProperties.SKIP))) {
+      logger.info("SonarQube Scanner analysis skipped");
+      return true;
+    }
+    return false;
   }
 
   protected void doExecute(Properties analysisProperties) {

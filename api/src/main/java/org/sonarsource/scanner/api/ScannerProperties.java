@@ -40,4 +40,5 @@ public interface ScannerProperties {
    * Working directory containing generated reports and temporary data.
    */
   String WORK_DIR = "sonar.working.directory";
+  
 }
