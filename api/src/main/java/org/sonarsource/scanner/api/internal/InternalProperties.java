@@ -25,4 +25,5 @@ public interface InternalProperties {
   String RUNNER_DUMP_TO_FILE = "sonarRunner.dumpToFile";
   String RUNNER_VERSION_SIMULATION = "sonarRunner.versionSimulation";
   String RUNNER_MASK_RULES = "sonarRunner.maskRules";
+  String SONARQUBE_SCANNER_PARAMS = "SONARQUBE_SCANNER_PARAMS";
 }

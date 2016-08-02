@@ -35,6 +35,10 @@
       <artifactId>sonar-scanner-api-batch-interface</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.eclipsesource.minimal-json</groupId>
+      <artifactId>minimal-json</artifactId>
+    </dependency>
 
     <!-- unit tests -->
     <dependency>

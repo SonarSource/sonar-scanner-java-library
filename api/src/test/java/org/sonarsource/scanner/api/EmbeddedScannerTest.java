@@ -19,34 +19,38 @@
  */
 package org.sonarsource.scanner.api;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Properties;
+
+import org.apache.commons.codec.binary.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentMatcher;
-import org.sonarsource.scanner.api.EmbeddedScanner;
-import org.sonarsource.scanner.api.LogOutput;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
+import org.sonarsource.scanner.api.internal.InternalProperties;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.anyListOf;
 
 public class EmbeddedScannerTest {
 
@@ -73,7 +77,7 @@ public class EmbeddedScannerTest {
     logger = mock(Logger.class);
     when(launcher.getVersion()).thenReturn("5.2");
     when(batchLauncher.createLauncher(any(Properties.class), any(ClassloadRules.class))).thenReturn(launcher);
-    runner = new EmbeddedScanner(batchLauncher, logger, mock(LogOutput.class));
+    runner = new EmbeddedScanner(batchLauncher, logger, mock(LogOutput.class), Collections.<String, String>emptyMap());
   }
 
   @Test
@@ -152,6 +156,41 @@ public class EmbeddedScannerTest {
   }
 
   @Test
+  public void should_use_environment_var() {
+    String json = "{\"sonar.prop1\" : \"v1\", \"sonar.prop2\" : \"v2\"}";
+    Map<String, String> env = new HashMap<>();
+    env.put(InternalProperties.SONARQUBE_SCANNER_PARAMS, json);
+
+    runner = new EmbeddedScanner(batchLauncher, logger, mock(LogOutput.class), env);
+
+    // higher priority
+    Properties props = new Properties();
+    props.setProperty("sonar.prop2", "v3");
+
+    runner.start();
+    runner.runAnalysis(props);
+    runner.stop();
+
+    // it should have added a few properties to analysisProperties
+    final Map<String, String> expectedProps = new HashMap<>();
+    expectedProps.put("sonar.prop1", "v1");
+    expectedProps.put("sonar.prop2", "v3");
+
+    verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
+      @Override
+      public boolean matches(Object o) {
+        Properties m = (Properties) o;
+        for (Map.Entry<String, String> s : expectedProps.entrySet()) {
+          if (!StringUtils.equals(m.getProperty(s.getKey()), s.getValue())) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }));
+  }
+
+  @Test
   public void should_launch_batch() {
     runner.setGlobalProperty("sonar.projectKey", "foo");
     runner.start();
@@ -224,7 +263,7 @@ public class EmbeddedScannerTest {
   @Test
   public void should_launch_in_simulation_mode() throws IOException {
     batchLauncher = new IsolatedLauncherFactory(mock(Logger.class));
-    runner = new EmbeddedScanner(batchLauncher, mock(Logger.class), mock(LogOutput.class));
+    runner = new EmbeddedScanner(batchLauncher, mock(Logger.class), mock(LogOutput.class), Collections.<String, String>emptyMap());
 
     File dump = temp.newFile();
     Properties p = new Properties();

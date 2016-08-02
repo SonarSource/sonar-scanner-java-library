@@ -23,17 +23,25 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import javax.annotation.Nullable;
+
 import org.sonarsource.scanner.api.internal.ClassloadRules;
 import org.sonarsource.scanner.api.internal.InternalProperties;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.api.internal.VersionUtils;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
+
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonObject.Member;
+import com.eclipsesource.json.JsonValue;
 
 /**
  * Entry point to run SonarQube analysis programmatically.
@@ -48,17 +56,19 @@ public class EmbeddedScanner {
   private final Logger logger;
   private final Set<String> classloaderMask = new HashSet<>();
   private final Set<String> classloaderUnmask = new HashSet<>();
+  private final Map<String, String> env;
 
-  EmbeddedScanner(IsolatedLauncherFactory bl, Logger logger, LogOutput logOutput) {
+  EmbeddedScanner(IsolatedLauncherFactory bl, Logger logger, LogOutput logOutput, Map<String, String> env) {
     this.logger = logger;
     this.launcherFactory = bl;
     this.logOutput = logOutput;
+    this.env = env;
     this.classloaderUnmask.add("org.sonarsource.scanner.api.internal.batch.");
   }
 
   public static EmbeddedScanner create(final LogOutput logOutput) {
     Logger logger = new LoggerAdapter(logOutput);
-    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput);
+    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput, System.getenv());
   }
 
   public Properties globalProperties() {
@@ -149,6 +159,7 @@ public class EmbeddedScanner {
       return;
     }
     Properties copy = new Properties();
+    addEnvScannerParams(copy);
     copy.putAll(analysisProperties);
     initAnalysisProperties(copy);
     doExecute(copy);
@@ -206,6 +217,27 @@ public class EmbeddedScanner {
       }
       logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
         + (platformDependent ? " (analysis is platform dependent)" : ""));
+    }
+  }
+
+  void addEnvScannerParams(Properties props) {
+    String scannerParams = env.get(InternalProperties.SONARQUBE_SCANNER_PARAMS);
+    if (scannerParams != null) {
+      try {
+        
+        JsonValue jsonValue = Json.parse(scannerParams);
+        JsonObject jsonObject = jsonValue.asObject();
+        Iterator<Member> it = jsonObject.iterator();
+
+        while (it.hasNext()) {
+          Member member = it.next();
+          String key = member.getName();
+          String value = member.getValue().asString();
+          props.put(key, value);
+        }
+      } catch (Exception e) {
+        throw new IllegalStateException("Failed to parse JSON in SONARQUBE_SCANNER_PARAMS environment variable", e);
+      }
     }
   }
 
