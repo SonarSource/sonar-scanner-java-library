@@ -31,13 +31,45 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.annotation.Nullable;
 
-class Utils {
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.JsonObject.Member;
+
+public class Utils {
+  private static final String SONARQUBE_SCANNER_PARAMS = "SONARQUBE_SCANNER_PARAMS";
+
   private Utils() {
     // only util static methods
+  }
+
+  public static Properties loadEnvironmentProperties(Map<String, String> env) {
+    String scannerParams = env.get(SONARQUBE_SCANNER_PARAMS);
+    Properties props = new Properties();
+
+    if (scannerParams != null) {
+      try {
+
+        JsonValue jsonValue = Json.parse(scannerParams);
+        JsonObject jsonObject = jsonValue.asObject();
+        Iterator<Member> it = jsonObject.iterator();
+
+        while (it.hasNext()) {
+          Member member = it.next();
+          String key = member.getName();
+          String value = member.getValue().asString();
+          props.put(key, value);
+        }
+      } catch (Exception e) {
+        throw new IllegalStateException("Failed to parse JSON in SONARQUBE_SCANNER_PARAMS environment variable", e);
+      }
+    }
+    return props;
   }
 
   /**
