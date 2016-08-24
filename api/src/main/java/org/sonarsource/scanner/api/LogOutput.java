@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.api;
 
+@FunctionalInterface
 public interface LogOutput {
   
   void log(String formattedMessage, Level level);

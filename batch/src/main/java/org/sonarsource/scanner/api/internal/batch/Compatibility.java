@@ -20,22 +20,14 @@
 package org.sonarsource.scanner.api.internal.batch;
 
 import org.sonar.batch.bootstrapper.Batch;
-import org.sonar.batch.bootstrapper.LogOutput;
 
 public class Compatibility {
   private Compatibility() {
     // Utility class
   }
 
-  static void setLogOutputFor5dot2(Batch.Builder builder, final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput) {
-    builder.setLogOutput(new LogOutput() {
-
-      @Override
-      public void log(String formattedMessage, Level level) {
-        logOutput.log(formattedMessage, org.sonarsource.scanner.api.internal.batch.LogOutput.Level.valueOf(level.name()));
-      }
-
-    });
+  static void setLogOutputFor5dot2(Batch.Builder builder, final LogOutput logOutput) {
+    builder.setLogOutput((formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
   }
 
 }

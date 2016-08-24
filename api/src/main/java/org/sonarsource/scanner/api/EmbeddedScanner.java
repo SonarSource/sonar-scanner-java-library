@@ -220,14 +220,7 @@ public class EmbeddedScanner {
     ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
     launcher = launcherFactory.createLauncher(globalProperties(), rules);
     if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.start(globalProperties(), new org.sonarsource.scanner.api.internal.batch.LogOutput() {
-
-        @Override
-        public void log(String formattedMessage, Level level) {
-          logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name()));
-        }
-
-      });
+      launcher.start(globalProperties(), (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
     }
   }
 

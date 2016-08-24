@@ -23,6 +23,7 @@ package org.sonarsource.scanner.api.internal.batch;
  * Allow to redirect batch logs to a custom output. By defaults logs are written to System.out
  * @since 5.2
  */
+@FunctionalInterface
 public interface LogOutput {
 
   void log(String formattedMessage, Level level);
