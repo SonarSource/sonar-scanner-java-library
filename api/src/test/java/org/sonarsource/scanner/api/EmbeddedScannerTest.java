@@ -45,8 +45,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.anyListOf;
 
 public class EmbeddedScannerTest {
 
@@ -180,20 +178,6 @@ public class EmbeddedScannerTest {
         return true;
       }
     }));
-  }
-
-  @Test
-  public void should_skip() {
-    runner.start();
-
-    Properties analysisProperties = new Properties();
-    analysisProperties.put("sonar.scanner.skip", "true");
-    runner.runAnalysis(analysisProperties);
-    runner.stop();
-
-    verify(launcher, never()).execute(any(Properties.class));
-    verify(launcher, never()).executeOldVersion(any(Properties.class), anyListOf(Object.class));
-    verify(logger).info("SonarQube Scanner analysis skipped");
   }
 
   @Test
