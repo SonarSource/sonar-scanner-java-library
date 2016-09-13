@@ -54,8 +54,8 @@ public class IsolatedLauncherFactory {
   }
 
   public IsolatedLauncher createLauncher(Properties props, ClassloadRules rules) {
-    if (props.containsKey(InternalProperties.RUNNER_DUMP_TO_FILE)) {
-      String version = props.getProperty(InternalProperties.RUNNER_VERSION_SIMULATION);
+    if (props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE) || props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED)) {
+      String version = props.getProperty(InternalProperties.SCANNER_VERSION_SIMULATION);
       if (version == null) {
         version = "5.2";
       }

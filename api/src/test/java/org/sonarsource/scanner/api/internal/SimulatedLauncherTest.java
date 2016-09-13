@@ -23,13 +23,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Properties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.api.internal.InternalProperties;
-import org.sonarsource.scanner.api.internal.SimulatedLauncher;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,11 +40,23 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+@RunWith(Parameterized.class)
 public class SimulatedLauncherTest {
   private static final String VERSION = "5.2";
   private SimulatedLauncher launcher;
   private Logger logger;
   private String filename;
+
+  @Parameters(name = "use_deprecated_prop={0}")
+  public static Iterable<Object[]> data() {
+    return Arrays.asList(new Object[][] {{true}, {false}});
+  }
+
+  private final boolean useDeprecatedProp;
+
+  public SimulatedLauncherTest(boolean useDeprecatedProp) {
+    this.useDeprecatedProp = useDeprecatedProp;
+  }
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
@@ -94,7 +108,7 @@ public class SimulatedLauncherTest {
     Properties prop = new Properties();
     prop.put("key1_" + global, "value1");
     prop.put("key2_" + global, "value2");
-    prop.put(InternalProperties.RUNNER_DUMP_TO_FILE, filename);
+    prop.put(useDeprecatedProp ? InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED : InternalProperties.SCANNER_DUMP_TO_FILE, filename);
     return prop;
   }
 

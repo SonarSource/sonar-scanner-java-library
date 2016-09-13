@@ -59,10 +59,10 @@ public class SimulatedLauncher implements IsolatedLauncher {
     String filePath;
     String filePathGlobal = null;
     if (global != null) {
-      filePath = global.getProperty(InternalProperties.RUNNER_DUMP_TO_FILE);
+      filePath = global.getProperty(InternalProperties.SCANNER_DUMP_TO_FILE, global.getProperty(InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED));
       filePathGlobal = filePath + ".global";
     } else {
-      filePath = analysis.getProperty(InternalProperties.RUNNER_DUMP_TO_FILE);
+      filePath = analysis.getProperty(InternalProperties.SCANNER_DUMP_TO_FILE, analysis.getProperty(InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED));
     }
 
     if (filePath == null) {

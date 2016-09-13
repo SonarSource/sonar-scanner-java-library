@@ -34,8 +34,8 @@ import org.apache.commons.io.IOUtils;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.lang.String.format;
-import static org.sonarsource.scanner.api.internal.InternalProperties.RUNNER_APP;
-import static org.sonarsource.scanner.api.internal.InternalProperties.RUNNER_APP_VERSION;
+import static org.sonarsource.scanner.api.internal.InternalProperties.SCANNER_APP;
+import static org.sonarsource.scanner.api.internal.InternalProperties.SCANNER_APP_VERSION;
 
 class ServerConnection {
 
@@ -58,7 +58,7 @@ class ServerConnection {
 
   public static ServerConnection create(Properties props, Logger logger) {
     String serverUrl = props.getProperty("sonar.host.url");
-    String userAgent = format("%s/%s", props.getProperty(RUNNER_APP), props.getProperty(RUNNER_APP_VERSION));
+    String userAgent = format("%s/%s", props.getProperty(SCANNER_APP), props.getProperty(SCANNER_APP_VERSION));
     return new ServerConnection(serverUrl, userAgent, logger);
   }
 

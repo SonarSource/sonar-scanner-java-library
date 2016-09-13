@@ -20,9 +20,9 @@
 package org.sonarsource.scanner.api.internal;
 
 public interface InternalProperties {
-  String RUNNER_APP = "sonarRunner.app";
-  String RUNNER_APP_VERSION = "sonarRunner.appVersion";
-  String RUNNER_DUMP_TO_FILE = "sonarRunner.dumpToFile";
-  String RUNNER_VERSION_SIMULATION = "sonarRunner.versionSimulation";
-  String RUNNER_MASK_RULES = "sonarRunner.maskRules";
+  String SCANNER_APP = "sonar.scanner.app";
+  String SCANNER_APP_VERSION = "sonar.scanner.appVersion";
+  String SCANNER_DUMP_TO_FILE_DEPRECATED = "sonarRunner.dumpToFile";
+  String SCANNER_DUMP_TO_FILE = "sonar.scanner.dumpToFile";
+  String SCANNER_VERSION_SIMULATION = "sonar.scanner.versionSimulation";
 }

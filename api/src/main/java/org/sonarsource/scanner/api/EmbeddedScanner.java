@@ -111,13 +111,13 @@ public class EmbeddedScanner {
    * User-agent used in the HTTP requests to the SonarQube server
    */
   public EmbeddedScanner setApp(String app, String version) {
-    setGlobalProperty(InternalProperties.RUNNER_APP, app);
-    setGlobalProperty(InternalProperties.RUNNER_APP_VERSION, version);
+    setGlobalProperty(InternalProperties.SCANNER_APP, app);
+    setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
     return this;
   }
 
   public String app() {
-    return globalProperty(InternalProperties.RUNNER_APP, null);
+    return globalProperty(InternalProperties.SCANNER_APP, null);
   }
 
   /**
@@ -136,7 +136,7 @@ public class EmbeddedScanner {
   }
 
   public String appVersion() {
-    return globalProperty(InternalProperties.RUNNER_APP_VERSION, null);
+    return globalProperty(InternalProperties.SCANNER_APP_VERSION, null);
   }
 
   /**
@@ -182,8 +182,8 @@ public class EmbeddedScanner {
 
   private void initGlobalDefaultValues() {
     setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
-    setGlobalDefaultValue(InternalProperties.RUNNER_APP, "SonarQubeRunner");
-    setGlobalDefaultValue(InternalProperties.RUNNER_APP_VERSION, ScannerApiVersion.version());
+    setGlobalDefaultValue(InternalProperties.SCANNER_APP, "SonarQubeScanner");
+    setGlobalDefaultValue(InternalProperties.SCANNER_APP_VERSION, ScannerApiVersion.version());
   }
 
   private void initAnalysisProperties(Properties p) {
