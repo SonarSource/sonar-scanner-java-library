@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.api;
 
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.sonarsource.scanner.api.StdOutLogOutput;
 import org.sonarsource.scanner.api.LogOutput.Level;
 import java.io.PrintStream;
@@ -36,5 +37,14 @@ public class StdOutLogOutputTest {
   public void test() {
     logOutput.log("msg", Level.INFO);
     verify(stdOut).println("INFO: msg");
+  }
+  
+  @Test
+  public void testDebugAndTrace() {
+    logOutput.log("msg1", Level.DEBUG);
+    logOutput.log("msg2", Level.TRACE);
+    verify(stdOut).println(Matchers.matches("\\d\\d:\\d\\d:\\d\\d.\\d\\d\\d DEBUG: msg1$"));
+    verify(stdOut).println(Matchers.matches("\\d\\d:\\d\\d:\\d\\d.\\d\\d\\d TRACE: msg2$"));
+
   }
 }
