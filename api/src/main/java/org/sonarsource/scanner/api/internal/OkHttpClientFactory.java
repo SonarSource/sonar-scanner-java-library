@@ -19,65 +19,141 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import com.squareup.okhttp.ConnectionSpec;
-import com.squareup.okhttp.OkHttpClient;
+import okhttp3.ConnectionSpec;
+import okhttp3.OkHttpClient;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
+
+import java.io.FileInputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.util.Arrays;
 
 public class OkHttpClientFactory {
 
   static final int CONNECT_TIMEOUT_MILLISECONDS = 5000;
   static final int READ_TIMEOUT_MILLISECONDS = 60000;
+  static final String NONE = "NONE";
+  static final String P11KEYSTORE = "PKCS11";
 
   private OkHttpClientFactory() {
     // only statics
   }
 
-  public static OkHttpClient create() {
-    return create(new JavaVersion());
-  }
+  static OkHttpClient create(Logger logger) {
+    OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
-  static OkHttpClient create(JavaVersion javaVersion) {
-    OkHttpClient httpClient = new OkHttpClient();
-    httpClient.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
-    httpClient.setReadTimeout(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+    okHttpClientBuilder.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+    okHttpClientBuilder.readTimeout(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
       .allEnabledTlsVersions()
       .allEnabledCipherSuites()
       .supportsTlsExtensions(true)
       .build();
-    httpClient.setConnectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
-    httpClient.setSslSocketFactory(createSslSocketFactory(javaVersion));
-    return httpClient;
+    okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
+    X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
+    okHttpClientBuilder.sslSocketFactory(systemDefaultSslSocketFactory(systemDefaultTrustManager, logger), systemDefaultTrustManager);
+
+    return okHttpClientBuilder.build();
   }
 
-  private static SSLSocketFactory createSslSocketFactory(JavaVersion javaVersion) {
+  private static X509TrustManager systemDefaultTrustManager() {
     try {
-      SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-      return enableTls12InJava7(sslSocketFactory, javaVersion);
+      TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+      trustManagerFactory.init((KeyStore) null);
+      TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+      if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
+        throw new IllegalStateException("Unexpected default trust managers:" + Arrays.toString(trustManagers));
+      }
+      return (X509TrustManager) trustManagers[0];
+    } catch (GeneralSecurityException e) {
+      // The system has no TLS. Just give up.
+      throw new AssertionError(e);
+    }
+  }
+
+  private static SSLSocketFactory systemDefaultSslSocketFactory(X509TrustManager trustManager, Logger logger) {
+    KeyManager[] defaultKeyManager;
+    try {
+      defaultKeyManager = getDefaultKeyManager(logger);
     } catch (Exception e) {
-      throw new IllegalStateException("Fail to init TLS context", e);
+      throw new IllegalStateException("Unable to get default key manager", e);
+    }
+    try {
+      SSLContext sslContext = SSLContext.getInstance("TLS");
+      sslContext.init(defaultKeyManager, new TrustManager[] {trustManager}, null);
+      return sslContext.getSocketFactory();
+    } catch (GeneralSecurityException e) {
+      // The system has no TLS. Just give up.
+      throw new AssertionError(e);
     }
   }
 
-  private static SSLSocketFactory enableTls12InJava7(SSLSocketFactory sslSocketFactory, JavaVersion javaVersion) {
-    if (javaVersion.isJava7()) {
-      // OkHttp executes SSLContext.getInstance("TLS") by default (see
-      // https://github.com/square/okhttp/blob/c358656/okhttp/src/main/java/com/squareup/okhttp/OkHttpClient.java#L616)
-      // As only TLS 1.0 is enabled by default in Java 7, the SSLContextFactory must be changed
-      // in order to support all versions from 1.0 to 1.2.
-      // Note that this is not overridden for Java 8 as TLS 1.2 is enabled by default.
-      // Keeping getInstance("TLS") allows to support potential future versions of TLS on Java 8.
-      return new Tls12Java7SocketFactory(sslSocketFactory);
-    }
-    return sslSocketFactory;
-  }
+  /**
+   * Inspired from sun.security.ssl.SSLContextImpl#getDefaultKeyManager()
+   */
+  private static synchronized KeyManager[] getDefaultKeyManager(Logger logger) throws Exception {
 
-  static class JavaVersion {
-    boolean isJava7() {
-      return System.getProperty("java.version").startsWith("1.7.");
+    final String defaultKeyStore = System.getProperty("javax.net.ssl.keyStore", "");
+    String defaultKeyStoreType = System.getProperty("javax.net.ssl.keyStoreType", KeyStore.getDefaultType());
+    String defaultKeyStoreProvider = System.getProperty("javax.net.ssl.keyStoreProvider", "");
+
+    logger.debug("keyStore is : " + defaultKeyStore);
+    logger.debug("keyStore type is : " + defaultKeyStoreType);
+    logger.debug("keyStore provider is : " + defaultKeyStoreProvider);
+
+    if (P11KEYSTORE.equals(defaultKeyStoreType) && !NONE.equals(defaultKeyStore)) {
+      throw new IllegalArgumentException("if keyStoreType is " + P11KEYSTORE + ", then keyStore must be " + NONE);
     }
+
+    KeyStore ks = null;
+    String defaultKeyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword", "");
+    char[] passwd = defaultKeyStorePassword.isEmpty() ? null : defaultKeyStorePassword.toCharArray();
+
+    /*
+     * Try to initialize key store.
+     */
+    if (!defaultKeyStoreType.isEmpty()) {
+      logger.debug("init keystore");
+      if (defaultKeyStoreProvider.isEmpty()) {
+        ks = KeyStore.getInstance(defaultKeyStoreType);
+      } else {
+        ks = KeyStore.getInstance(defaultKeyStoreType, defaultKeyStoreProvider);
+      }
+      if (!defaultKeyStore.isEmpty() && !NONE.equals(defaultKeyStore)) {
+        try (FileInputStream fs = new FileInputStream(defaultKeyStore)) {
+          ks.load(fs, passwd);
+        }
+      } else {
+        ks.load(null, passwd);
+      }
+    }
+
+    /*
+     * Try to initialize key manager.
+     */
+    logger.debug("init keymanager of type " + KeyManagerFactory.getDefaultAlgorithm());
+    KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+
+    if (P11KEYSTORE.equals(defaultKeyStoreType)) {
+      // do not pass key passwd if using token
+      kmf.init(ks, null);
+    } else {
+      kmf.init(ks, passwd);
+    }
+
+    return kmf.getKeyManagers();
   }
 }

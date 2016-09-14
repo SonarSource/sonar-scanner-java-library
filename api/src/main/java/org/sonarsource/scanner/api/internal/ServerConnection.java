@@ -19,10 +19,10 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.ResponseBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -49,7 +49,7 @@ class ServerConnection {
     this.logger = logger;
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
     this.userAgent = userAgent;
-    this.httpClient = OkHttpClientFactory.create();
+    this.httpClient = OkHttpClientFactory.create(logger);
   }
 
   private static String removeTrailingSlash(String url) {

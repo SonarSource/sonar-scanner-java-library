@@ -19,8 +19,8 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import com.squareup.okhttp.mockwebserver.MockResponse;
-import com.squareup.okhttp.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import java.io.File;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
