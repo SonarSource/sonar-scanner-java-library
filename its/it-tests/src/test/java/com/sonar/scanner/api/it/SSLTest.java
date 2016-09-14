@@ -19,13 +19,14 @@
  */
 package com.sonar.scanner.api.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.sonar.orchestrator.Orchestrator;
+import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.orchestrator.util.NetworkUtils;
+import com.sonar.scanner.api.it.tools.SimpleScanner;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.proxy.ProxyServlet;
 import org.eclipse.jetty.server.Handler;
@@ -46,10 +47,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.sonar.orchestrator.Orchestrator;
-import com.sonar.orchestrator.build.BuildResult;
-import com.sonar.orchestrator.util.NetworkUtils;
-import com.sonar.scanner.api.it.tools.SimpleScanner;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SSLTest {
 
@@ -69,10 +67,7 @@ public class SSLTest {
   private static int httpsPort;
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
-    .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
-    .addPlugin("java")
-    .build();
+  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
 
   @Before
   public void deleteData() {
@@ -164,10 +159,10 @@ public class SSLTest {
   public void simple_analysis_with_server_and_client_certificate() throws Exception {
     startSSLTransparentReverseProxy(true);
     SimpleScanner scanner = new SimpleScanner();
-    //BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort);
+    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort);
 
-    //assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
-    //assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
+    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -180,7 +175,7 @@ public class SSLTest {
     params.put("javax.net.ssl.keyStore", clientKeystore.toString());
     params.put("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PWD);
 
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
   }
 

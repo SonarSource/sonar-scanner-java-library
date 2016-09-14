@@ -14,9 +14,8 @@
     <dependency>
       <groupId>org.sonarsource.scanner.api</groupId>
       <artifactId>sonar-scanner-api</artifactId>
-      <version>${project.version}</version>      
+      <version>${project.version}</version>
     </dependency>
-    
   </dependencies>
   
   <build>
@@ -27,7 +26,7 @@
         <executions>
           <execution>
             <goals>
-              <goal>attached</goal>
+              <goal>single</goal>
             </goals>
           <phase>package</phase>
           <configuration>

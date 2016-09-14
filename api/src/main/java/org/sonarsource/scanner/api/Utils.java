@@ -19,7 +19,10 @@
  */
 package org.sonarsource.scanner.api;
 
-import java.io.Closeable;
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonObject.Member;
+import com.eclipsesource.json.JsonValue;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,13 +36,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-
-import javax.annotation.Nullable;
-
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-import com.eclipsesource.json.JsonObject.Member;
 
 public class Utils {
   private static final String SONARQUBE_SCANNER_PARAMS = "SONARQUBE_SCANNER_PARAMS";
@@ -141,15 +137,4 @@ public class Utils {
     }
   }
 
-  static void closeQuietly(@Nullable Closeable c) {
-    if (c == null) {
-      return;
-    }
-
-    try {
-      c.close();
-    } catch (IOException e) {
-      // ignore
-    }
-  }
 }

@@ -19,10 +19,12 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import okhttp3.ConnectionSpec;
-import okhttp3.OkHttpClient;
+import java.io.FileInputStream;
+import java.net.HttpURLConnection;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -30,15 +32,12 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
+import okhttp3.ConnectionSpec;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
-
-import java.io.FileInputStream;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.util.Arrays;
 
 public class OkHttpClientFactory {
 
@@ -66,6 +65,17 @@ public class OkHttpClientFactory {
     X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
     okHttpClientBuilder.sslSocketFactory(systemDefaultSslSocketFactory(systemDefaultTrustManager, logger), systemDefaultTrustManager);
 
+    // OkHttp detect 'http.proxyHost' java property, but credentials should be filled
+    final String proxyUser = System.getProperty("http.proxyUser", "");
+    if (!System.getProperty("http.proxyHost", "").isEmpty() && !proxyUser.isEmpty()) {
+      okHttpClientBuilder.proxyAuthenticator((route, response) -> {
+        if (HttpURLConnection.HTTP_PROXY_AUTH == response.code()) {
+          String credential = Credentials.basic(proxyUser, System.getProperty("http.proxyPassword"));
+          return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+        }
+        return null;
+      });
+    }
     return okHttpClientBuilder.build();
   }
 

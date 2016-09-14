@@ -19,13 +19,6 @@
  */
 package org.sonarsource.scanner.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,11 +27,15 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 public class UtilsTest {
   @Rule
@@ -77,26 +74,6 @@ public class UtilsTest {
     Properties props = new Properties();
     props.setProperty("sonar.task", "views");
     assertThat(Utils.taskRequiresProject(props)).isFalse();
-  }
-
-  @Test
-  public void close_quietly_error() throws IOException {
-    Closeable c = mock(Closeable.class);
-    doThrow(IOException.class).when(c).close();
-    Utils.closeQuietly(c);
-    verify(c).close();
-  }
-
-  @Test
-  public void close_quietly_null() throws IOException {
-    Utils.closeQuietly(null);
-  }
-
-  @Test
-  public void close_quietly() throws IOException {
-    Closeable c = mock(Closeable.class);
-    Utils.closeQuietly(c);
-    verify(c).close();
   }
 
   @Test
