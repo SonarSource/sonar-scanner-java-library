@@ -20,12 +20,9 @@
 package org.sonarsource.scanner.api;
 
 import java.io.PrintStream;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 public class StdOutLogOutput implements LogOutput {
   private PrintStream stdOut;
-  private DateTimeFormatter timeFormatter;
 
   public StdOutLogOutput() {
     this(System.out);
@@ -33,17 +30,10 @@ public class StdOutLogOutput implements LogOutput {
 
   StdOutLogOutput(PrintStream stdOut) {
     this.stdOut = stdOut;
-    this.timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
   }
 
   @Override
-  public void log(String formattedMessage, Level level) {
-    if (level == Level.DEBUG || level == Level.TRACE) {
-      LocalTime currentTime = LocalTime.now();
-      String timestamp = currentTime.format(timeFormatter);
-      stdOut.println(timestamp + " " + level.name() + ": " + formattedMessage);
-    } else {
-      stdOut.println(level.name() + ": " + formattedMessage);
-    }
+  public void log(String formattedMessage, org.sonarsource.scanner.api.LogOutput.Level level) {
+    stdOut.println(level.name() + ": " + formattedMessage);
   }
 }
