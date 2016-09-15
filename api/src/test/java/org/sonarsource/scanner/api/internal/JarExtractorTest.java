@@ -19,21 +19,21 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.sonarsource.scanner.api.internal.JarExtractor;
-import java.io.File;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static org.fest.assertions.Fail.fail;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assert.fail;
 
 public class JarExtractorTest {
   @Test
   public void test_extract() throws Exception {
-    File jarFile = new JarExtractor().extractToTemp("fake");
-    assertThat(jarFile).isFile().exists();
-    assertThat(FileUtils.readFileToString(jarFile, "UTF-8")).isEqualTo("Fake jar for unit tests");
-    assertThat(jarFile.toURI().toURL().toString()).doesNotContain("jar:file");
+    Path jarFile = new JarExtractor().extractToTemp("fake");
+    assertThat(jarFile).exists();
+    assertThat(new String(Files.readAllBytes(jarFile), StandardCharsets.UTF_8)).isEqualTo("Fake jar for unit tests");
+    assertThat(jarFile.toUri().toURL().toString()).doesNotContain("jar:file");
   }
 
   @Test

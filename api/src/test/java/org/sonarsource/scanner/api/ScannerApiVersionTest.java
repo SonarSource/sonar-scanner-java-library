@@ -19,10 +19,10 @@
  */
 package org.sonarsource.scanner.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Test;
 import org.sonarsource.scanner.api.ScannerApiVersion;
-
-import static org.fest.assertions.Assertions.assertThat;
 
 public class ScannerApiVersionTest {
 

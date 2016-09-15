@@ -83,7 +83,7 @@ public class Utils {
     }
     return sb.toString();
   }
-
+  
   static boolean taskRequiresProject(Properties props) {
     Object task = props.get(ScannerProperties.TASK);
     return task == null || ScanProperties.SCAN_TASK.equals(task);
@@ -96,10 +96,10 @@ public class Utils {
       throw new IllegalStateException("Fail to export sonar-runner properties", e);
     }
   }
-
-  static void deleteQuietly(File f) {
+  
+  public static void deleteQuietly(Path f) {
     try {
-      Files.walkFileTree(f.toPath(), new DeleteQuietlyFileVisitor());
+      Files.walkFileTree(f, new DeleteQuietlyFileVisitor());
     } catch (IOException e) {
       // ignore
     }

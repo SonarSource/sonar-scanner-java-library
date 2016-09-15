@@ -66,7 +66,7 @@ class Jars {
   List<File> download() {
     List<File> files = new ArrayList<>();
     logger.debug("Extract sonar-scanner-api-batch in temp...");
-    files.add(jarExtractor.extractToTemp("sonar-scanner-api-batch"));
+    files.add(jarExtractor.extractToTemp("sonar-scanner-api-batch").toFile());
     files.addAll(downloadFiles());
     return files;
   }
@@ -103,7 +103,7 @@ class Jars {
 
     @Override
     public void download(String filename, File toFile) throws IOException {
-      connection.downloadFile(format("/batch/%s", filename), toFile);
+      connection.downloadFile(format("/batch/%s", filename), toFile.toPath());
     }
   }
 }

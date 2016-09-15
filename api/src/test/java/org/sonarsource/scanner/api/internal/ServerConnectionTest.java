@@ -21,9 +21,10 @@ package org.sonarsource.scanner.api.internal;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
-import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,7 +32,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sonarsource.scanner.api.internal.ServerConnection;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class ServerConnectionTest {
@@ -67,13 +68,13 @@ public class ServerConnectionTest {
 
   @Test
   public void test_downloadFile() throws Exception {
-    File toFile = temp.newFile();
+    Path toFile = temp.newFile().toPath();
     answer(HELLO_WORLD);
 
     ServerConnection underTest = create(false, false);
     underTest.downloadFile("/batch/index.txt", toFile);
 
-    assertThat(FileUtils.readFileToString(toFile)).isEqualTo(HELLO_WORLD);
+    assertThat(new String(Files.readAllBytes(toFile), StandardCharsets.UTF_8)).isEqualTo(HELLO_WORLD);
   }
 
   @Test

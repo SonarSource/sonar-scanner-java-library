@@ -30,14 +30,13 @@ import java.util.Enumeration;
 import java.util.HashSet;
 
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
 import org.sonarsource.scanner.api.internal.IsolatedClassloader;
-
-import static org.fest.assertions.Assertions.assertThat;
 
 public class IsolatedClassloaderTest {
   @Rule

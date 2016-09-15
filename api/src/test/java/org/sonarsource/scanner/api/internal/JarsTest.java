@@ -29,8 +29,8 @@ import org.junit.rules.TemporaryFolder;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-import static org.fest.assertions.Assertions.assertThat;
-import static org.fest.assertions.Fail.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -49,8 +49,8 @@ public class JarsTest {
 
   @Test
   public void should_download_jar_files() throws Exception {
-    File batchJar = temp.newFile("sonar-runner-batch.jar");
-    when(jarExtractor.extractToTemp("sonar-runner-batch")).thenReturn(batchJar);
+    File batchJar = temp.newFile("sonar-scanner-api-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-api-batch")).thenReturn(batchJar.toPath());
     // index of the files to download
     when(connection.downloadString("/batch_bootstrap/index")).thenReturn(
       "cpd.jar|CA124VADFSDS\n" +
@@ -78,8 +78,8 @@ public class JarsTest {
 
   @Test
   public void should_fail_to_download_files() throws Exception {
-    File batchJar = temp.newFile("sonar-runner-batch.jar");
-    when(jarExtractor.extractToTemp("sonar-runner-batch")).thenReturn(batchJar);
+    File batchJar = temp.newFile("sonar-scanner-api-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-api-batch")).thenReturn(batchJar.toPath());
     // index of the files to download
     when(connection.downloadString("/batch_bootstrap/index")).thenThrow(new IllegalStateException());
 
@@ -97,6 +97,6 @@ public class JarsTest {
     Jars.BatchFileDownloader downloader = new Jars.BatchFileDownloader(connection);
     File toFile = temp.newFile();
     downloader.download("squid.jar", toFile);
-    verify(connection).downloadFile("/batch/squid.jar", toFile);
+    verify(connection).downloadFile("/batch/squid.jar", toFile.toPath());
   }
 }

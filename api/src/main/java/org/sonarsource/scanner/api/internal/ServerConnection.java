@@ -23,14 +23,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Properties;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
+import org.sonarsource.scanner.api.Utils;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.lang.String.format;
@@ -70,18 +69,18 @@ class ServerConnection {
    * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  public void downloadFile(String urlPath, File toFile) throws IOException {
+  public void downloadFile(String urlPath, Path toFile) throws IOException {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
     }
     String url = baseUrlWithoutTrailingSlash + urlPath;
-    logger.debug(format("Download %s to %s", url, toFile.getAbsolutePath()));
+    logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath().toString()));
     ResponseBody responseBody = callUrl(url);
 
-    try (OutputStream fileOutput = new FileOutputStream(toFile); InputStream byteStream = responseBody.byteStream()) {
-      IOUtils.copyLarge(byteStream, fileOutput);
+    try (InputStream in = responseBody.byteStream()) {
+      Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
-      FileUtils.deleteQuietly(toFile);
+      Utils.deleteQuietly(toFile);
       throw e;
     }
   }

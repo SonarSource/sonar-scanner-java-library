@@ -33,7 +33,7 @@ import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.batch.LogOutput;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-import static org.fest.assertions.Fail.fail;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class IsolatedLauncherFactoryTest {

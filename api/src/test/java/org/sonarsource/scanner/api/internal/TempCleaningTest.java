@@ -19,16 +19,18 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.apache.commons.io.FileUtils;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.api.internal.TempCleaning;
 import org.sonarsource.scanner.api.internal.cache.Logger;
-import java.io.File;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class TempCleaningTest {
 
@@ -43,16 +45,17 @@ public class TempCleaningTest {
 
   @Test
   public void should_clean() throws Exception {
-    File dir = temp.newFolder();
-    File oldBatch = new File(dir, "sonar-runner-batch656.jar");
-    FileUtils.write(oldBatch, "foo");
-    oldBatch.setLastModified(System.currentTimeMillis() - 3 * TempCleaning.ONE_DAY_IN_MILLISECONDS);
+    Path dir = temp.newFolder().toPath();
+    Path oldBatch = dir.resolve("sonar-runner-batch656.jar");
+    Files.write(oldBatch, "foo".getBytes(StandardCharsets.UTF_8));
+    FileTime fTime = FileTime.fromMillis(System.currentTimeMillis() - 3 * TempCleaning.ONE_DAY_IN_MILLISECONDS);
+    Files.setLastModifiedTime(oldBatch, fTime);
+    
+    Path youngBatch = dir.resolve("sonar-runner-batch123.jar");
+    Files.write(youngBatch, "foo".getBytes(StandardCharsets.UTF_8));
 
-    File youngBatch = new File(dir, "sonar-runner-batch123.jar");
-    FileUtils.write(youngBatch, "foo");
-
-    File doNotDelete = new File(dir, "jacoco.txt");
-    FileUtils.write(doNotDelete, "foo");
+    Path doNotDelete = dir.resolve("jacoco.txt");
+    Files.write(doNotDelete, "foo".getBytes(StandardCharsets.UTF_8));
 
     assertThat(oldBatch).exists();
     assertThat(youngBatch).exists();

@@ -30,7 +30,7 @@ import org.sonarsource.scanner.api.ScanProperties;
 import org.sonarsource.scanner.api.ScannerProperties;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class DirsTest {

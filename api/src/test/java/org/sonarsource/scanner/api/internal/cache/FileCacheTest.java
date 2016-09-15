@@ -21,7 +21,9 @@ package org.sonarsource.scanner.api.internal.cache;
 
 import java.io.File;
 import java.io.IOException;
-import org.apache.commons.io.FileUtils;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -51,7 +53,7 @@ public class FileCacheTest {
 
     // populate the cache. Assume that hash is correct.
     File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
-    FileUtils.write(cachedFile, "body");
+    write(cachedFile, "body");
 
     assertThat(cache.get("sonar-foo-plugin-1.5.jar", "ABCDE")).isNotNull().exists().isEqualTo(cachedFile);
   }
@@ -64,14 +66,14 @@ public class FileCacheTest {
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
-        FileUtils.write(toFile, "body");
+        write(toFile, "body");
       }
     };
     File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
     assertThat(cachedFile).isNotNull().exists().isFile();
     assertThat(cachedFile.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
     assertThat(cachedFile.getParentFile().getParentFile()).isEqualTo(cache.getDir());
-    assertThat(FileUtils.readFileToString(cachedFile)).isEqualTo("body");
+    assertThat(read(cachedFile)).isEqualTo("body");
   }
 
   @Test
@@ -85,7 +87,7 @@ public class FileCacheTest {
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
-        FileUtils.write(toFile, "corrupted body");
+        write(toFile, "corrupted body");
       }
     };
     cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
@@ -101,9 +103,9 @@ public class FileCacheTest {
       public void download(String filename, File toFile) throws IOException {
         // Emulate a concurrent download that adds file to cache before
         File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
-        FileUtils.write(cachedFile, "downloaded by other");
+        write(cachedFile, "downloaded by other");
 
-        FileUtils.write(toFile, "downloaded by me");
+        write(toFile, "downloaded by me");
       }
     };
 
@@ -112,6 +114,15 @@ public class FileCacheTest {
     assertThat(cachedFile).isNotNull().exists().isFile();
     assertThat(cachedFile.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
     assertThat(cachedFile.getParentFile().getParentFile()).isEqualTo(cache.getDir());
-    assertThat(FileUtils.readFileToString(cachedFile)).contains("downloaded by");
+    assertThat(read(cachedFile)).contains("downloaded by");
+  }
+
+  private static void write(File f, String txt) throws IOException {
+    Files.createDirectories(f.toPath().getParent());
+    Files.write(f.toPath(), txt.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static String read(File f) throws IOException {
+    return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
   }
 }

@@ -19,13 +19,12 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.AgeFileFilter;
-import org.apache.commons.io.filefilter.AndFileFilter;
-import org.apache.commons.io.filefilter.PrefixFileFilter;
+import org.sonarsource.scanner.api.Utils;
 import org.sonarsource.scanner.api.internal.cache.Logger;
-import java.io.File;
-import java.util.Collection;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * The file sonar-runner-batch.jar is locked by the classloader on Windows and can't be dropped at the end of the execution.
@@ -34,18 +33,18 @@ import java.util.Collection;
 class TempCleaning {
   static final int ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
-  final File tempDir;
+  final Path tempDir;
 
   private final Logger logger;
 
   TempCleaning(Logger logger) {
-    this(new File(System.getProperty("java.io.tmpdir")), logger);
+    this(Paths.get(System.getProperty("java.io.tmpdir")), logger);
   }
 
   /**
    * For unit tests
    */
-  TempCleaning(File tempDir, Logger logger) {
+  TempCleaning(Path tempDir, Logger logger) {
     this.logger = logger;
     this.tempDir = tempDir;
   }
@@ -53,13 +52,24 @@ class TempCleaning {
   void clean() {
     logger.debug("Start temp cleaning...");
     long cutoff = System.currentTimeMillis() - ONE_DAY_IN_MILLISECONDS;
-    Collection<File> files = FileUtils.listFiles(tempDir, new AndFileFilter(
-      new PrefixFileFilter("sonar-runner-batch"),
-      new AgeFileFilter(cutoff)), null);
 
-    for (File file : files) {
-      FileUtils.deleteQuietly(file);
+    try {
+      Files.list(tempDir)
+        .filter(p -> p.getFileName().toString().startsWith("sonar-runner-batch"))
+        .filter(p -> lastModifiedTime(p) < cutoff)
+        .forEach(Utils::deleteQuietly);
+      logger.debug("Temp cleaning done");
+    } catch (IOException e) {
+      logger.warn("Failed to clean files in " + tempDir.toString() + ": " + e.getMessage());
     }
-    logger.debug("Temp cleaning done");
+  }
+
+  private static long lastModifiedTime(Path file) {
+    try {
+      return Files.getLastModifiedTime(file).toMillis();
+    } catch (IOException e) {
+      // ignore this file
+      return System.currentTimeMillis();
+    }
   }
 }

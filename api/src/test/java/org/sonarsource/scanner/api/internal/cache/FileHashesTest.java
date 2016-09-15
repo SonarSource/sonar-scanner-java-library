@@ -21,8 +21,6 @@ package org.sonarsource.scanner.api.internal.cache;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -54,15 +52,14 @@ public class FileHashesTest {
   public TemporaryFolder temp = new TemporaryFolder();
 
   @Test
-  public void test_md5_hash() {
+  public void test_md5_hash() throws IOException {
     assertThat(hash("sonar")).isEqualTo("d85e336d61f5344395c42126fac239bc");
 
     // compare results with commons-codec
     for (int index = 0; index < 100; index++) {
       String random = randomString();
       assertThat(hash(random)).as(random).isEqualTo(
-        DigestUtils.md5Hex(random).toLowerCase()
-        );
+        DigestUtils.md5Hex(random).toLowerCase());
     }
   }
 
@@ -82,15 +79,14 @@ public class FileHashesTest {
     for (int index = 0; index < 100; index++) {
       String random = randomString();
       assertThat(FileHashes.toHex(random.getBytes())).as(random).isEqualTo(
-        Hex.encodeHexString(random.getBytes()).toLowerCase()
-        );
+        Hex.encodeHexString(random.getBytes()).toLowerCase());
     }
   }
 
   @Test
   public void fail_if_file_does_not_exist() throws IOException {
     File file = temp.newFile("does_not_exist");
-    FileUtils.forceDelete(file);
+    file.delete();
 
     thrown.expect(IllegalStateException.class);
     thrown.expectMessage("Fail to compute hash of: " + file.getAbsolutePath());
@@ -112,12 +108,9 @@ public class FileHashesTest {
     return new BigInteger(130, secureRandom).toString(32);
   }
 
-  private String hash(String s) {
-    InputStream in = new ByteArrayInputStream(s.getBytes());
-    try {
+  private String hash(String s) throws IOException {
+    try (InputStream in = new ByteArrayInputStream(s.getBytes())) {
       return new FileHashes().of(in);
-    } finally {
-      IOUtils.closeQuietly(in);
     }
   }
 

@@ -78,8 +78,8 @@ public class UtilsTest {
 
   @Test
   public void delete_quietly() {
-    File f = mock(File.class);
-    doThrow(IOException.class).when(f).toPath();
+    Path f = mock(Path.class);
+    doThrow(IOException.class).when(f).getFileSystem();
     Utils.deleteQuietly(f);
   }
 
@@ -106,7 +106,7 @@ public class UtilsTest {
 
     // delete it
     assertThat(tmpDir.toFile()).exists();
-    Utils.deleteQuietly(tmpDir.toFile());
+    Utils.deleteQuietly(tmpDir);
     assertThat(tmpDir.toFile()).doesNotExist();
   }
 
