@@ -175,18 +175,18 @@ public class ProxyTest {
     startProxy(false);
     SimpleScanner scanner = new SimpleScanner();
 
-    // By default localhost is excluded from proxy so use a fake remote domain that resolve to localhost
-    String serverUrl = "http://localhost.charlesproxy.com:" + ORCHESTRATOR.getServer().port();
     // Don't use proxy
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), serverUrl);
+    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl());
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
     assertThat(seenByProxy).isEmpty();
 
     Map<String, String> params = new HashMap<>();
+    // By default no request to localhost will use proxy
+    params.put("http.nonProxyHosts", "");
     params.put("http.proxyHost", "localhost");
     params.put("http.proxyPort", "" + httpProxyPort);
 
-    buildResult = scanner.executeSimpleProject(project("java-sample"), serverUrl, params);
+    buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
     assertThat(seenByProxy).isNotEmpty();
   }
@@ -196,20 +196,20 @@ public class ProxyTest {
     startProxy(true);
     SimpleScanner scanner = new SimpleScanner();
 
-    // By default localhost is excluded from proxy so use a fake remote domain that resolve to localhost
-    String serverUrl = "http://localhost.charlesproxy.com:" + ORCHESTRATOR.getServer().port();
     Map<String, String> params = new HashMap<>();
+    // By default no request to localhost will use proxy
+    params.put("http.nonProxyHosts", "");
     params.put("http.proxyHost", "localhost");
     params.put("http.proxyPort", "" + httpProxyPort);
 
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), serverUrl, params);
+    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
     assertThat(buildResult.getLogs()).contains("Status returned by url", "is not valid: [407]");
     assertThat(seenByProxy).isEmpty();
 
     params.put("http.proxyUser", PROXY_USER);
     params.put("http.proxyPassword", PROXY_PASSWORD);
-    buildResult = scanner.executeSimpleProject(project("java-sample"), serverUrl, params);
+    buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(seenByProxy).isNotEmpty();
     if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals("6.1")) {
       assertThat(buildResult.getLastStatus()).isEqualTo(0);
