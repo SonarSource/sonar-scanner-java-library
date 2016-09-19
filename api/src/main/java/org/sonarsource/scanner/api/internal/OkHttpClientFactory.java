@@ -20,9 +20,14 @@
 package org.sonarsource.scanner.api.internal;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
@@ -41,8 +46,8 @@ import static java.util.Arrays.asList;
 
 public class OkHttpClientFactory {
 
-  static final int CONNECT_TIMEOUT_MILLISECONDS = 5000;
-  static final int READ_TIMEOUT_MILLISECONDS = 60000;
+  static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
+  static final int READ_TIMEOUT_MILLISECONDS = 60_000;
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
 
@@ -95,12 +100,7 @@ public class OkHttpClientFactory {
   }
 
   private static SSLSocketFactory systemDefaultSslSocketFactory(X509TrustManager trustManager, Logger logger) {
-    KeyManager[] defaultKeyManager;
-    try {
-      defaultKeyManager = getDefaultKeyManager(logger);
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get default key manager", e);
-    }
+    KeyManager[] defaultKeyManager = getDefaultKeyManager(logger);
     try {
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(defaultKeyManager, new TrustManager[] {trustManager}, null);
@@ -114,7 +114,7 @@ public class OkHttpClientFactory {
   /**
    * Inspired from sun.security.ssl.SSLContextImpl#getDefaultKeyManager()
    */
-  private static synchronized KeyManager[] getDefaultKeyManager(Logger logger) throws Exception {
+  private static synchronized KeyManager[] getDefaultKeyManager(Logger logger) {
 
     final String defaultKeyStore = System.getProperty("javax.net.ssl.keyStore", "");
     String defaultKeyStoreType = System.getProperty("javax.net.ssl.keyStoreType", KeyStore.getDefaultType());
@@ -128,13 +128,37 @@ public class OkHttpClientFactory {
       throw new IllegalArgumentException("if keyStoreType is " + P11KEYSTORE + ", then keyStore must be " + NONE);
     }
 
-    KeyStore ks = null;
     String defaultKeyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword", "");
     char[] passwd = defaultKeyStorePassword.isEmpty() ? null : defaultKeyStorePassword.toCharArray();
 
-    /*
-     * Try to initialize key store.
-     */
+    try {
+      /*
+       * Try to initialize key store.
+       */
+      KeyStore ks = initKeyStore(logger, defaultKeyStore, defaultKeyStoreType, defaultKeyStoreProvider, passwd);
+
+      /*
+       * Try to initialize key manager.
+       */
+      logger.debug("init keymanager of type " + KeyManagerFactory.getDefaultAlgorithm());
+      KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+
+      if (P11KEYSTORE.equals(defaultKeyStoreType)) {
+        // do not pass key passwd if using token
+        kmf.init(ks, null);
+      } else {
+        kmf.init(ks, passwd);
+      }
+
+      return kmf.getKeyManagers();
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to initialize key manager", e);
+    }
+  }
+
+  private static KeyStore initKeyStore(Logger logger, final String defaultKeyStore, String defaultKeyStoreType, String defaultKeyStoreProvider, char[] passwd)
+    throws KeyStoreException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException {
+    KeyStore ks = null;
     if (!defaultKeyStoreType.isEmpty()) {
       logger.debug("init keystore");
       if (defaultKeyStoreProvider.isEmpty()) {
@@ -150,20 +174,6 @@ public class OkHttpClientFactory {
         ks.load(null, passwd);
       }
     }
-
-    /*
-     * Try to initialize key manager.
-     */
-    logger.debug("init keymanager of type " + KeyManagerFactory.getDefaultAlgorithm());
-    KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-
-    if (P11KEYSTORE.equals(defaultKeyStoreType)) {
-      // do not pass key passwd if using token
-      kmf.init(ks, null);
-    } else {
-      kmf.init(ks, passwd);
-    }
-
-    return kmf.getKeyManagers();
+    return ks;
   }
 }
