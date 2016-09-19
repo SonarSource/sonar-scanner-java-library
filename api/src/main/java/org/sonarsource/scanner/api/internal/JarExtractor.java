@@ -19,10 +19,10 @@
  */
 package org.sonarsource.scanner.api.internal;
 
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class JarExtractor {
@@ -32,7 +32,9 @@ public class JarExtractor {
     URL url = getClass().getResource("/" + filename);
     try {
       Path copy = Files.createTempFile(filenameWithoutSuffix, ".jar");
-      Files.copy(Paths.get(url.toURI()), copy, StandardCopyOption.REPLACE_EXISTING);
+      try (InputStream in = url.openStream()) {
+        Files.copy(in, copy, StandardCopyOption.REPLACE_EXISTING);
+      }
       return copy;
     } catch (Exception e) {
       throw new IllegalStateException("Fail to extract " + filename, e);
