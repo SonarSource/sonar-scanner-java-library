@@ -121,7 +121,7 @@
               <minimizeJar>true</minimizeJar>
               <relocations>
                 <relocation>
-                  <pattern>com.squareup.okhttp</pattern>
+                  <pattern>okhttp3</pattern>
                   <shadedPattern>org.sonarsource.scanner.api.internal.shaded.okhttp</shadedPattern>
                 </relocation>
                 <relocation>
@@ -129,12 +129,8 @@
                   <shadedPattern>org.sonarsource.scanner.api.internal.shaded.okio</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>org.apache.commons.io</pattern>
-                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.commonsio</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>com.eclipsesource.minimal-json</pattern>
-                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.minimal-json</shadedPattern>
+                  <pattern>com.eclipsesource.json</pattern>
+                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.minimaljson</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>
