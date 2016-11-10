@@ -19,12 +19,14 @@
  */
 package org.sonarsource.scanner.api.internal;
 
+import javax.annotation.Nullable;
+
 public class VersionUtils {
   private VersionUtils() {
     // only util static methods
   }
 
-  public static boolean isAtLeast52(String version) {
+  public static boolean isAtLeast52(@Nullable String version) {
     // it can be snapshot (5.2-SNAPSHOT)
     if (version == null) {
       return false;
