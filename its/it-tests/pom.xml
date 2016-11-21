@@ -21,7 +21,7 @@
     <dependency>
       <groupId>org.sonarsource.orchestrator</groupId>
       <artifactId>sonar-orchestrator</artifactId>
-      <version>3.13-build640</version>
+      <version>3.13-build806</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
