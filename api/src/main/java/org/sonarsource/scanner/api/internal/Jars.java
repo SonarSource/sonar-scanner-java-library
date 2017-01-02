@@ -93,7 +93,7 @@ class Jars {
   private String getBootstrapIndex() {
     try {
       logger.debug("Get bootstrap index...");
-      String libs = connection.downloadString("/batch_bootstrap/index");
+      String libs = connection.downloadString("/batch/index");
       logger.debug("Get bootstrap completed");
       return libs;
     } catch (Exception e) {
@@ -110,7 +110,7 @@ class Jars {
 
     @Override
     public void download(String filename, File toFile) throws IOException {
-      connection.downloadFile(format("/batch/%s", filename), toFile.toPath());
+      connection.downloadFile(format("/batch/file?name=%s", filename), toFile.toPath());
     }
   }
 }
