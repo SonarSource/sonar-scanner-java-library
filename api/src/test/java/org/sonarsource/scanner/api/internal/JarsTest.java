@@ -56,8 +56,8 @@ public class JarsTest {
       "cpd.jar|CA124VADFSDS\n" +
         "squid.jar|34535FSFSDF\n");
 
-    Jars jars35 = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
-    List<File> files = jars35.download();
+    Jars jars = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
+    List<File> files = jars.download();
 
     assertThat(files).isNotNull();
     verify(connection, times(1)).downloadString("/batch_bootstrap/index");
@@ -83,18 +83,35 @@ public class JarsTest {
     // index of the files to download
     when(connection.downloadString("/batch_bootstrap/index")).thenThrow(new IllegalStateException());
 
-    Jars jars35 = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
+    Jars jars = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
     try {
-      jars35.download();
+      jars.download();
       fail();
     } catch (RuntimeException e) {
-      assertThat(e).hasMessage("Fail to download libraries from server");
+      assertThat(e).hasMessage("Fail to get bootstrap index from server");
+    }
+  }
+
+  @Test
+  public void test_invalid_index() throws Exception {
+    File batchJar = temp.newFile("sonar-scanner-api-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-api-batch")).thenReturn(batchJar.toPath());
+    // index of the files to download
+    when(connection.downloadString("/batch_bootstrap/index")).thenReturn(
+      "cpd.jar\n");
+
+    Jars jars = new Jars(fileCache, connection, jarExtractor, mock(Logger.class));
+    try {
+      jars.download();
+      fail();
+    } catch (RuntimeException e) {
+      assertThat(e).hasMessage("Fail to bootstrap from server. Bootstrap index was:\ncpd.jar\n");
     }
   }
 
   @Test
   public void test_jar_downloader() throws Exception {
-    Jars.BatchFileDownloader downloader = new Jars.BatchFileDownloader(connection);
+    Jars.ScannerFileDownloader downloader = new Jars.ScannerFileDownloader(connection);
     File toFile = temp.newFile();
     downloader.download("squid.jar", toFile);
     verify(connection).downloadFile("/batch/squid.jar", toFile.toPath());

@@ -67,37 +67,44 @@ class Jars {
     List<File> files = new ArrayList<>();
     logger.debug("Extract sonar-scanner-api-batch in temp...");
     files.add(jarExtractor.extractToTemp("sonar-scanner-api-batch").toFile());
-    files.addAll(downloadFiles());
+    files.addAll(getScannerEngineFiles());
     return files;
   }
 
-  private List<File> downloadFiles() {
+  private List<File> getScannerEngineFiles() {
+    List<File> files = new ArrayList<>();
+    String bootstrapIndex = getBootstrapIndex();
     try {
-      List<File> files = new ArrayList<>();
+      String[] lines = bootstrapIndex.split("[\r\n]+");
+      ScannerFileDownloader scannerFileDownloader = new ScannerFileDownloader(connection);
+      for (String line : lines) {
+        line = line.trim();
+        String[] libAndHash = line.split("\\|");
+        String filename = libAndHash[0];
+        String hash = libAndHash[1];
+        files.add(fileCache.get(filename, hash, scannerFileDownloader));
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException("Fail to bootstrap from server. Bootstrap index was:\n" + bootstrapIndex, e);
+    }
+    return files;
+  }
+
+  private String getBootstrapIndex() {
+    try {
       logger.debug("Get bootstrap index...");
       String libs = connection.downloadString("/batch_bootstrap/index");
       logger.debug("Get bootstrap completed");
-      String[] lines = libs.split("[\r\n]+");
-      BatchFileDownloader batchFileDownloader = new BatchFileDownloader(connection);
-      for (String line : lines) {
-        line = line.trim();
-        if (!"".equals(line)) {
-          String[] libAndHash = line.split("\\|");
-          String filename = libAndHash[0];
-          String hash = libAndHash.length > 0 ? libAndHash[1] : "";
-          files.add(fileCache.get(filename, hash, batchFileDownloader));
-        }
-      }
-      return files;
+      return libs;
     } catch (Exception e) {
-      throw new IllegalStateException("Fail to download libraries from server", e);
+      throw new IllegalStateException("Fail to get bootstrap index from server", e);
     }
   }
 
-  static class BatchFileDownloader implements FileCache.Downloader {
+  static class ScannerFileDownloader implements FileCache.Downloader {
     private final ServerConnection connection;
 
-    BatchFileDownloader(ServerConnection conn) {
+    ScannerFileDownloader(ServerConnection conn) {
       this.connection = conn;
     }
 
