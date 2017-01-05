@@ -19,10 +19,9 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.Test;
-import org.sonarsource.scanner.api.internal.VersionUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class VersionUtilsTest {
 
@@ -36,5 +35,6 @@ public class VersionUtilsTest {
     assertThat(VersionUtils.isAtLeast52("trash")).isFalse();
     assertThat(VersionUtils.isAtLeast52("6.0.0")).isTrue();
     assertThat(VersionUtils.isAtLeast52("5.2-SNAPSHOT")).isTrue();
+    assertThat(VersionUtils.isAtLeast52("6.3.0.1234")).isTrue();
   }
 }
