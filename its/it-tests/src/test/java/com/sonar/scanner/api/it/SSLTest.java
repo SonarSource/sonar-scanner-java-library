@@ -23,6 +23,8 @@ import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -202,6 +204,10 @@ public class SSLTest {
 
     buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    Path accessLogs = ORCHESTRATOR.getServer().getAppLogs().toPath().resolveSibling("access.log");
+    String accessLogsContent = new String(Files.readAllBytes(accessLogs));
+    assertThat(accessLogsContent).doesNotContain("\"null/null\"");
+    assertThat(accessLogsContent).contains("\"SonarQubeScanner/");
   }
 
 }

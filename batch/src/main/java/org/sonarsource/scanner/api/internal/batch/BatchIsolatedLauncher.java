@@ -39,6 +39,7 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
   private final BatchFactory factory;
 
   public BatchIsolatedLauncher() {
+    
     this(new DefaultBatchFactory());
   }
 
