@@ -27,7 +27,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ProxyTest.class, SSLTest.class})
+@SuiteClasses({ProxyTest.class, SSLTest.class, PropertiesTest.class})
 public class ScannerApiTestSuite {
 
   @ClassRule

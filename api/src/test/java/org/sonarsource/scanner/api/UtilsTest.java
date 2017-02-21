@@ -61,6 +61,63 @@ public class UtilsTest {
   }
 
   @Test
+  public void resolve_properties() {
+    Properties map = new Properties();
+
+    // resolve
+    map.put("A", "value a");
+    map.put("B", "value b");
+    map.put("C", "${A} ${B} ${nonexisting}");
+
+    Properties resolved = Utils.resolveProperties(map);
+    assertThat(resolved.get("A")).isEqualTo("value a");
+    assertThat(resolved.get("B")).isEqualTo("value b");
+    assertThat(resolved.get("C")).isEqualTo("value a value b ");
+
+    // resolve
+    map.put("sonar.login", "admin");
+    map.put("sonar.password", "${sonar.login}");
+
+    resolved = Utils.resolveProperties(map);
+    assertThat(resolved.get("sonar.password")).isEqualTo("admin");
+
+    // dont resolve recursively
+    map.clear();
+    map.put("A", "value a");
+    map.put("B", "${A}");
+    map.put("C", "${A} ${B}");
+
+    resolved = Utils.resolveProperties(map);
+    assertThat(resolved.get("A")).isEqualTo("value a");
+    assertThat(resolved.get("B")).isEqualTo("value a");
+    assertThat(resolved.get("C")).isEqualTo("value a value a");
+
+    // dont support nested
+    map.clear();
+    map.put("A", "value a");
+    map.put("B", "value b");
+    map.put("C", "${A ${B}}");
+
+    resolved = Utils.resolveProperties(map);
+    assertThat(resolved.get("A")).isEqualTo("value a");
+    assertThat(resolved.get("B")).isEqualTo("value b");
+    assertThat(resolved.get("C")).isEqualTo("${A value b}");
+  }
+
+  @Test
+  public void fail_loop_properties_resolution() {
+    Properties map = new Properties();
+
+    // resolve
+    map.put("A", "${B}");
+    map.put("B", "${A}");
+
+    exception.expect(IllegalArgumentException.class);
+    exception.expectMessage("variable: B");
+    Utils.resolveProperties(map);
+  }
+
+  @Test
   public void write_properties() throws IOException {
     File f = temp.newFile();
     Properties p = new Properties();
