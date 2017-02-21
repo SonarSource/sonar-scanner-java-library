@@ -68,6 +68,11 @@ public class Utils {
     return props;
   }
 
+  static Properties resolveProperties(Properties props) {
+    PropertyResolver resolver = new PropertyResolver(props);
+    return resolver.resolve();
+  }
+
   /**
    * Similar to org.apache.commons.lang.StringUtils#join()
    */
@@ -83,7 +88,7 @@ public class Utils {
     }
     return sb.toString();
   }
-  
+
   static boolean taskRequiresProject(Properties props) {
     Object task = props.get(ScannerProperties.TASK);
     return task == null || ScanProperties.SCAN_TASK.equals(task);
@@ -96,7 +101,7 @@ public class Utils {
       throw new IllegalStateException("Fail to export sonar-runner properties", e);
     }
   }
-  
+
   public static void deleteQuietly(Path f) {
     try {
       Files.walkFileTree(f, new DeleteQuietlyFileVisitor());
