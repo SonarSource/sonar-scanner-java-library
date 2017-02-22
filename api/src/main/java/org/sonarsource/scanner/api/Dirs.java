@@ -55,7 +55,7 @@ class Dirs {
     Path workDirPath;
     pathString = p.getProperty(ScannerProperties.WORK_DIR, "");
     if ("".equals(pathString.trim())) {
-      workDirPath = absoluteProjectPath.resolve(".sonar");
+      workDirPath = absoluteProjectPath.resolve(".scannerwork");
     } else {
       workDirPath = Paths.get(pathString);
       if (!workDirPath.isAbsolute()) {

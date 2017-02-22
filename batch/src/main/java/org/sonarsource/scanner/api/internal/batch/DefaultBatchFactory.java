@@ -27,9 +27,12 @@ import org.sonar.batch.bootstrapper.Batch;
 import org.sonar.batch.bootstrapper.EnvironmentInformation;
 
 class DefaultBatchFactory implements BatchFactory {
+  private static final String SCANNER_APP_KEY = "sonar.scanner.app";
+  private static final String SCANNER_APP_VERSION_KEY = "sonar.scanner.appVersion";
+  
   @Override
   public Batch createBatch(Properties properties, @Nullable final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput, @Nullable List<Object> extensions) {
-    EnvironmentInformation env = new EnvironmentInformation(properties.getProperty("sonarRunner.app"), properties.getProperty("sonarRunner.appVersion"));
+    EnvironmentInformation env = new EnvironmentInformation(properties.getProperty(SCANNER_APP_KEY), properties.getProperty(SCANNER_APP_VERSION_KEY));
     Batch.Builder builder = Batch.builder()
       .setEnvironment(env)
       .setBootstrapProperties((Map) properties);

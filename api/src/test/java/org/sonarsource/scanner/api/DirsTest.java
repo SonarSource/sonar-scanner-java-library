@@ -74,7 +74,7 @@ public class DirsTest {
     assertThat(workDir).isNotNull();
 
     assertThat(projectDir.getCanonicalPath()).isEqualTo(new File(".").getCanonicalPath());
-    assertThat(workDir.getName()).isEqualTo(".sonar");
+    assertThat(workDir.getName()).isEqualTo(".scannerwork");
     assertThat(workDir.getParentFile()).isEqualTo(projectDir);
   }
 
