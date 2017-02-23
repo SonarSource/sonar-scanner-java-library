@@ -145,9 +145,10 @@ public class EmbeddedScanner {
    */
   public void runAnalysis(Properties analysisProperties) {
     checkLauncherExists();
-    Properties resolved = Utils.resolveProperties(analysisProperties);
-    initAnalysisProperties(resolved);
-    doExecute(resolved);
+    Properties copy = new Properties();
+    copy.putAll(analysisProperties);
+    initAnalysisProperties(copy);
+    doExecute(copy);
   }
 
   public void start() {
@@ -214,10 +215,9 @@ public class EmbeddedScanner {
   protected void doStart() {
     checkLauncherDoesntExist();
     ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
-    Properties resolvedGlobalProperties = Utils.resolveProperties(globalProperties);
-    launcher = launcherFactory.createLauncher(resolvedGlobalProperties, rules);
+    launcher = launcherFactory.createLauncher(globalProperties(), rules);
     if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.start(resolvedGlobalProperties, (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
+      launcher.start(globalProperties(), (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
     }
   }
 
@@ -235,7 +235,6 @@ public class EmbeddedScanner {
       Properties prop = new Properties();
       prop.putAll(globalProperties());
       prop.putAll(analysisProperties);
-      prop = Utils.resolveProperties(prop);
       launcher.executeOldVersion(prop, extensions);
     }
   }
