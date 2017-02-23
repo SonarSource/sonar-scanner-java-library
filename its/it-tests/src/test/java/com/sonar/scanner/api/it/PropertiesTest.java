@@ -52,16 +52,6 @@ public class PropertiesTest {
     assertThat(accessLogsContent).contains("\"SonarQubeScanner/");
   }
 
-  @Test
-  public void testResolutionProperties() throws IOException {
-    SimpleScanner scanner = new SimpleScanner();
-    Map<String, String> params = new HashMap<>();
-    params.put("sonar.login", "admin");
-    params.put("sonar.password", "${sonar.login}");
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
-  }
-
   private static Path project(String projectName) {
     return Paths.get("..", "projects", projectName);
   }

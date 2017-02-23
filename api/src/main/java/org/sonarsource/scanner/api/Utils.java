@@ -68,11 +68,6 @@ public class Utils {
     return props;
   }
 
-  static Properties resolveProperties(Properties props) {
-    PropertyResolver resolver = new PropertyResolver(props);
-    return resolver.resolve();
-  }
-
   /**
    * Similar to org.apache.commons.lang.StringUtils#join()
    */
