@@ -102,7 +102,7 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
-        <version>3.3.1</version>
+        <version>3.6.0</version>
       </dependency>
       <dependency>
         <groupId>com.eclipsesource.minimal-json</groupId>
@@ -112,7 +112,7 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>3.3.1</version>
+        <version>3.6.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
