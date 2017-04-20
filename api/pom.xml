@@ -132,6 +132,10 @@
                   <pattern>com.eclipsesource.json</pattern>
                   <shadedPattern>org.sonarsource.scanner.api.internal.shaded.minimaljson</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>com.eclipsesource.minimal-json</pattern>
+                  <shadedPattern>org.sonarsource.scanner.api.internal.shaded.minimal-json</shadedPattern>
+                </relocation>
               </relocations>
             </configuration>
           </execution>
