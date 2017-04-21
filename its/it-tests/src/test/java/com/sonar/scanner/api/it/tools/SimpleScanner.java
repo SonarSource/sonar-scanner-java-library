@@ -19,6 +19,7 @@
  */
 package com.sonar.scanner.api.it.tools;
 
+import com.sonar.orchestrator.build.BuildResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,8 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import com.sonar.orchestrator.build.BuildResult;
 
 public class SimpleScanner {
   private static final Path JAR_PATH = Paths.get("..", "it-simple-scanner", "target", "simple-scanner.jar")
@@ -59,6 +58,7 @@ public class SimpleScanner {
     Map<String, String> props = getSimpleProjectProperties(baseDir, host, extraProps);
 
     props.forEach((k, v) -> params.add("-D" + k + "=" + v));
+    params.add("-Djavax.net.debug=all");
     params.add("-jar");
     params.add(JAR_PATH.toString());
 

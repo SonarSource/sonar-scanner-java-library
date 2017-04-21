@@ -103,6 +103,7 @@ public class SSLTest {
 
   private static void startProxy(boolean basicAuth) throws Exception {
     httpsProxyPort = NetworkUtils.getNextAvailablePort();
+    System.out.println("HTTP proxy port: " + httpsProxyPort);
 
     // Setup Threadpool
     QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -166,6 +167,7 @@ public class SSLTest {
   private static void startSSLTransparentReverseProxy(boolean requireClientAuth) throws Exception {
     int httpPort = NetworkUtils.getNextAvailablePort();
     httpsPort = NetworkUtils.getNextAvailablePort();
+    System.out.println("HTTPS transparent reverse proxy port: " + httpsPort);
 
     // Setup Threadpool
     QueuedThreadPool threadPool = new QueuedThreadPool();
