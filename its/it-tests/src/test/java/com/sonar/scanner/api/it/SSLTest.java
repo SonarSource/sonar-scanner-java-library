@@ -23,12 +23,19 @@ import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
-
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpVersion;
+import org.eclipse.jetty.proxy.ConnectHandler;
 import org.eclipse.jetty.proxy.ProxyServlet;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -41,6 +48,7 @@ import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.junit.After;
@@ -58,14 +66,21 @@ public class SSLTest {
   private static final String CLIENT_TRUSTSTORE = "/SSLTest/clienttruststore.jks";
   private static final String CLIENT_TRUSTSTORE_PWD = "clienttruststorepwd";
 
-  private static final String SERVER_TRUSTSTORE = "/SSLTest/servertruststore.jks";
-  private static final String SERVER_TRUSTSTORE_PWD = "servertruststorepwd";
+  static final String SERVER_TRUSTSTORE = "/SSLTest/servertruststore.jks";
+  static final String SERVER_TRUSTSTORE_PWD = "servertruststorepwd";
 
-  private static final String SERVER_KEYSTORE = "/SSLTest/serverkeystore.jks";
-  private static final String SERVER_KEYSTORE_PWD = "serverkeystorepwd";
+  static final String SERVER_KEYSTORE = "/SSLTest/serverkeystore.jks";
+  static final String SERVER_KEYSTORE_PWD = "serverkeystorepwd";
 
-  private static Server server;
+  private static final String PROXY_USER = "scott";
+  private static final String PROXY_PASSWORD = "tiger";
+
+  private static Server sslTransparentProxyserver;
   private static int httpsPort;
+  private static Server proxyServer;
+  private static int httpsProxyPort;
+
+  private static ConcurrentLinkedDeque<String> seenByProxy = new ConcurrentLinkedDeque<>();
 
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
@@ -73,13 +88,79 @@ public class SSLTest {
   @Before
   public void deleteData() {
     ORCHESTRATOR.resetData();
+    seenByProxy.clear();
   }
 
   @After
   public void stopProxy() throws Exception {
-    if (server != null && server.isStarted()) {
-      server.stop();
+    if (sslTransparentProxyserver != null && sslTransparentProxyserver.isStarted()) {
+      sslTransparentProxyserver.stop();
     }
+    if (proxyServer != null && proxyServer.isStarted()) {
+      proxyServer.stop();
+    }
+  }
+
+  private static void startProxy(boolean basicAuth) throws Exception {
+    httpsProxyPort = NetworkUtils.getNextAvailablePort();
+
+    // Setup Threadpool
+    QueuedThreadPool threadPool = new QueuedThreadPool();
+    threadPool.setMaxThreads(500);
+
+    proxyServer = new Server(threadPool);
+
+    // HTTP(s) Configuration
+    HttpConfiguration httpConfig = new HttpConfiguration();
+
+    // Handler Structure
+    HandlerCollection handlers = new HandlerCollection();
+    handlers.setHandlers(new Handler[] {proxyHandler(basicAuth), new DefaultHandler()});
+    proxyServer.setHandler(handlers);
+
+    ServerConnector connector = new ServerConnector(proxyServer, new HttpConnectionFactory(httpConfig));
+    connector.setPort(httpsProxyPort);
+    proxyServer.addConnector(connector);
+
+    proxyServer.start();
+  }
+
+  private static ConnectHandler proxyHandler(boolean basicAuth) {
+    return new ConnectHandler() {
+      @Override
+      protected boolean handleAuthentication(HttpServletRequest request, HttpServletResponse response, String address) {
+        if (!basicAuth) {
+          return true;
+        }
+        String credentials = request.getHeader(HttpHeader.PROXY_AUTHORIZATION.asString());
+        if (credentials != null) {
+          int space = credentials.indexOf(' ');
+          if (space > 0) {
+            String method = credentials.substring(0, space);
+            if ("basic".equalsIgnoreCase(method)) {
+              credentials = credentials.substring(space + 1);
+              credentials = B64Code.decode(credentials, StandardCharsets.ISO_8859_1);
+              int i = credentials.indexOf(':');
+              if (i > 0) {
+                String username = credentials.substring(0, i);
+                String password = credentials.substring(i + 1);
+
+                return PROXY_USER.equals(username) && PROXY_PASSWORD.equals(password);
+              }
+            }
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public void handle(String target, org.eclipse.jetty.server.Request baseRequest, HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+        seenByProxy.add(request.getRequestURI());
+        super.handle(target, baseRequest, request, response);
+      }
+    };
+
   }
 
   private static void startSSLTransparentReverseProxy(boolean requireClientAuth) throws Exception {
@@ -90,7 +171,7 @@ public class SSLTest {
     QueuedThreadPool threadPool = new QueuedThreadPool();
     threadPool.setMaxThreads(500);
 
-    server = new Server(threadPool);
+    sslTransparentProxyserver = new Server(threadPool);
 
     // HTTP Configuration
     HttpConfiguration httpConfig = new HttpConfiguration();
@@ -101,12 +182,12 @@ public class SSLTest {
 
     // Handler Structure
     HandlerCollection handlers = new HandlerCollection();
-    handlers.setHandlers(new Handler[] {proxyHandler(), new DefaultHandler()});
-    server.setHandler(handlers);
+    handlers.setHandlers(new Handler[] {sslTransparentReverseProxyHandler(), new DefaultHandler()});
+    sslTransparentProxyserver.setHandler(handlers);
 
-    ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
+    ServerConnector http = new ServerConnector(sslTransparentProxyserver, new HttpConnectionFactory(httpConfig));
     http.setPort(httpPort);
-    server.addConnector(http);
+    sslTransparentProxyserver.addConnector(http);
 
     Path serverKeyStore = Paths.get(SSLTest.class.getResource(SERVER_KEYSTORE).toURI()).toAbsolutePath();
     String serverKeyPassword = "serverp12pwd";
@@ -134,22 +215,22 @@ public class SSLTest {
     HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
 
     // SSL Connector
-    ServerConnector sslConnector = new ServerConnector(server,
+    ServerConnector sslConnector = new ServerConnector(sslTransparentProxyserver,
       new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
       new HttpConnectionFactory(httpsConfig));
     sslConnector.setPort(httpsPort);
-    server.addConnector(sslConnector);
+    sslTransparentProxyserver.addConnector(sslConnector);
 
-    server.start();
+    sslTransparentProxyserver.start();
   }
 
-  private static ServletContextHandler proxyHandler() {
+  private static ServletContextHandler sslTransparentReverseProxyHandler() {
     ServletContextHandler contextHandler = new ServletContextHandler();
-    contextHandler.setServletHandler(newServletHandler());
+    contextHandler.setServletHandler(newSslTransparentReverseProxyServletHandler());
     return contextHandler;
   }
 
-  private static ServletHandler newServletHandler() {
+  private static ServletHandler newSslTransparentReverseProxyServletHandler() {
     ServletHandler handler = new ServletHandler();
     ServletHolder holder = handler.addServletWithMapping(ProxyServlet.Transparent.class, "/*");
     holder.setInitParameter("proxyTo", ORCHESTRATOR.getServer().getUrl());
@@ -203,6 +284,57 @@ public class SSLTest {
 
     buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
+  }
+
+  @Test
+  public void simple_analysis_with_server_certificate_and_https_proxy() throws Exception {
+    startSSLTransparentReverseProxy(false);
+    startProxy(false);
+    SimpleScanner scanner = new SimpleScanner();
+
+    Map<String, String> params = new HashMap<>();
+    // By default no request to localhost will use proxy
+    params.put("http.nonProxyHosts", "");
+    params.put("https.proxyHost", "localhost");
+    params.put("https.proxyPort", "" + httpsProxyPort);
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE).toURI()).toAbsolutePath();
+    String truststorePassword = CLIENT_TRUSTSTORE_PWD;
+    assertThat(clientTruststore).exists();
+    params.put("javax.net.ssl.trustStore", clientTruststore.toString());
+    params.put("javax.net.ssl.trustStorePassword", truststorePassword);
+
+    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(seenByProxy).isNotEmpty();
+  }
+
+  @Test
+  public void simple_analysis_with_server_certificate_and_https_proxy_with_basic_auth() throws Exception {
+    startSSLTransparentReverseProxy(false);
+    startProxy(true);
+    SimpleScanner scanner = new SimpleScanner();
+
+    Map<String, String> params = new HashMap<>();
+    // By default no request to localhost will use proxy
+    params.put("http.nonProxyHosts", "");
+    params.put("https.proxyHost", "localhost");
+    params.put("https.proxyPort", "" + httpsProxyPort);
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE).toURI()).toAbsolutePath();
+    String truststorePassword = CLIENT_TRUSTSTORE_PWD;
+    assertThat(clientTruststore).exists();
+    params.put("javax.net.ssl.trustStore", clientTruststore.toString());
+    params.put("javax.net.ssl.trustStorePassword", truststorePassword);
+
+    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLogs()).contains("Failed to authenticate with proxy");
+
+    params.put("http.proxyUser", PROXY_USER);
+    params.put("http.proxyPassword", PROXY_PASSWORD);
+
+    buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(seenByProxy).isNotEmpty();
   }
 
 }
