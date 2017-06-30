@@ -26,11 +26,10 @@ import java.util.Properties;
 import org.junit.Before;
 import org.junit.Test;
 import org.sonar.batch.bootstrapper.Batch;
-import org.sonarsource.scanner.api.internal.batch.BatchFactory;
-import org.sonarsource.scanner.api.internal.batch.BatchIsolatedLauncher;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -45,12 +44,12 @@ public class BatchIsolatedLauncherTest {
   public void setUp() {
     factory = mock(BatchFactory.class);
     batch = mock(Batch.class);
-    when(factory.createBatch(any(Properties.class), any(LogOutput.class), anyListOf(Object.class))).thenReturn(batch);
     launcher = new BatchIsolatedLauncher(factory);
   }
 
   @Test
   public void executeOld() {
+    when(factory.createBatch(any(Properties.class), isNull(), anyListOf(Object.class))).thenReturn(batch);
     Properties prop = new Properties();
     List<Object> list = new LinkedList<>();
 
@@ -65,13 +64,14 @@ public class BatchIsolatedLauncherTest {
 
   @Test
   public void proxy() {
+    when(factory.createBatch(any(Properties.class), isNull(), isNull())).thenReturn(batch);
     Properties prop = new Properties();
 
     launcher.start(prop, null);
     launcher.execute(prop);
     launcher.stop();
 
-    verify(factory).createBatch(any(Properties.class), any(LogOutput.class), anyListOf(Object.class));
+    verify(factory).createBatch(any(Properties.class), isNull(), isNull());
     verify(batch).start();
     verify(batch).executeTask((Map) prop);
     verify(batch).stop();

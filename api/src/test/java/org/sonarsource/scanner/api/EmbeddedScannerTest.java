@@ -31,17 +31,15 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentMatcher;
-import org.sonarsource.scanner.api.EmbeddedScanner;
-import org.sonarsource.scanner.api.LogOutput;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -109,8 +107,8 @@ public class EmbeddedScannerTest {
 
     verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
+      public boolean matches(Properties o) {
+        return "foo".equals(o.getProperty("sonar.projectKey"));
       }
     }), any(ClassloadRules.class));
 
@@ -120,10 +118,9 @@ public class EmbeddedScannerTest {
 
     verify(launcher).executeOldVersion(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        Properties m = (Properties) o;
+      public boolean matches(Properties o) {
         for (String s : mustHaveKeys) {
-          if (!m.containsKey(s)) {
+          if (!o.containsKey(s)) {
             return false;
           }
         }
@@ -158,8 +155,8 @@ public class EmbeddedScannerTest {
 
     verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
+      public boolean matches(Properties o) {
+        return "foo".equals(o.getProperty("sonar.projectKey"));
       }
     }), any(ClassloadRules.class));
 
@@ -168,10 +165,9 @@ public class EmbeddedScannerTest {
 
     verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        Properties m = (Properties) o;
+      public boolean matches(Properties o) {
         for (String s : mustHaveKeys) {
-          if (!m.containsKey(s)) {
+          if (!o.containsKey(s)) {
             return false;
           }
         }
@@ -192,15 +188,15 @@ public class EmbeddedScannerTest {
 
     verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        return "foo".equals(((Properties) o).getProperty("sonar.projectKey"));
+      public boolean matches(Properties o) {
+        return "foo".equals(o.getProperty("sonar.projectKey"));
       }
     }), any(ClassloadRules.class));
 
     verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
       @Override
-      public boolean matches(Object o) {
-        return "value1".equals(((Properties) o).getProperty("sonar.projectKey"));
+      public boolean matches(Properties o) {
+        return "value1".equals(o.getProperty("sonar.projectKey"));
       }
     }));
   }
