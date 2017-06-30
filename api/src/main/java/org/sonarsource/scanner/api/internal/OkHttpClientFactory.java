@@ -50,6 +50,7 @@ public class OkHttpClientFactory {
   static final int READ_TIMEOUT_MILLISECONDS = 60_000;
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
+  private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
 
   private OkHttpClientFactory() {
     // only statics
@@ -74,9 +75,13 @@ public class OkHttpClientFactory {
     final String proxyUser = System.getProperty("http.proxyUser", "");
     if (!System.getProperty("http.proxyHost", "").isEmpty() && !proxyUser.isEmpty()) {
       okHttpClientBuilder.proxyAuthenticator((route, response) -> {
+        if (response.request().header(PROXY_AUTHORIZATION) != null) {
+          // Give up, we've already attempted to authenticate.
+          return null;
+        }
         if (HttpURLConnection.HTTP_PROXY_AUTH == response.code()) {
           String credential = Credentials.basic(proxyUser, System.getProperty("http.proxyPassword"));
-          return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+          return response.request().newBuilder().header(PROXY_AUTHORIZATION, credential).build();
         }
         return null;
       });
