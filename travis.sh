@@ -4,21 +4,11 @@ set -euo pipefail
 
 function configureTravis {
   mkdir ~/.local
-  curl -sSL https://github.com/SonarSource/travis-utils/tarball/v33 | tar zx --strip-components 1 -C ~/.local
+  curl -sSL https://github.com/SonarSource/travis-utils/tarball/v34 | tar zx --strip-components 1 -C ~/.local
   source ~/.local/bin/install
 }
 configureTravis
 
-case "$TARGET" in
+export DEPLOY_PULL_REQUEST=true
 
-CI)
-  regular_mvn_build_deploy_analyze
-  ;;
-
-*)
-  echo "Unexpected TARGET value: $TARGET"
-  exit 1
-  ;;
-
-esac
-
+regular_mvn_build_deploy_analyze
