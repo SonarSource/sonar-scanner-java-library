@@ -19,12 +19,13 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.sonarsource.scanner.api.Utils;
-import org.sonarsource.scanner.api.internal.cache.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
+import org.sonarsource.scanner.api.Utils;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 /**
  * The file sonar-runner-batch.jar is locked by the classloader on Windows and can't be dropped at the end of the execution.
@@ -53,8 +54,8 @@ class TempCleaning {
     logger.debug("Start temp cleaning...");
     long cutoff = System.currentTimeMillis() - ONE_DAY_IN_MILLISECONDS;
 
-    try {
-      Files.list(tempDir)
+    try (Stream<Path> files = Files.list(tempDir)) {
+      files
         .filter(p -> p.getFileName().toString().startsWith("sonar-runner-batch"))
         .filter(p -> lastModifiedTime(p) < cutoff)
         .forEach(Utils::deleteQuietly);
