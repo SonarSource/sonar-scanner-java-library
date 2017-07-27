@@ -19,17 +19,13 @@
  */
 package org.sonarsource.scanner.api.internal.batch;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import org.junit.Before;
 import org.junit.Test;
 import org.sonar.batch.bootstrapper.Batch;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -48,33 +44,15 @@ public class BatchIsolatedLauncherTest {
   }
 
   @Test
-  public void executeOld() {
-    when(factory.createBatch(any(Properties.class), isNull(), anyListOf(Object.class))).thenReturn(batch);
-    Properties prop = new Properties();
-    List<Object> list = new LinkedList<>();
-
-    launcher.executeOldVersion(prop, list);
-
-    verify(factory).createBatch(prop, null, list);
-    verify(batch).execute();
-
-    verifyNoMoreInteractions(batch);
-    verifyNoMoreInteractions(factory);
-  }
-
-  @Test
   public void proxy() {
-    when(factory.createBatch(any(Properties.class), isNull(), isNull())).thenReturn(batch);
-    Properties prop = new Properties();
+    when(factory.createBatch(any(Map.class), any(org.sonarsource.scanner.api.internal.batch.LogOutput.class))).thenReturn(batch);
+    HashMap<String, String> prop = new HashMap<>();
 
-    launcher.start(prop, null);
-    launcher.execute(prop);
-    launcher.stop();
+    launcher.execute(prop, (m, l) -> {
+    });
 
-    verify(factory).createBatch(any(Properties.class), isNull(), isNull());
-    verify(batch).start();
-    verify(batch).executeTask((Map) prop);
-    verify(batch).stop();
+    verify(factory).createBatch(any(Map.class), any(org.sonarsource.scanner.api.internal.batch.LogOutput.class));
+    verify(batch).execute();
 
     verifyNoMoreInteractions(batch);
     verifyNoMoreInteractions(factory);

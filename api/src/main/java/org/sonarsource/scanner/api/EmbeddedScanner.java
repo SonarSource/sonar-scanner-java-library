@@ -20,18 +20,16 @@
 package org.sonarsource.scanner.api;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
 import org.sonarsource.scanner.api.internal.InternalProperties;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.api.internal.VersionUtils;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
@@ -43,8 +41,7 @@ public class EmbeddedScanner {
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
   private final LogOutput logOutput;
-  private final Properties globalProperties = new Properties();
-  private final List<Object> extensions = new ArrayList<>();
+  private final Map<String, String> globalProperties = new HashMap<>();
   private final Logger logger;
   private final Set<String> classloaderMask = new HashSet<>();
   private final Set<String> classloaderUnmask = new HashSet<>();
@@ -56,15 +53,15 @@ public class EmbeddedScanner {
     this.classloaderUnmask.add("org.sonarsource.scanner.api.internal.batch.");
   }
 
-  public static EmbeddedScanner create(final LogOutput logOutput) {
+  public static EmbeddedScanner create(String app, String version, final LogOutput logOutput) {
     Logger logger = new LoggerAdapter(logOutput);
-    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput);
+    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput)
+      .setGlobalProperty(InternalProperties.SCANNER_APP, app)
+      .setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
   }
 
-  public Properties globalProperties() {
-    Properties clone = new Properties();
-    clone.putAll(globalProperties);
-    return clone;
+  public Map<String, String> globalProperties() {
+    return globalProperties;
   }
 
   public EmbeddedScanner unmask(String fqcnPrefix) {
@@ -80,59 +77,27 @@ public class EmbeddedScanner {
   }
 
   /**
-   * Declare Sonar properties, for example sonar.projectKey=foo.
-   * These might be used at different stages (on {@link #start() or #runAnalysis(Properties)}, depending on the 
-   * property and SQ version.
-   *
+   * Declare SonarQube properties needed to download the scanner-engine from the server (sonar.host.url, credentials, proxy, ...).
    */
-  public EmbeddedScanner addGlobalProperties(Properties p) {
+  public EmbeddedScanner addGlobalProperties(Map<String, String> p) {
     globalProperties.putAll(p);
     return this;
   }
 
   /**
-   * Declare a SonarQube property.
-   * These might be used at different stages (on {@link #start() or #runAnalysis(Properties)}, depending on the 
-   * property and SQ version.
-   *
-   * @see ScannerProperties
-   * @see ScanProperties
+   * Declare a SonarQube property needed to download the scanner-engine from the server (sonar.host.url, credentials, proxy, ...).
    */
   public EmbeddedScanner setGlobalProperty(String key, String value) {
-    globalProperties.setProperty(key, value);
+    globalProperties.put(key, value);
     return this;
   }
 
   public String globalProperty(String key, @Nullable String defaultValue) {
-    return globalProperties.getProperty(key, defaultValue);
-  }
-
-  /**
-   * User-agent used in the HTTP requests to the SonarQube server
-   */
-  public EmbeddedScanner setApp(String app, String version) {
-    setGlobalProperty(InternalProperties.SCANNER_APP, app);
-    setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
-    return this;
+    return Optional.ofNullable(globalProperties.get(key)).orElse(defaultValue);
   }
 
   public String app() {
     return globalProperty(InternalProperties.SCANNER_APP, null);
-  }
-
-  /**
-   * Add extensions to the batch's object container.
-   * Only supported until SQ 5.1. For more recent versions, an exception is thrown 
-   * @param objs
-   */
-  public EmbeddedScanner addExtensions(Object... objs) {
-    checkLauncherExists();
-    if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      throw new IllegalStateException("not supported in current SonarQube version: " + launcher.getVersion());
-    }
-
-    extensions.addAll(Arrays.asList(objs));
-    return this;
   }
 
   public String appVersion() {
@@ -140,29 +105,11 @@ public class EmbeddedScanner {
   }
 
   /**
-   * Launch an analysis.
-   * Runner must have been started - see {@link #start()}.
+   * Download scanner-engine JAR and start bootstrapping classloader. After that it is possible to call {@link #serverVersion()}
    */
-  public void runAnalysis(Properties analysisProperties) {
-    checkLauncherExists();
-    Properties copy = new Properties();
-    copy.putAll(analysisProperties);
-    initAnalysisProperties(copy);
-    doExecute(copy);
-  }
-
   public void start() {
     initGlobalDefaultValues();
     doStart();
-  }
-
-  /**
-   * Stops the batch.
-   * Only supported starting in SQ 5.2. For older versions, this is a no-op.
-   */
-  public void stop() {
-    checkLauncherExists();
-    doStop();
   }
 
   public String serverVersion() {
@@ -170,36 +117,33 @@ public class EmbeddedScanner {
     return launcher.getVersion();
   }
 
-  /**
-   * @deprecated since 2.5 use {@link #start()}, {@link #runAnalysis(Properties)} and then {@link #stop()}
-   */
-  @Deprecated
-  public final void execute() {
-    start();
-    runAnalysis(new Properties());
-    stop();
+  public void execute(Map<String, String> taskProps) {
+    checkLauncherExists();
+    Map<String, String> allProps = new HashMap<>();
+    allProps.putAll(globalProperties);
+    allProps.putAll(taskProps);
+    initAnalysisProperties(allProps);
+    doExecute(allProps);
   }
 
   private void initGlobalDefaultValues() {
     setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
-    setGlobalDefaultValue(InternalProperties.SCANNER_APP, "SonarQubeScanner");
-    setGlobalDefaultValue(InternalProperties.SCANNER_APP_VERSION, ScannerApiVersion.version());
   }
 
-  private void initAnalysisProperties(Properties p) {
+  private void initAnalysisProperties(Map<String, String> p) {
     initSourceEncoding(p);
     new Dirs(logger).init(p);
   }
 
-  void initSourceEncoding(Properties p) {
+  void initSourceEncoding(Map<String, String> p) {
     boolean onProject = Utils.taskRequiresProject(p);
     if (onProject) {
-      String sourceEncoding = p.getProperty(ScanProperties.PROJECT_SOURCE_ENCODING, "");
+      String sourceEncoding = p.get(ScanProperties.PROJECT_SOURCE_ENCODING);
       boolean platformDependent = false;
-      if ("".equals(sourceEncoding)) {
+      if (sourceEncoding == null) {
         sourceEncoding = Charset.defaultCharset().name();
         platformDependent = true;
-        p.setProperty(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
+        p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
       }
       logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
         + (platformDependent ? " (analysis is platform dependent)" : ""));
@@ -216,27 +160,10 @@ public class EmbeddedScanner {
     checkLauncherDoesntExist();
     ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
     launcher = launcherFactory.createLauncher(globalProperties(), rules);
-    if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.start(globalProperties(), (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
-    }
   }
 
-  protected void doStop() {
-    if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.stop();
-      launcher = null;
-    }
-  }
-
-  protected void doExecute(Properties analysisProperties) {
-    if (VersionUtils.isAtLeast52(launcher.getVersion())) {
-      launcher.execute(analysisProperties);
-    } else {
-      Properties prop = new Properties();
-      prop.putAll(globalProperties());
-      prop.putAll(analysisProperties);
-      launcher.executeOldVersion(prop, extensions);
-    }
+  protected void doExecute(Map<String, String> properties) {
+    launcher.execute(properties, (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
   }
 
   private void checkLauncherExists() {

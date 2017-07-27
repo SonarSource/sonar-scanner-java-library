@@ -22,41 +22,26 @@ package org.sonarsource.scanner.api.internal;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.sonarsource.scanner.api.internal.batch.LogOutput;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-@RunWith(Parameterized.class)
 public class SimulatedLauncherTest {
   private static final String VERSION = "5.2";
   private SimulatedLauncher launcher;
   private Logger logger;
   private String filename;
-
-  @Parameters(name = "use_deprecated_prop={0}")
-  public static Iterable<Object[]> data() {
-    return Arrays.asList(new Object[][] {{true}, {false}});
-  }
-
-  private final boolean useDeprecatedProp;
-
-  public SimulatedLauncherTest(boolean useDeprecatedProp) {
-    this.useDeprecatedProp = useDeprecatedProp;
-  }
+  private LogOutput logOutput = (m, l) -> {
+  };
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
@@ -70,45 +55,23 @@ public class SimulatedLauncherTest {
 
   @Test
   public void testDump() throws IOException {
-    Properties global = new Properties();
-    global.putAll(createProperties(true));
-    Properties analysis = new Properties();
-    analysis.putAll(createProperties(false));
-
-    launcher.start(global, null);
-    launcher.execute(analysis);
-    assertDump(global, analysis);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void error_if_no_dump_file() {
-    launcher.execute(new Properties());
+    Map<String, String> props = createProperties();
+    launcher.execute(props, logOutput);
+    assertDump(props);
   }
 
   @Test(expected = IllegalStateException.class)
   public void error_dump() throws IOException {
-    Properties p = mock(Properties.class);
-    doThrow(IOException.class).when(p).store(any(OutputStream.class), anyString());
-    launcher.execute(p);
+    Map<String, String> prop = new HashMap<>();
+    prop.put(InternalProperties.SCANNER_DUMP_TO_FILE, "an invalid # file \\//?name*?\"");
+    launcher.execute(prop, logOutput);
   }
 
-  @Test
-  public void testOldExecute() {
-    Properties global = new Properties();
-    global.putAll(createProperties(true));
-    Properties analysis = new Properties();
-    analysis.putAll(createProperties(false));
-
-    launcher.start(global, null);
-    launcher.executeOldVersion(analysis, null);
-
-  }
-
-  private Properties createProperties(boolean global) {
-    Properties prop = new Properties();
-    prop.put("key1_" + global, "value1");
-    prop.put("key2_" + global, "value2");
-    prop.put(useDeprecatedProp ? InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED : InternalProperties.SCANNER_DUMP_TO_FILE, filename);
+  private Map<String, String> createProperties() {
+    Map<String, String> prop = new HashMap<>();
+    prop.put("key1", "value1");
+    prop.put("key2", "value2");
+    prop.put(InternalProperties.SCANNER_DUMP_TO_FILE, filename);
     return prop;
   }
 
@@ -117,21 +80,13 @@ public class SimulatedLauncherTest {
     assertThat(launcher.getVersion()).isEqualTo(VERSION);
   }
 
-  private void assertDump(Properties global, Properties analysis) throws IOException {
-    if (analysis != null) {
+  private void assertDump(Map<String, String> props) throws IOException {
+    if (props != null) {
       Properties p = new Properties();
       p.load(new FileInputStream(new File(filename)));
-      assertThat(p).isEqualTo(analysis);
+      assertThat(p).isEqualTo(props);
     } else {
       assertThat(new File(filename)).doesNotExist();
-    }
-
-    if (global != null) {
-      Properties p = new Properties();
-      p.load(new FileInputStream(new File(filename + ".global")));
-      assertThat(p).isEqualTo(global);
-    } else {
-      assertThat(new File(filename + ".global")).doesNotExist();
     }
   }
 

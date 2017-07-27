@@ -19,8 +19,8 @@
  */
 package com.sonar.scanner.api.it;
 
-import java.util.Properties;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.sonarsource.scanner.api.EmbeddedScanner;
 import org.sonarsource.scanner.api.LogOutput;
 import org.sonarsource.scanner.api.StdOutLogOutput;
@@ -28,7 +28,7 @@ import org.sonarsource.scanner.api.StdOutLogOutput;
 public class Main {
   public static void main(String[] args) {
     try {
-      Properties props = new Properties();
+      Map<String, String> props = new HashMap<>();
       for (String k : System.getProperties().stringPropertyNames()) {
         if (k.startsWith("sonar.")) {
           props.put(k, System.getProperty(k));
@@ -43,12 +43,11 @@ public class Main {
     System.exit(0);
   }
 
-  private static void runProject(Properties props) {
+  private static void runProject(Map<String, String> props) {
     LogOutput logOutput = new StdOutLogOutput();
-    EmbeddedScanner scanner = EmbeddedScanner.create(logOutput);
+    EmbeddedScanner scanner = EmbeddedScanner.create("Simple Scanner", "1.0", logOutput);
     scanner.addGlobalProperties(props);
     scanner.start();
-    scanner.runAnalysis(props);
-    scanner.stop();
+    scanner.execute(props);
   }
 }

@@ -19,17 +19,17 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.api.internal.ServerConnection;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,7 +79,7 @@ public class ServerConnectionTest {
 
   @Test
   public void should_support_server_url_without_trailing_slash() throws Exception {
-    Properties props = new Properties();
+    Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", serverUrl.replaceAll("(/)+$", ""));
     ServerConnection connection = ServerConnection.create(props, logger);
 
@@ -90,7 +90,7 @@ public class ServerConnectionTest {
 
   @Test
   public void should_support_server_url_with_trailing_slash() throws Exception {
-    Properties props = new Properties();
+    Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", serverUrl.replaceAll("(/)+$", "") + "/");
     ServerConnection connection = ServerConnection.create(props, logger);
 

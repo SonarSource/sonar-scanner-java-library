@@ -19,14 +19,11 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.junit.Test;
-import org.sonarsource.scanner.api.internal.JarDownloader;
-import org.sonarsource.scanner.api.internal.ServerConnection;
-import org.sonarsource.scanner.api.internal.cache.Logger;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import org.junit.Test;
+import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -35,9 +32,8 @@ import static org.mockito.Mockito.spy;
 
 public class JarDownloaderTest {
 
-  ServerConnection serverConnection = mock(ServerConnection.class);
-  Properties props = new Properties();
-  JarDownloader downloader = spy(new JarDownloader(serverConnection, mock(Logger.class), props));
+  private ServerConnection serverConnection = mock(ServerConnection.class);
+  private JarDownloader downloader = spy(new JarDownloader(serverConnection, mock(Logger.class), null));
 
   @Test
   public void should_download_jar_files() {

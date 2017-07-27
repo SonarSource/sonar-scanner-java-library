@@ -10,7 +10,7 @@
   <name>SonarQube Scanner API - Batch</name>
 
   <properties>
-    <sonarQubeVersion>5.4</sonarQubeVersion>
+    <sonarQubeVersion>6.4</sonarQubeVersion>
   </properties>
 
   <dependencies>
@@ -22,7 +22,7 @@
     </dependency>
     <dependency>
       <groupId>org.sonarsource.sonarqube</groupId>
-      <artifactId>sonar-batch</artifactId>
+      <artifactId>sonar-scanner-engine</artifactId>
       <version>${sonarQubeVersion}</version>
       <scope>provided</scope>
     </dependency>
@@ -53,7 +53,6 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>2.1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

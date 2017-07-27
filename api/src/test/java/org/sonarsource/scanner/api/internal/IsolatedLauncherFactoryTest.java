@@ -20,15 +20,10 @@
 package org.sonarsource.scanner.api.internal;
 
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import org.junit.Before;
 import org.junit.Test;
-import org.sonarsource.scanner.api.internal.ClassloadRules;
-import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.api.internal.JarDownloader;
-import org.sonarsource.scanner.api.internal.ScannerException;
-import org.sonarsource.scanner.api.internal.TempCleaning;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.batch.LogOutput;
 import org.sonarsource.scanner.api.internal.cache.Logger;
@@ -61,23 +56,11 @@ public class IsolatedLauncherFactoryTest {
   }
 
   public static class FakeIsolatedLauncher implements IsolatedLauncher {
-    public static Properties props = null;
+    public static Map<String, String> props = null;
 
     @Override
-    public void start(Properties properties, LogOutput logger) {
-    }
-
-    @Override
-    public void stop() {
-    }
-
-    @Override
-    public void execute(Properties properties) {
+    public void execute(Map<String, String> properties, LogOutput logOutput) {
       FakeIsolatedLauncher.props = properties;
-    }
-
-    @Override
-    public void executeOldVersion(Properties properties, List<Object> extensions) {
     }
 
     @Override

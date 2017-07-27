@@ -22,7 +22,6 @@ package org.sonarsource.scanner.api.internal;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -31,8 +30,8 @@ import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -72,10 +71,8 @@ public class JarsTest {
 
   @Test
   public void should_honor_sonarUserHome() throws IOException {
-    Properties props = new Properties();
     File f = temp.newFolder();
-    props.put("sonar.userHome", f.getAbsolutePath());
-    Jars jars = new Jars(connection, jarExtractor, mock(Logger.class), props);
+    Jars jars = new Jars(connection, jarExtractor, mock(Logger.class), f.getAbsolutePath());
     assertThat(jars.getFileCache().getDir()).isEqualTo(new File(f, "cache"));
   }
 

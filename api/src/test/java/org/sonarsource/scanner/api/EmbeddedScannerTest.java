@@ -23,7 +23,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,7 +40,6 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,28 +54,28 @@ public class EmbeddedScannerTest {
 
   @Test
   public void should_create() {
-    assertThat(EmbeddedScanner.create(mock(LogOutput.class))).isNotNull().isInstanceOf(EmbeddedScanner.class);
+    assertThat(EmbeddedScanner.create("test", "1.0", mock(LogOutput.class))).isNotNull().isInstanceOf(EmbeddedScanner.class);
   }
 
-  private IsolatedLauncherFactory batchLauncher;
+  private IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
-  private EmbeddedScanner runner;
+  private EmbeddedScanner scanner;
   private Logger logger;
 
   @Before
   public void setUp() {
-    batchLauncher = mock(IsolatedLauncherFactory.class);
+    launcherFactory = mock(IsolatedLauncherFactory.class);
     launcher = mock(IsolatedLauncher.class);
     logger = mock(Logger.class);
     when(launcher.getVersion()).thenReturn("5.2");
-    when(batchLauncher.createLauncher(any(Properties.class), any(ClassloadRules.class))).thenReturn(launcher);
-    runner = new EmbeddedScanner(batchLauncher, logger, mock(LogOutput.class));
+    when(launcherFactory.createLauncher(any(Map.class), any(ClassloadRules.class))).thenReturn(launcher);
+    scanner = new EmbeddedScanner(launcherFactory, logger, mock(LogOutput.class));
   }
 
   @Test
   public void test_server_version() {
-    runner.start();
-    assertThat(runner.serverVersion()).isEqualTo("5.2");
+    scanner.start();
+    assertThat(scanner.serverVersion()).isEqualTo("5.2");
   }
 
   @Test
@@ -83,89 +83,52 @@ public class EmbeddedScannerTest {
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage("started");
 
-    runner.runAnalysis(new Properties());
+    scanner.execute(new HashMap<>());
   }
 
   @Test
   public void test_app() {
-    EmbeddedScanner runner = EmbeddedScanner.create(mock(LogOutput.class)).setApp("Eclipse", "3.1");
-    assertThat(runner.app()).isEqualTo("Eclipse");
-    assertThat(runner.appVersion()).isEqualTo("3.1");
-  }
-
-  @Test
-  public void test_back_compatibility() {
-    when(launcher.getVersion()).thenReturn("4.5");
-
-    Properties analysisProps = new Properties();
-    analysisProps.put("sonar.dummy", "summy");
-
-    runner.setGlobalProperty("sonar.projectKey", "foo");
-    runner.start();
-    runner.runAnalysis(analysisProps);
-    runner.stop();
-
-    verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
-      @Override
-      public boolean matches(Properties o) {
-        return "foo".equals(o.getProperty("sonar.projectKey"));
-      }
-    }), any(ClassloadRules.class));
-
-    // it should have added a few properties to analysisProperties, and have merged global props
-    final String[] mustHaveKeys = {"sonar.working.directory", "sonar.sourceEncoding", "sonar.projectBaseDir",
-      "sonar.projectKey", "sonar.dummy"};
-
-    verify(launcher).executeOldVersion(argThat(new ArgumentMatcher<Properties>() {
-      @Override
-      public boolean matches(Properties o) {
-        for (String s : mustHaveKeys) {
-          if (!o.containsKey(s)) {
-            return false;
-          }
-        }
-        return true;
-      }
-    }), eq(new LinkedList<>()));
+    EmbeddedScanner scanner = EmbeddedScanner.create("Eclipse", "3.1", mock(LogOutput.class));
+    assertThat(scanner.app()).isEqualTo("Eclipse");
+    assertThat(scanner.appVersion()).isEqualTo("3.1");
   }
 
   @Test
   public void should_set_properties() {
-    EmbeddedScanner runner = EmbeddedScanner.create(mock(LogOutput.class));
-    runner.setGlobalProperty("sonar.projectKey", "foo");
-    runner.addGlobalProperties(new Properties() {
+    EmbeddedScanner scanner = EmbeddedScanner.create("test", "1.0", mock(LogOutput.class));
+    scanner.setGlobalProperty("sonar.projectKey", "foo");
+    scanner.addGlobalProperties(new HashMap<String, String>() {
       {
-        setProperty("sonar.login", "admin");
-        setProperty("sonar.password", "gniark");
+        put("sonar.login", "admin");
+        put("sonar.password", "gniark");
       }
     });
 
-    assertThat(runner.globalProperty("sonar.projectKey", null)).isEqualTo("foo");
-    assertThat(runner.globalProperty("sonar.login", null)).isEqualTo("admin");
-    assertThat(runner.globalProperty("sonar.password", null)).isEqualTo("gniark");
-    assertThat(runner.globalProperty("not.set", "this_is_default")).isEqualTo("this_is_default");
+    assertThat(scanner.globalProperty("sonar.projectKey", null)).isEqualTo("foo");
+    assertThat(scanner.globalProperty("sonar.login", null)).isEqualTo("admin");
+    assertThat(scanner.globalProperty("sonar.password", null)).isEqualTo("gniark");
+    assertThat(scanner.globalProperty("not.set", "this_is_default")).isEqualTo("this_is_default");
   }
 
   @Test
-  public void should_launch_batch() {
-    runner.setGlobalProperty("sonar.projectKey", "foo");
-    runner.start();
-    runner.runAnalysis(new Properties());
-    runner.stop();
+  public void should_launch_scanner() {
+    scanner.setGlobalProperty("sonar.projectKey", "foo");
+    scanner.start();
+    scanner.execute(new HashMap<>());
 
-    verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
+    verify(launcherFactory).createLauncher(argThat(new ArgumentMatcher<Map>() {
       @Override
-      public boolean matches(Properties o) {
-        return "foo".equals(o.getProperty("sonar.projectKey"));
+      public boolean matches(Map o) {
+        return "foo".equals(o.get("sonar.projectKey"));
       }
     }), any(ClassloadRules.class));
 
     // it should have added a few properties to analysisProperties
     final String[] mustHaveKeys = {"sonar.working.directory", "sonar.sourceEncoding", "sonar.projectBaseDir"};
 
-    verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
+    verify(launcher).execute(argThat(new ArgumentMatcher<Map>() {
       @Override
-      public boolean matches(Properties o) {
+      public boolean matches(Map o) {
         for (String s : mustHaveKeys) {
           if (!o.containsKey(s)) {
             return false;
@@ -173,47 +136,45 @@ public class EmbeddedScannerTest {
         }
         return true;
       }
-    }));
+    }), any(org.sonarsource.scanner.api.internal.batch.LogOutput.class));
   }
 
   @Test
-  public void should_launch_batch_analysisProperties() {
-    runner.setGlobalProperty("sonar.projectKey", "foo");
-    runner.start();
+  public void should_launch_scanner_analysisProperties() {
+    scanner.setGlobalProperty("sonar.projectKey", "foo");
+    scanner.start();
 
-    Properties analysisProperties = new Properties();
+    Map<String, String> analysisProperties = new HashMap<>();
     analysisProperties.put("sonar.projectKey", "value1");
-    runner.runAnalysis(analysisProperties);
-    runner.stop();
+    scanner.execute(analysisProperties);
 
-    verify(batchLauncher).createLauncher(argThat(new ArgumentMatcher<Properties>() {
+    verify(launcherFactory).createLauncher(argThat(new ArgumentMatcher<Map>() {
       @Override
-      public boolean matches(Properties o) {
-        return "foo".equals(o.getProperty("sonar.projectKey"));
+      public boolean matches(Map o) {
+        return "foo".equals(o.get("sonar.projectKey"));
       }
     }), any(ClassloadRules.class));
 
-    verify(launcher).execute(argThat(new ArgumentMatcher<Properties>() {
+    verify(launcher).execute(argThat(new ArgumentMatcher<Map>() {
       @Override
-      public boolean matches(Properties o) {
-        return "value1".equals(o.getProperty("sonar.projectKey"));
+      public boolean matches(Map o) {
+        return "value1".equals(o.get("sonar.projectKey"));
       }
-    }));
+    }), any(org.sonarsource.scanner.api.internal.batch.LogOutput.class));
   }
 
   @Test
   public void should_launch_in_simulation_mode() throws IOException {
-    batchLauncher = new IsolatedLauncherFactory(mock(Logger.class));
-    runner = new EmbeddedScanner(batchLauncher, mock(Logger.class), mock(LogOutput.class));
+    launcherFactory = new IsolatedLauncherFactory(mock(Logger.class));
+    scanner = new EmbeddedScanner(launcherFactory, mock(Logger.class), mock(LogOutput.class));
 
     File dump = temp.newFile();
-    Properties p = new Properties();
+    Map<String, String> p = new HashMap<>();
 
-    p.setProperty("sonar.projectKey", "foo");
-    runner.setGlobalProperty("sonarRunner.dumpToFile", dump.getAbsolutePath());
-    runner.start();
-    runner.runAnalysis(p);
-    runner.stop();
+    p.put("sonar.projectKey", "foo");
+    scanner.setGlobalProperty("sonar.scanner.dumpToFile", dump.getAbsolutePath());
+    scanner.start();
+    scanner.execute(p);
 
     Properties props = new Properties();
     props.load(new FileInputStream(dump));
@@ -223,46 +184,36 @@ public class EmbeddedScannerTest {
 
   @Test
   public void should_set_default_platform_encoding() throws Exception {
-    Properties p = new Properties();
-    p.setProperty("sonar.task", "scan");
-    runner.initSourceEncoding(p);
-    assertThat(p.getProperty("sonar.sourceEncoding", null)).isEqualTo(Charset.defaultCharset().name());
-  }
-
-  @Test
-  public void invalidate_after_stop() {
-    runner.start();
-    runner.stop();
-
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("started");
-    runner.runAnalysis(new Properties());
+    Map<String, String> p = new HashMap<>();
+    p.put("sonar.task", "scan");
+    scanner.initSourceEncoding(p);
+    assertThat(p.get("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
   }
 
   @Test
   public void cannot_start_twice() {
-    runner.start();
+    scanner.start();
 
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage("started");
-    runner.start();
+    scanner.start();
   }
 
   @Test
   public void should_use_parameterized_encoding() throws Exception {
-    Properties p = new Properties();
-    p.setProperty("sonar.task", "scan");
-    p.setProperty("sonar.sourceEncoding", "THE_ISO_1234");
-    runner.initSourceEncoding(p);
-    assertThat(p.getProperty("sonar.sourceEncoding", null)).isEqualTo("THE_ISO_1234");
+    Map<String, String> p = new HashMap<>();
+    p.put("sonar.task", "scan");
+    p.put("sonar.sourceEncoding", "THE_ISO_1234");
+    scanner.initSourceEncoding(p);
+    assertThat(p.get("sonar.sourceEncoding")).isEqualTo("THE_ISO_1234");
   }
 
   @Test
   public void should_not_init_encoding_if_not_project_task() throws Exception {
-    Properties p = new Properties();
-    p.setProperty("sonar.task", "views");
-    runner.initSourceEncoding(p);
-    assertThat(p.getProperty("sonar.sourceEncoding", null)).isNull();
+    Map<String, String> p = new HashMap<>();
+    p.put("sonar.task", "views");
+    scanner.initSourceEncoding(p);
+    assertThat(p.get("sonar.sourceEncoding")).isNull();
   }
 
 }

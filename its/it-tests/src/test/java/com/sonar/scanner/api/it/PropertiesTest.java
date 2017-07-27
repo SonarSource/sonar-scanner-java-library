@@ -19,28 +19,26 @@
  */
 package com.sonar.scanner.api.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.sonar.orchestrator.Orchestrator;
+import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.scanner.api.it.tools.SimpleScanner;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.sonar.orchestrator.Orchestrator;
-import com.sonar.orchestrator.build.BuildResult;
-import com.sonar.scanner.api.it.tools.SimpleScanner;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class PropertiesTest {
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
 
   @Test
-  public void testRuntimeEnvironment() throws IOException {
+  public void testRuntimeEnvironmentPassedAsUserAgent() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
     Map<String, String> params = new HashMap<>();
     BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
@@ -48,8 +46,7 @@ public class PropertiesTest {
 
     Path accessLogs = ORCHESTRATOR.getServer().getAppLogs().toPath().resolveSibling("access.log");
     String accessLogsContent = new String(Files.readAllBytes(accessLogs));
-    assertThat(accessLogsContent).doesNotContain("\"null/null\"");
-    assertThat(accessLogsContent).contains("\"SonarQubeScanner/");
+    assertThat(accessLogsContent).contains("\"Simple Scanner/1.0\"");
   }
 
   private static Path project(String projectName) {
