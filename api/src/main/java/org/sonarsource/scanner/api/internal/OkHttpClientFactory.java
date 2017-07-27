@@ -93,6 +93,9 @@ public class OkHttpClientFactory {
       okHttpClientBuilder.sslSocketFactory( systemDefaultSslSocketFactory( systemDefaultTrustManager, logger ),
                                             systemDefaultTrustManager );
     }
+    if (SSL_ALLOW_ALL) {
+      okHttpClientBuilder.hostnameVerifier( ( s, sslSession ) -> true );
+    }
     // OkHttp detect 'http.proxyHost' java property, but credentials should be filled
     final String proxyUser = System.getProperty("http.proxyUser", "");
     if (!System.getProperty("http.proxyHost", "").isEmpty() && !proxyUser.isEmpty()) {
@@ -140,9 +143,6 @@ public class OkHttpClientFactory {
       // get an ssl socket factory with our all-trusting manager
       SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
       okHttpClientBuilder.sslSocketFactory( sslSocketFactory, easyTrust );
-      if (SSL_ALLOW_ALL) {
-        okHttpClientBuilder.hostnameVerifier( ( s, sslSession ) -> true );
-      }
     } catch ( NoSuchAlgorithmException | KeyManagementException e ) {
       throw new IllegalStateException( "cannot setup the insecure http client", e);
     }
