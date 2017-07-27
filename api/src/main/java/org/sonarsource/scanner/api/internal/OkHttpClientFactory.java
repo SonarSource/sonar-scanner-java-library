@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +38,8 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
+
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -51,6 +54,20 @@ public class OkHttpClientFactory {
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
+
+  /**
+   * skip failure on certificate validity checks.
+   * <b>disabled by default</b>
+   */
+  private static final boolean SSL_INSECURE =
+      Boolean.valueOf( System.getProperty( "sonar.http.ssl.insecure", "false" ) );
+
+  /**
+   * If enabled, ssl hostname verifier does not check hostname.
+   * <b>disabled by default</b>
+   */
+  private static final boolean SSL_ALLOW_ALL =
+      Boolean.valueOf( System.getProperty( "sonar.http.ssl.allowall", "false" ) );
 
   private OkHttpClientFactory() {
     // only statics
@@ -68,9 +85,14 @@ public class OkHttpClientFactory {
       .supportsTlsExtensions(true)
       .build();
     okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
-    X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
-    okHttpClientBuilder.sslSocketFactory(systemDefaultSslSocketFactory(systemDefaultTrustManager, logger), systemDefaultTrustManager);
 
+    if (SSL_INSECURE) {
+      configureInsecure( okHttpClientBuilder );
+    } else {
+      X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
+      okHttpClientBuilder.sslSocketFactory( systemDefaultSslSocketFactory( systemDefaultTrustManager, logger ),
+                                            systemDefaultTrustManager );
+    }
     // OkHttp detect 'http.proxyHost' java property, but credentials should be filled
     final String proxyUser = System.getProperty("http.proxyUser", "");
     if (!System.getProperty("http.proxyHost", "").isEmpty() && !proxyUser.isEmpty()) {
@@ -87,6 +109,43 @@ public class OkHttpClientFactory {
       });
     }
     return okHttpClientBuilder.build();
+  }
+
+  private static void configureInsecure( OkHttpClient.Builder okHttpClientBuilder) {
+    try {
+      // Create a trust manager that does not validate certificate chains
+      X509TrustManager easyTrust =
+          new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                throws CertificateException {
+              // no op
+            }
+
+            @Override
+            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                throws CertificateException {
+              // no op
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+              return new X509Certificate[0];
+            }
+          };
+
+      // Init the easy-trusting trust manager
+      SSLContext sslContext = SSLContext.getInstance("SSL");
+      sslContext.init(new KeyManager[0], new TrustManager[]{easyTrust}, new java.security.SecureRandom());
+      // get an ssl socket factory with our all-trusting manager
+      SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+      okHttpClientBuilder.sslSocketFactory( sslSocketFactory, easyTrust );
+      if (SSL_ALLOW_ALL) {
+        okHttpClientBuilder.hostnameVerifier( ( s, sslSession ) -> true );
+      }
+    } catch ( NoSuchAlgorithmException | KeyManagementException e ) {
+      throw new IllegalStateException( "cannot setup the insecure http client", e);
+    }
   }
 
   private static X509TrustManager systemDefaultTrustManager() {
