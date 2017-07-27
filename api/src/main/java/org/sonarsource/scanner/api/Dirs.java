@@ -23,9 +23,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
+import java.util.Map;
+import java.util.Optional;
 import org.sonarsource.scanner.api.internal.cache.Logger;
-
 
 class Dirs {
 
@@ -35,7 +35,7 @@ class Dirs {
     this.logger = logger;
   }
 
-  void init(Properties p) {
+  void init(Map<String, String> p) {
     boolean onProject = Utils.taskRequiresProject(p);
     if (onProject) {
       initProjectDirs(p);
@@ -44,16 +44,16 @@ class Dirs {
     }
   }
 
-  private void initProjectDirs(Properties p) {
-    String pathString = p.getProperty(ScanProperties.PROJECT_BASEDIR, "");
+  private void initProjectDirs(Map<String, String> p) {
+    String pathString = Optional.ofNullable(p.get(ScanProperties.PROJECT_BASEDIR)).orElse("");
     Path absoluteProjectPath = Paths.get(pathString).toAbsolutePath().normalize();
     if (!Files.isDirectory(absoluteProjectPath)) {
       throw new IllegalStateException("Project home must be an existing directory: " + pathString);
     }
-    p.setProperty(ScanProperties.PROJECT_BASEDIR, absoluteProjectPath.toString());
+    p.put(ScanProperties.PROJECT_BASEDIR, absoluteProjectPath.toString());
 
     Path workDirPath;
-    pathString = p.getProperty(ScannerProperties.WORK_DIR, "");
+    pathString = Optional.ofNullable(p.get(ScannerProperties.WORK_DIR)).orElse("");
     if ("".equals(pathString.trim())) {
       workDirPath = absoluteProjectPath.resolve(".scannerwork");
     } else {
@@ -62,16 +62,16 @@ class Dirs {
         workDirPath = absoluteProjectPath.resolve(pathString);
       }
     }
-    p.setProperty(ScannerProperties.WORK_DIR, workDirPath.normalize().toString());
+    p.put(ScannerProperties.WORK_DIR, workDirPath.normalize().toString());
     logger.debug("Work directory: " + workDirPath.normalize().toString());
   }
 
   /**
    * Non-scan task
    */
-  private static void initTaskDirs(Properties p) {
-    String path = p.getProperty(ScannerProperties.WORK_DIR, ".");
+  private static void initTaskDirs(Map<String, String> p) {
+    String path = Optional.ofNullable(p.get(ScannerProperties.WORK_DIR)).orElse(".");
     File workDir = new File(path);
-    p.setProperty(ScannerProperties.WORK_DIR, workDir.getAbsolutePath());
+    p.put(ScannerProperties.WORK_DIR, workDir.getAbsolutePath());
   }
 }

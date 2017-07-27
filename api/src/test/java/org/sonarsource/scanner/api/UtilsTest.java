@@ -53,10 +53,10 @@ public class UtilsTest {
 
   @Test
   public void task_should_require_project() {
-    Properties props = new Properties();
+    Map<String, String> props = new HashMap<>();
     assertThat(Utils.taskRequiresProject(props)).isTrue();
 
-    props.setProperty("sonar.task", "scan");
+    props.put("sonar.task", "scan");
     assertThat(Utils.taskRequiresProject(props)).isTrue();
   }
 
@@ -71,8 +71,8 @@ public class UtilsTest {
 
   @Test
   public void task_should_not_require_project() {
-    Properties props = new Properties();
-    props.setProperty("sonar.task", "views");
+    Map<String, String> props = new HashMap<>();
+    props.put("sonar.task", "views");
     assertThat(Utils.taskRequiresProject(props)).isFalse();
   }
 

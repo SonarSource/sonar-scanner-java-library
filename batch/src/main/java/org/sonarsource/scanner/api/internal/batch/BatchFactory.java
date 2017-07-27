@@ -19,12 +19,9 @@
  */
 package org.sonarsource.scanner.api.internal.batch;
 
-import org.picocontainer.annotations.Nullable;
+import java.util.Map;
 import org.sonar.batch.bootstrapper.Batch;
 
-import java.util.List;
-import java.util.Properties;
-
 interface BatchFactory {
-  Batch createBatch(Properties properties, @Nullable final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput, @Nullable List<Object> extensions);
+  Batch createBatch(Map<String, String> properties, final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput);
 }

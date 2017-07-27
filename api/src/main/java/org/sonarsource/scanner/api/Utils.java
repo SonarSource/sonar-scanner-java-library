@@ -84,7 +84,7 @@ public class Utils {
     return sb.toString();
   }
 
-  static boolean taskRequiresProject(Properties props) {
+  static boolean taskRequiresProject(Map<String, String> props) {
     Object task = props.get(ScannerProperties.TASK);
     return task == null || ScanProperties.SCAN_TASK.equals(task);
   }

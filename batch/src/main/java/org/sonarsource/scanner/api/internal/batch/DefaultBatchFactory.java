@@ -19,33 +19,21 @@
  */
 package org.sonarsource.scanner.api.internal.batch;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import org.picocontainer.annotations.Nullable;
 import org.sonar.batch.bootstrapper.Batch;
 import org.sonar.batch.bootstrapper.EnvironmentInformation;
 
 class DefaultBatchFactory implements BatchFactory {
   private static final String SCANNER_APP_KEY = "sonar.scanner.app";
   private static final String SCANNER_APP_VERSION_KEY = "sonar.scanner.appVersion";
-  
+
   @Override
-  public Batch createBatch(Properties properties, @Nullable final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput, @Nullable List<Object> extensions) {
-    EnvironmentInformation env = new EnvironmentInformation(properties.getProperty(SCANNER_APP_KEY), properties.getProperty(SCANNER_APP_VERSION_KEY));
-    Batch.Builder builder = Batch.builder()
+  public Batch createBatch(Map<String, String> properties, final org.sonarsource.scanner.api.internal.batch.LogOutput logOutput) {
+    EnvironmentInformation env = new EnvironmentInformation(properties.get(SCANNER_APP_KEY), properties.get(SCANNER_APP_VERSION_KEY));
+    return Batch.builder()
       .setEnvironment(env)
-      .setBootstrapProperties((Map) properties);
-
-    if (extensions != null) {
-      builder.addComponents(extensions);
-    }
-
-    if (logOutput != null) {
-      // Do that in a separate class to avoid NoClassDefFoundError for org/sonar/batch/bootstrapper/LogOutput
-      Compatibility.setLogOutputFor5dot2(builder, logOutput);
-    }
-
-    return builder.build();
+      .setGlobalProperties(properties)
+      .setLogOutput((formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())))
+      .build();
   }
 }

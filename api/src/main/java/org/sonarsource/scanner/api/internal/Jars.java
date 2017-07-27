@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import javax.annotation.Nullable;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.FileCacheBuilder;
 import org.sonarsource.scanner.api.internal.cache.Logger;
@@ -37,10 +37,10 @@ class Jars {
   private final JarExtractor jarExtractor;
   private final Logger logger;
 
-  Jars(ServerConnection conn, JarExtractor jarExtractor, Logger logger, Properties props) {
+  Jars(ServerConnection conn, JarExtractor jarExtractor, Logger logger, @Nullable String userHome) {
     this.logger = logger;
     this.fileCache = new FileCacheBuilder(logger)
-      .setUserHome(props.getProperty("sonar.userHome"))
+      .setUserHome(userHome)
       .build();
     this.connection = conn;
     this.jarExtractor = jarExtractor;

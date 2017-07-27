@@ -24,22 +24,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import org.sonar.batch.bootstrapper.Batch;
-import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 
 /**
  * This class is executed within the classloader provided by the server. It contains the installed plugins and
  * the same version of sonar-batch as the server.
  */
 public class BatchIsolatedLauncher implements IsolatedLauncher {
-  private Batch batch = null;
   private final BatchFactory factory;
 
   public BatchIsolatedLauncher() {
-    
     this(new DefaultBatchFactory());
   }
 
@@ -48,27 +42,8 @@ public class BatchIsolatedLauncher implements IsolatedLauncher {
   }
 
   @Override
-  public void start(Properties globalProperties, org.sonarsource.scanner.api.internal.batch.LogOutput logOutput) {
-    batch = factory.createBatch(globalProperties, logOutput, null);
-    batch.start();
-  }
-
-  @Override
-  public void stop() {
-    batch.stop();
-  }
-
-  @Override
-  public void execute(Properties properties) {
-    batch.executeTask((Map) properties);
-  }
-
-  /**
-   * This method exists for backward compatibility with SonarQube &lt; 5.2. 
-   */
-  @Override
-  public void executeOldVersion(Properties properties, List<Object> extensions) {
-    factory.createBatch(properties, null, extensions).execute();
+  public void execute(Map<String, String> properties, org.sonarsource.scanner.api.internal.batch.LogOutput logOutput) {
+    factory.createBatch(properties, logOutput).execute();
   }
 
   @Override

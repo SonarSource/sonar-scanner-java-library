@@ -19,19 +19,10 @@
  */
 package org.sonarsource.scanner.api.internal.batch;
 
-import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 public interface IsolatedLauncher {
-
-  void start(Properties properties, LogOutput logOutput);
-
-  void stop();
-
-  void execute(Properties properties);
-
-  void executeOldVersion(Properties properties, List<Object> extensions);
+  void execute(Map<String, String> properties, LogOutput logOutput);
 
   String getVersion();
-
 }

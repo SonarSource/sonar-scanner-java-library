@@ -19,27 +19,27 @@
  */
 package org.sonarsource.scanner.api.internal.batch;
 
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Test;
 import org.sonar.batch.bootstrapper.Batch;
-import org.sonarsource.scanner.api.internal.batch.BatchFactory;
-import org.sonarsource.scanner.api.internal.batch.DefaultBatchFactory;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class DefaultBatchFactoryTest {
 
-  private Properties props = new Properties();
+  private Map<String, String> props = new HashMap<>();
   private BatchFactory factory = new DefaultBatchFactory();
 
   @Test
   public void should_create_batch() {
-    props.setProperty("sonar.projectBaseDir", "src/test/java_sample");
-    props.setProperty("sonar.projectKey", "sample");
-    props.setProperty("sonar.projectName", "Sample");
-    props.setProperty("sonar.projectVersion", "1.0");
-    props.setProperty("sonar.sources", "src");
-    Batch batch = factory.createBatch(props, null, null);
+    props.put("sonar.projectBaseDir", "src/test/java_sample");
+    props.put("sonar.projectKey", "sample");
+    props.put("sonar.projectName", "Sample");
+    props.put("sonar.projectVersion", "1.0");
+    props.put("sonar.sources", "src");
+    Batch batch = factory.createBatch(props, (m, l) -> {
+    });
 
     assertThat(batch).isNotNull();
   }

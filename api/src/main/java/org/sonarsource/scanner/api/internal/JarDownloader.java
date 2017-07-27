@@ -21,21 +21,21 @@ package org.sonarsource.scanner.api.internal;
 
 import java.io.File;
 import java.util.List;
-import java.util.Properties;
+import javax.annotation.Nullable;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 class JarDownloader {
   private final ServerConnection serverConnection;
   private final Logger logger;
-  private final Properties props;
+  private final String userHome;
 
-  JarDownloader(ServerConnection conn, Logger logger, Properties props) {
+  JarDownloader(ServerConnection conn, Logger logger, @Nullable String userHome) {
     this.serverConnection = conn;
     this.logger = logger;
-    this.props = props;
+    this.userHome = userHome;
   }
 
   List<File> download() {
-    return new Jars(serverConnection, new JarExtractor(), logger, props).download();
+    return new Jars(serverConnection, new JarExtractor(), logger, userHome).download();
   }
 }

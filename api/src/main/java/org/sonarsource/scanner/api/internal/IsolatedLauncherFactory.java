@@ -23,7 +23,7 @@ import java.io.File;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
@@ -53,16 +53,16 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncher createLauncher(Properties props, ClassloadRules rules) {
-    if (props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE) || props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE_DEPRECATED)) {
-      String version = props.getProperty(InternalProperties.SCANNER_VERSION_SIMULATION);
+  public IsolatedLauncher createLauncher(Map<String, String> props, ClassloadRules rules) {
+    if (props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE)) {
+      String version = props.get(InternalProperties.SCANNER_VERSION_SIMULATION);
       if (version == null) {
-        version = "5.2";
+        version = "5.6";
       }
       return new SimulatedLauncher(version, logger);
     }
     ServerConnection serverConnection = ServerConnection.create(props, logger);
-    JarDownloader jarDownloader = new JarDownloader(serverConnection, logger, props);
+    JarDownloader jarDownloader = new JarDownloader(serverConnection, logger, props.get("sonar.userHome"));
 
     return createLauncher(jarDownloader, rules);
   }
