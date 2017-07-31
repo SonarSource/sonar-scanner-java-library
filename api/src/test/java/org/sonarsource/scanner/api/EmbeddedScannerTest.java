@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.Before;
@@ -188,6 +189,17 @@ public class EmbeddedScannerTest {
     p.put("sonar.task", "scan");
     scanner.initSourceEncoding(p);
     assertThat(p.get("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
+    verify(logger).info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)");
+  }
+
+  @Test
+  public void should_set_default_platform_encoding_when_empty() throws Exception {
+    Map<String, String> p = new HashMap<>();
+    p.put("sonar.task", "scan");
+    p.put("sonar.sourceEncoding", "");
+    scanner.initSourceEncoding(p);
+    assertThat(p.get("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
+    verify(logger).info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)");
   }
 
   @Test

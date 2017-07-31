@@ -138,9 +138,9 @@ public class EmbeddedScanner {
   void initSourceEncoding(Map<String, String> p) {
     boolean onProject = Utils.taskRequiresProject(p);
     if (onProject) {
-      String sourceEncoding = p.get(ScanProperties.PROJECT_SOURCE_ENCODING);
+      String sourceEncoding = Optional.ofNullable(p.get(ScanProperties.PROJECT_SOURCE_ENCODING)).orElse("");
       boolean platformDependent = false;
-      if (sourceEncoding == null) {
+      if ("".equals(sourceEncoding)) {
         sourceEncoding = Charset.defaultCharset().name();
         platformDependent = true;
         p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
