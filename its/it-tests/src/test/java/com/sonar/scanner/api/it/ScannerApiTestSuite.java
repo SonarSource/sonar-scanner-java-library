@@ -32,7 +32,7 @@ public class ScannerApiTestSuite {
 
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
-    .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
+    .setOrchestratorProperty("javaVersion", "4.11")
     .addPlugin("java")
     .build();
 
