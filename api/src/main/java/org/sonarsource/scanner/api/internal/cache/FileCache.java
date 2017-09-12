@@ -21,7 +21,11 @@ package org.sonarsource.scanner.api.internal.cache;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import javax.annotation.CheckForNull;
 
 /**
@@ -31,28 +35,25 @@ import javax.annotation.CheckForNull;
  */
 public class FileCache {
 
-  /** Maximum loop count when creating temp directories. */
-  private static final int TEMP_DIR_ATTEMPTS = 10000;
-
-  private final File dir;
-  private final File tmpDir;
+  private final Path dir;
+  private final Path tmpDir;
   private final FileHashes hashes;
   private final Logger logger;
 
-  FileCache(File dir, FileHashes fileHashes, Logger logger) {
+  FileCache(Path dir, FileHashes fileHashes, Logger logger) {
     this.hashes = fileHashes;
     this.logger = logger;
     this.dir = createDir(dir, "user cache");
-    logger.info(String.format("User cache: %s", dir.getAbsolutePath()));
-    this.tmpDir = createDir(new File(dir, "_tmp"), "temp dir");
+    logger.info(String.format("User cache: %s", dir.toString()));
+    this.tmpDir = createDir(dir.resolve("_tmp"), "temp dir");
   }
 
-  static FileCache create(File dir, Logger logger) {
+  static FileCache create(Path dir, Logger logger) {
     return new FileCache(dir, new FileHashes(), logger);
   }
 
   public File getDir() {
-    return dir;
+    return dir.toFile();
   }
 
   /**
@@ -61,9 +62,9 @@ public class FileCache {
    */
   @CheckForNull
   public File get(String filename, String hash) {
-    File cachedFile = new File(new File(dir, hash), filename);
-    if (cachedFile.exists()) {
-      return cachedFile;
+    Path cachedFile = dir.resolve(hash).resolve(filename);
+    if (Files.exists(cachedFile)) {
+      return cachedFile.toFile();
     }
     logger.debug(String.format("No file found in the cache with name %s and hash %s", filename, hash));
     return null;
@@ -76,84 +77,74 @@ public class FileCache {
 
   public File get(String filename, String hash, Downloader downloader) {
     // Does not fail if another process tries to create the directory at the same time.
-    File hashDir = hashDir(hash);
-    File targetFile = new File(hashDir, filename);
-    if (!targetFile.exists()) {
-      File tempFile = newTempFile();
+    Path hashDir = hashDir(hash);
+    Path targetFile = hashDir.resolve(filename);
+    if (!Files.exists(targetFile)) {
+      Path tempFile = newTempFile();
       download(downloader, filename, tempFile);
-      String downloadedHash = hashes.of(tempFile);
+      String downloadedHash = hashes.of(tempFile.toFile());
       if (!hash.equals(downloadedHash)) {
-        throw new IllegalStateException("INVALID HASH: File " + tempFile.getAbsolutePath() + " was expected to have hash " + hash
+        throw new IllegalStateException("INVALID HASH: File " + tempFile.toAbsolutePath() + " was expected to have hash " + hash
           + " but was downloaded with hash " + downloadedHash);
       }
       mkdirQuietly(hashDir);
       renameQuietly(tempFile, targetFile);
     }
-    return targetFile;
+    return targetFile.toFile();
   }
 
-  private void download(Downloader downloader, String filename, File tempFile) {
+  private static void download(Downloader downloader, String filename, Path tempFile) {
     try {
-      downloader.download(filename, tempFile);
+      downloader.download(filename, tempFile.toFile());
     } catch (IOException e) {
       throw new IllegalStateException("Fail to download " + filename + " to " + tempFile, e);
     }
   }
 
-  private void renameQuietly(File sourceFile, File targetFile) {
-    boolean rename = sourceFile.renameTo(targetFile);
-    // Check if the file was cached by another process during download
-    if (!rename && !targetFile.exists()) {
-      logger.warn(String.format("Unable to rename %s to %s", sourceFile.getAbsolutePath(), targetFile.getAbsolutePath()));
+  private void renameQuietly(Path sourceFile, Path targetFile) {
+    try {
+      Files.move(sourceFile, targetFile, StandardCopyOption.ATOMIC_MOVE);
+    } catch (AtomicMoveNotSupportedException ex) {
+      logger.warn(String.format("Unable to rename %s to %s", sourceFile.toAbsolutePath(), targetFile.toAbsolutePath()));
       logger.warn("A copy/delete will be tempted but with no guarantee of atomicity");
       try {
-        Files.move(sourceFile.toPath(), targetFile.toPath());
+        Files.move(sourceFile, targetFile);
       } catch (IOException e) {
-        throw new IllegalStateException("Fail to move " + sourceFile.getAbsolutePath() + " to " + targetFile, e);
+        throw new IllegalStateException("Fail to move " + sourceFile.toAbsolutePath() + " to " + targetFile, e);
       }
+    } catch (FileAlreadyExistsException e) {
+      // File was probably cached by another process in the mean time
+    } catch (IOException e) {
+      throw new IllegalStateException("Fail to move " + sourceFile.toAbsolutePath() + " to " + targetFile, e);
     }
   }
 
-  private File hashDir(String hash) {
-    return new File(dir, hash);
+  private Path hashDir(String hash) {
+    return dir.resolve(hash);
   }
 
-  private static void mkdirQuietly(File hashDir) {
+  private static void mkdirQuietly(Path hashDir) {
     try {
-      Files.createDirectories(hashDir.toPath());
+      Files.createDirectories(hashDir);
     } catch (IOException e) {
       throw new IllegalStateException("Fail to create cache directory: " + hashDir, e);
     }
   }
 
-  private File newTempFile() {
+  private Path newTempFile() {
     try {
-      return File.createTempFile("fileCache", null, tmpDir);
+      return Files.createTempFile(tmpDir, "fileCache", null);
     } catch (IOException e) {
       throw new IllegalStateException("Fail to create temp file in " + tmpDir, e);
     }
   }
 
-  public File createTempDir() {
-    String baseName = System.currentTimeMillis() + "-";
-
-    for (int counter = 0; counter < TEMP_DIR_ATTEMPTS; counter++) {
-      File tempDir = new File(tmpDir, baseName + counter);
-      if (tempDir.mkdir()) {
-        return tempDir;
-      }
-    }
-    throw new IllegalStateException("Failed to create directory in " + tmpDir);
-  }
-
-  private File createDir(File dir, String debugTitle) {
-    if (!dir.isDirectory() || !dir.exists()) {
-      logger.debug("Create : " + dir.getAbsolutePath());
-      try {
-        Files.createDirectories(dir.toPath());
-      } catch (IOException e) {
-        throw new IllegalStateException("Unable to create " + debugTitle + dir.getAbsolutePath(), e);
-      }
+  private Path createDir(Path dir, String debugTitle) {
+    logger.debug("Create: " + dir.toString());
+    try {
+      Files.createDirectories(dir);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to create " + debugTitle + dir.toString(), e);
     }
     return dir;
   }

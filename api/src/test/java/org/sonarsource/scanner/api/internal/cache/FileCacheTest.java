@@ -23,33 +23,32 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class FileCacheTest {
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  public TemporaryFolder temp = new TemporaryFolder();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void not_in_cache() throws IOException {
-    FileCache cache = FileCache.create(tempFolder.newFolder(), mock(Logger.class));
+    FileCache cache = FileCache.create(temp.newFolder().toPath(), mock(Logger.class));
     assertThat(cache.get("sonar-foo-plugin-1.5.jar", "ABCDE")).isNull();
   }
 
   @Test
   public void found_in_cache() throws IOException {
-    FileCache cache = FileCache.create(tempFolder.newFolder(), mock(Logger.class));
+    FileCache cache = FileCache.create(temp.newFolder().toPath(), mock(Logger.class));
 
     // populate the cache. Assume that hash is correct.
     File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
@@ -61,12 +60,18 @@ public class FileCacheTest {
   @Test
   public void download_and_add_to_cache() throws IOException {
     FileHashes hashes = mock(FileHashes.class);
-    FileCache cache = new FileCache(tempFolder.newFolder(), hashes, mock(Logger.class));
+    FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
     when(hashes.of(any(File.class))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
+      boolean single = false;
+
       public void download(String filename, File toFile) throws IOException {
+        if (single) {
+          throw new IllegalStateException("Already called");
+        }
         write(toFile, "body");
+        single = true;
       }
     };
     File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
@@ -74,6 +79,12 @@ public class FileCacheTest {
     assertThat(cachedFile.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
     assertThat(cachedFile.getParentFile().getParentFile()).isEqualTo(cache.getDir());
     assertThat(read(cachedFile)).isEqualTo("body");
+
+    File againFromCache = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
+    assertThat(againFromCache).isNotNull().exists().isFile();
+    assertThat(againFromCache.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
+    assertThat(againFromCache.getParentFile().getParentFile()).isEqualTo(cache.getDir());
+    assertThat(read(againFromCache)).isEqualTo("body");
   }
 
   @Test
@@ -82,7 +93,7 @@ public class FileCacheTest {
     thrown.expectMessage("INVALID HASH");
 
     FileHashes hashes = mock(FileHashes.class);
-    FileCache cache = new FileCache(tempFolder.newFolder(), hashes, mock(Logger.class));
+    FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
     when(hashes.of(any(File.class))).thenReturn("VWXYZ");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
@@ -97,7 +108,7 @@ public class FileCacheTest {
   public void concurrent_download() throws IOException {
     FileHashes hashes = mock(FileHashes.class);
     when(hashes.of(any(File.class))).thenReturn("ABCDE");
-    final FileCache cache = new FileCache(tempFolder.newFolder(), hashes, mock(Logger.class));
+    final FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {

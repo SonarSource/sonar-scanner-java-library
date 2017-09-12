@@ -20,12 +20,11 @@
 package org.sonarsource.scanner.api.internal.cache;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.api.internal.cache.FileCache;
-import org.sonarsource.scanner.api.internal.cache.FileCacheBuilder;
-import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -49,6 +48,19 @@ public class FileCacheBuilderTest {
     FileCache cache = new FileCacheBuilder(mock(Logger.class)).setUserHome((String) null).build();
 
     // does not fail. It uses default path or env variable
+    assertThat(cache.getDir()).isDirectory().exists();
+    assertThat(cache.getDir().getName()).isEqualTo("cache");
+  }
+
+  @Test
+  public void user_home_property_can_be_a_symlink() throws IOException {
+    File realSonarHome = temp.newFolder();
+    File symlink = temp.newFolder();
+    symlink.delete();
+    Files.createSymbolicLink(symlink.toPath(), realSonarHome.toPath());
+
+    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setUserHome(symlink).build();
+
     assertThat(cache.getDir()).isDirectory().exists();
     assertThat(cache.getDir().getName()).isEqualTo("cache");
   }
