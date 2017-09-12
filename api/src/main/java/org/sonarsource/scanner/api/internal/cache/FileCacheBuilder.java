@@ -20,7 +20,6 @@
 package org.sonarsource.scanner.api.internal.cache;
 
 import java.io.File;
-
 import javax.annotation.Nullable;
 
 public class FileCacheBuilder {
@@ -46,9 +45,9 @@ public class FileCacheBuilder {
       userHome = findHome();
     }
     File cacheDir = new File(userHome, "cache");
-    return FileCache.create(cacheDir, logger);
+    return FileCache.create(cacheDir.toPath(), logger);
   }
-  
+
   private static File findHome() {
     String path = System.getenv("SONAR_USER_HOME");
     if (path == null) {
