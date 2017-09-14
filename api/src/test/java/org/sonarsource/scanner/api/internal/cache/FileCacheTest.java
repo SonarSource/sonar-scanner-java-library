@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,6 +35,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class FileCacheTest {
+  private FileHashes fileHashes;
+  private FileCache cache;
+
+  @Before
+  public void setUp() throws IOException {
+    fileHashes = mock(FileHashes.class);
+    cache = new FileCache(temp.getRoot().toPath(), fileHashes, mock(Logger.class));
+  }
+
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
 
@@ -42,14 +52,11 @@ public class FileCacheTest {
 
   @Test
   public void not_in_cache() throws IOException {
-    FileCache cache = FileCache.create(temp.newFolder().toPath(), mock(Logger.class));
     assertThat(cache.get("sonar-foo-plugin-1.5.jar", "ABCDE")).isNull();
   }
 
   @Test
   public void found_in_cache() throws IOException {
-    FileCache cache = FileCache.create(temp.newFolder().toPath(), mock(Logger.class));
-
     // populate the cache. Assume that hash is correct.
     File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
     write(cachedFile, "body");
@@ -58,10 +65,41 @@ public class FileCacheTest {
   }
 
   @Test
+  public void fail_to_download() {
+    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+
+    FileCache.Downloader downloader = new FileCache.Downloader() {
+      public void download(String filename, File toFile) throws IOException {
+        throw new IOException("fail");
+      }
+    };
+    thrown.expect(IllegalStateException.class);
+    thrown.expectMessage("Fail to download");
+    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
+  }
+
+  @Test
+  public void fail_create_hash_dir() throws IOException {
+    File file = temp.newFile();
+    thrown.expect(IllegalStateException.class);
+    thrown.expectMessage("Unable to create user cache");
+    cache = new FileCache(file.toPath(), fileHashes, mock(Logger.class));
+  }
+
+  @Test
+  public void fail_to_create_hash_dir() throws IOException {
+    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+
+    File hashDir = new File(cache.getDir(), "ABCDE");
+    hashDir.createNewFile();
+    thrown.expect(IllegalStateException.class);
+    thrown.expectMessage("Fail to create cache directory");
+    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", mock(FileCache.Downloader.class));
+  }
+
+  @Test
   public void download_and_add_to_cache() throws IOException {
-    FileHashes hashes = mock(FileHashes.class);
-    FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
-    when(hashes.of(any(File.class))).thenReturn("ABCDE");
+    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       boolean single = false;
@@ -92,9 +130,7 @@ public class FileCacheTest {
     thrown.expect(IllegalStateException.class);
     thrown.expectMessage("INVALID HASH");
 
-    FileHashes hashes = mock(FileHashes.class);
-    FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
-    when(hashes.of(any(File.class))).thenReturn("VWXYZ");
+    when(fileHashes.of(any(File.class))).thenReturn("VWXYZ");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
@@ -106,9 +142,7 @@ public class FileCacheTest {
 
   @Test
   public void concurrent_download() throws IOException {
-    FileHashes hashes = mock(FileHashes.class);
-    when(hashes.of(any(File.class))).thenReturn("ABCDE");
-    final FileCache cache = new FileCache(temp.newFolder().toPath(), hashes, mock(Logger.class));
+    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {

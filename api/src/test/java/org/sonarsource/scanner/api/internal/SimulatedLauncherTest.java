@@ -53,6 +53,14 @@ public class SimulatedLauncherTest {
     filename = new File(temp.getRoot(), "props").getAbsolutePath();
   }
 
+  @Test(expected = IllegalStateException.class)
+  public void failIfInvalidFile() {
+    Map<String, String> props = createProperties();
+    props.put(InternalProperties.SCANNER_DUMP_TO_FILE, temp.getRoot().getAbsolutePath());
+
+    launcher.execute(props, logOutput);
+  }
+
   @Test
   public void testDump() throws IOException {
     Map<String, String> props = createProperties();
