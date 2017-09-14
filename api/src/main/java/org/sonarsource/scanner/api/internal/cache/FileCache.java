@@ -43,7 +43,7 @@ public class FileCache {
   FileCache(Path dir, FileHashes fileHashes, Logger logger) {
     this.hashes = fileHashes;
     this.logger = logger;
-    this.dir = createDir(dir, "user cache");
+    this.dir = createDir(dir, "user cache: ");
     logger.info(String.format("User cache: %s", dir.toString()));
     this.tmpDir = createDir(dir.resolve("_tmp"), "temp dir");
   }

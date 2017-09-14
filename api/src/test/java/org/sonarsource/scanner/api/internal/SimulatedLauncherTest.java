@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.api.internal;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,6 +34,8 @@ import org.sonarsource.scanner.api.internal.batch.LogOutput;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 public class SimulatedLauncherTest {
@@ -59,6 +62,15 @@ public class SimulatedLauncherTest {
     props.put(InternalProperties.SCANNER_DUMP_TO_FILE, temp.getRoot().getAbsolutePath());
 
     launcher.execute(props, logOutput);
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void failToWriteProperty() throws IOException {
+    Map<String, String> props = createProperties();
+    BufferedWriter writer = mock(BufferedWriter.class);
+    doThrow(new IOException("error")).when(writer).write(anyString());
+    
+    SimulatedLauncher.writeProp(writer, props.entrySet().iterator().next());
   }
 
   @Test

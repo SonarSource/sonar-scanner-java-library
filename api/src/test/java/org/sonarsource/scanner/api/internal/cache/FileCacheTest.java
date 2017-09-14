@@ -79,6 +79,15 @@ public class FileCacheTest {
   }
 
   @Test
+  public void fail_create_temp_file() throws IOException {
+    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+    new File(temp.getRoot(), "_tmp").delete();
+    thrown.expect(IllegalStateException.class);
+    thrown.expectMessage("Fail to create temp file");
+    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", mock(FileCache.Downloader.class));
+  }
+
+  @Test
   public void fail_create_hash_dir() throws IOException {
     File file = temp.newFile();
     thrown.expect(IllegalStateException.class);
