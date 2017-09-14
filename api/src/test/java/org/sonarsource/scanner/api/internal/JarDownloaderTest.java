@@ -21,24 +21,78 @@ package org.sonarsource.scanner.api.internal;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.sonarsource.scanner.api.internal.BootstrapIndexDownloader.JarEntry;
+import org.sonarsource.scanner.api.internal.JarDownloader.ScannerFileDownloader;
+import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class JarDownloaderTest {
+  @Mock
+  private BootstrapIndexDownloader bootstrapIndexDownloader;
+  @Mock
+  private ScannerFileDownloader scannerFileDownloader;
+  @Mock
+  private JarExtractor jarExtractor;
+  @Mock
+  private FileCache fileCache;
 
-  private ServerConnection serverConnection = mock(ServerConnection.class);
-  private JarDownloader downloader = spy(new JarDownloader(serverConnection, mock(Logger.class), null));
+  @Rule
+  public TemporaryFolder temp = new TemporaryFolder();
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
 
   @Test
-  public void should_download_jar_files() {
-    doReturn(new ArrayList<File>()).when(downloader).download();
-    List<File> jarFiles = downloader.download();
-    assertThat(jarFiles).isNotNull();
+  public void should_download_jar_files() throws Exception {
+    File batchJar = temp.newFile("sonar-scanner-api-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-api-batch")).thenReturn(batchJar.toPath());
+
+    Collection<JarEntry> jars = new ArrayList<>();
+    jars.add(new JarEntry("cpd.jar", "CA124VADFSDS"));
+    jars.add(new JarEntry("squid.jar", "34535FSFSDF"));
+
+    // index of the files to download
+    when(bootstrapIndexDownloader.getIndex()).thenReturn(jars);
+
+    JarDownloader jarDownloader = new JarDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor, mock(Logger.class));
+    List<File> files = jarDownloader.download();
+
+    assertThat(files).isNotNull();
+    verify(bootstrapIndexDownloader).getIndex();
+    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), any(FileCache.Downloader.class));
+    verifyNoMoreInteractions(fileCache);
+  }
+
+  @Test
+  public void test_jar_downloader() throws Exception {
+    ServerConnection connection = mock(ServerConnection.class);
+    JarDownloader.ScannerFileDownloader downloader = new JarDownloader.ScannerFileDownloader(connection);
+    File toFile = temp.newFile();
+    downloader.download("squid.jar", toFile);
+    verify(connection).downloadFile("/batch/file?name=squid.jar", toFile.toPath());
   }
 }

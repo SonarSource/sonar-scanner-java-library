@@ -62,27 +62,24 @@ public class IsolatedLauncherFactory {
       return new SimulatedLauncher(version, logger);
     }
     ServerConnection serverConnection = ServerConnection.create(props, logger);
-    JarDownloader jarDownloader = new JarDownloader(serverConnection, logger, props.get("sonar.userHome"));
+    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, props.get("sonar.userHome")).create();
 
     return createLauncher(jarDownloader, rules);
   }
 
   IsolatedLauncher createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {
-    return AccessController.doPrivileged(new PrivilegedAction<IsolatedLauncher>() {
-      @Override
-      public IsolatedLauncher run() {
-        try {
-          List<File> jarFiles = jarDownloader.download();
-          logger.debug("Create isolated classloader...");
-          ClassLoader cl = createClassLoader(jarFiles, rules);
-          IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
-          tempCleaning.clean();
+    return AccessController.doPrivileged((PrivilegedAction<IsolatedLauncher>) () -> {
+      try {
+        List<File> jarFiles = jarDownloader.download();
+        logger.debug("Create isolated classloader...");
+        ClassLoader cl = createClassLoader(jarFiles, rules);
+        IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
+        tempCleaning.clean();
 
-          return objProxy;
-        } catch (Exception e) {
-          // Catch all other exceptions, which relates to reflection
-          throw new ScannerException("Unable to execute SonarQube", e);
-        }
+        return objProxy;
+      } catch (Exception e) {
+        // Catch all other exceptions, which relates to reflection
+        throw new ScannerException("Unable to execute SonarQube", e);
       }
     });
   }

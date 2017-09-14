@@ -59,7 +59,7 @@ public class SimulatedLauncher implements IsolatedLauncher {
     }
   }
 
-  private static void writeProp(BufferedWriter output, Entry<String, String> e) {
+  static void writeProp(BufferedWriter output, Entry<String, String> e) {
     try {
       output.write(e.getKey() + "=" + e.getValue());
       output.newLine();

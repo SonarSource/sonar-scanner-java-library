@@ -108,33 +108,26 @@ public class Utils {
   private static class DeleteQuietlyFileVisitor extends SimpleFileVisitor<Path> {
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-      try {
-        Files.delete(file);
-      } catch (IOException e) {
-        // ignore
-      }
-      return FileVisitResult.CONTINUE;
+      return deleteAndContinue(file);
     }
 
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) {
-      try {
-        Files.delete(file);
-      } catch (IOException e) {
-        // ignore
-      }
-      return FileVisitResult.CONTINUE;
+      return deleteAndContinue(file);
     }
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+      return deleteAndContinue(dir);
+    }
+
+    private static FileVisitResult deleteAndContinue(Path path) {
       try {
-        Files.delete(dir);
+        Files.delete(path);
       } catch (IOException e) {
         // ignore
       }
       return FileVisitResult.CONTINUE;
     }
   }
-
 }
