@@ -56,7 +56,7 @@ class TempCleaning {
 
     try (Stream<Path> files = Files.list(tempDir)) {
       files
-        .filter(p -> p.getFileName().toString().startsWith("ssonar-scanner-api-batch"))
+        .filter(p -> p.getFileName().toString().startsWith("sonar-scanner-api-batch"))
         .filter(p -> lastModifiedTime(p) < cutoff)
         .forEach(Utils::deleteQuietly);
       logger.debug("Temp cleaning done");
