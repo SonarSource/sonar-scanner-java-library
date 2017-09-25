@@ -46,12 +46,12 @@ public class TempCleaningTest {
   @Test
   public void should_clean() throws Exception {
     Path dir = temp.newFolder().toPath();
-    Path oldBatch = dir.resolve("sonar-runner-batch656.jar");
+    Path oldBatch = dir.resolve("sonar-scanner-api-batch.jar");
     Files.write(oldBatch, "foo".getBytes(StandardCharsets.UTF_8));
     FileTime fTime = FileTime.fromMillis(System.currentTimeMillis() - 3 * TempCleaning.ONE_DAY_IN_MILLISECONDS);
     Files.setLastModifiedTime(oldBatch, fTime);
     
-    Path youngBatch = dir.resolve("sonar-runner-batch123.jar");
+    Path youngBatch = dir.resolve("sonar-scanner-api-batch123.jar");
     Files.write(youngBatch, "foo".getBytes(StandardCharsets.UTF_8));
 
     Path doNotDelete = dir.resolve("jacoco.txt");
