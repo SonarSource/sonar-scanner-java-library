@@ -69,7 +69,7 @@ public class SimulatedLauncherTest {
     Map<String, String> props = createProperties();
     BufferedWriter writer = mock(BufferedWriter.class);
     doThrow(new IOException("error")).when(writer).write(anyString());
-    
+
     SimulatedLauncher.writeProp(writer, props.entrySet().iterator().next());
   }
 
@@ -89,7 +89,7 @@ public class SimulatedLauncherTest {
 
   private Map<String, String> createProperties() {
     Map<String, String> prop = new HashMap<>();
-    prop.put("key1", "value1");
+    prop.put("key1:subkey", "value1");
     prop.put("key2", "value2");
     prop.put(InternalProperties.SCANNER_DUMP_TO_FILE, filename);
     return prop;
