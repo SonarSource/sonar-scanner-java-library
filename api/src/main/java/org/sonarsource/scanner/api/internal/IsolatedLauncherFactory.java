@@ -19,7 +19,9 @@
  */
 package org.sonarsource.scanner.api.internal;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
@@ -27,11 +29,12 @@ import java.util.Map;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
-public class IsolatedLauncherFactory {
+public class IsolatedLauncherFactory implements Closeable {
   static final String ISOLATED_LAUNCHER_IMPL = "org.sonarsource.scanner.api.internal.batch.BatchIsolatedLauncher";
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
+  private IsolatedClassloader cl;
 
   /**
    * For unit tests
@@ -46,7 +49,7 @@ public class IsolatedLauncherFactory {
     this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
   }
 
-  private ClassLoader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
+  private IsolatedClassloader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
     IsolatedClassloader classloader = new IsolatedClassloader(getClass().getClassLoader(), maskRules);
     classloader.addFiles(jarFiles);
 
@@ -72,7 +75,7 @@ public class IsolatedLauncherFactory {
       try {
         List<File> jarFiles = jarDownloader.download();
         logger.debug("Create isolated classloader...");
-        ClassLoader cl = createClassLoader(jarFiles, rules);
+        cl = createClassLoader(jarFiles, rules);
         IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
         tempCleaning.clean();
 
@@ -82,5 +85,12 @@ public class IsolatedLauncherFactory {
         throw new ScannerException("Unable to execute SonarQube", e);
       }
     });
+  }
+
+  @Override
+  public void close() throws IOException {
+    if (cl != null) {
+      cl.close();
+    }
   }
 }

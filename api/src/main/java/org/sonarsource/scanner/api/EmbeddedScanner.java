@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.api;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,11 +120,15 @@ public class EmbeddedScanner {
 
   public void execute(Map<String, String> taskProps) {
     checkLauncherExists();
-    Map<String, String> allProps = new HashMap<>();
-    allProps.putAll(globalProperties);
-    allProps.putAll(taskProps);
-    initAnalysisProperties(allProps);
-    doExecute(allProps);
+    try (IsolatedLauncherFactory launcherFactoryToBeClosed = launcherFactory) {
+      Map<String, String> allProps = new HashMap<>();
+      allProps.putAll(globalProperties);
+      allProps.putAll(taskProps);
+      initAnalysisProperties(allProps);
+      doExecute(allProps);
+    } catch (IOException e) {
+      throw new IllegalStateException(e.getMessage(), e);
+    }
   }
 
   private void initGlobalDefaultValues() {

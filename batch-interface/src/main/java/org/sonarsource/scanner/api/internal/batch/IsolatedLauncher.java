@@ -25,4 +25,5 @@ public interface IsolatedLauncher {
   void execute(Map<String, String> properties, LogOutput logOutput);
 
   String getVersion();
+
 }
