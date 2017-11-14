@@ -32,6 +32,7 @@ public class JarExtractor {
     URL url = getClass().getResource("/" + filename);
     try {
       Path copy = Files.createTempFile(filenameWithoutSuffix, ".jar");
+      copy.toFile().deleteOnExit();
       try (InputStream in = url.openStream()) {
         Files.copy(in, copy, StandardCopyOption.REPLACE_EXISTING);
       }

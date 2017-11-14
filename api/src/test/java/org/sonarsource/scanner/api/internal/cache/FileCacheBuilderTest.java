@@ -22,11 +22,13 @@ package org.sonarsource.scanner.api.internal.cache;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import org.apache.commons.lang.SystemUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.Mockito.mock;
 
 public class FileCacheBuilderTest {
@@ -54,6 +56,7 @@ public class FileCacheBuilderTest {
 
   @Test
   public void user_home_property_can_be_a_symlink() throws IOException {
+    assumeFalse(SystemUtils.IS_OS_WINDOWS);
     File realSonarHome = temp.newFolder();
     File symlink = temp.newFolder();
     symlink.delete();
