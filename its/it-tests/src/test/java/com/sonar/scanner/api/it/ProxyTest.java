@@ -176,7 +176,7 @@ public class ProxyTest {
     SimpleScanner scanner = new SimpleScanner();
 
     // Don't use proxy
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl());
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl());
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
     assertThat(seenByProxy).isEmpty();
 
@@ -186,7 +186,7 @@ public class ProxyTest {
     params.put("http.proxyHost", "localhost");
     params.put("http.proxyPort", "" + httpProxyPort);
 
-    buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
     assertThat(seenByProxy).isNotEmpty();
   }
@@ -202,14 +202,14 @@ public class ProxyTest {
     params.put("http.proxyHost", "localhost");
     params.put("http.proxyPort", "" + httpProxyPort);
 
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
     assertThat(buildResult.getLogs()).contains("Status returned by url", "is not valid: [407]");
     assertThat(seenByProxy).isEmpty();
 
     params.put("http.proxyUser", PROXY_USER);
     params.put("http.proxyPassword", PROXY_PASSWORD);
-    buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(seenByProxy).isNotEmpty();
     if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals("6.1")) {
       assertThat(buildResult.getLastStatus()).isEqualTo(0);
