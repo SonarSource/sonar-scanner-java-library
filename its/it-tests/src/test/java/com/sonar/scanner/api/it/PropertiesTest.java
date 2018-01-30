@@ -41,7 +41,7 @@ public class PropertiesTest {
   public void testRuntimeEnvironmentPassedAsUserAgent() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
     Map<String, String> params = new HashMap<>();
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), ORCHESTRATOR.getServer().getUrl(), params);
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
 
     Path accessLogs = ORCHESTRATOR.getServer().getAppLogs().toPath().resolveSibling("access.log");

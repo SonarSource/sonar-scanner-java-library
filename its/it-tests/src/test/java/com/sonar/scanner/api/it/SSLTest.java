@@ -23,7 +23,6 @@ import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -160,7 +159,7 @@ public class SSLTest {
   public void simple_analysis_with_server_and_client_certificate() throws Exception {
     startSSLTransparentReverseProxy(true);
     SimpleScanner scanner = new SimpleScanner();
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort);
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
     assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
@@ -176,7 +175,7 @@ public class SSLTest {
     params.put("javax.net.ssl.keyStore", clientKeystore.toString());
     params.put("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PWD);
 
-    buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
   }
 
@@ -189,7 +188,7 @@ public class SSLTest {
     startSSLTransparentReverseProxy(false);
     SimpleScanner scanner = new SimpleScanner();
 
-    BuildResult buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort);
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
     assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
@@ -201,7 +200,7 @@ public class SSLTest {
     params.put("javax.net.ssl.trustStore", clientTruststore.toString());
     params.put("javax.net.ssl.trustStorePassword", truststorePassword);
 
-    buildResult = scanner.executeSimpleProject(project("java-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
   }
 

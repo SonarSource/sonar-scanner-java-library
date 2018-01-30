@@ -20,7 +20,6 @@
 package com.sonar.scanner.api.it;
 
 import com.sonar.orchestrator.Orchestrator;
-import java.io.File;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -32,11 +31,8 @@ public class ScannerApiTestSuite {
 
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
-    .setOrchestratorProperty("javaVersion", "4.11")
-    .addPlugin("java")
+    .setOrchestratorProperty("javascriptVersion", "LATEST_RELEASE")
+    .addPlugin("javascript")
     .build();
 
-  static boolean isWindows() {
-    return File.pathSeparatorChar == ';' || System.getProperty("os.name").startsWith("Windows");
-  }
 }
