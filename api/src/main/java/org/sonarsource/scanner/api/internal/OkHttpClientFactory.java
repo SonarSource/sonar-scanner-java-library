@@ -46,8 +46,8 @@ import static java.util.Arrays.asList;
 
 public class OkHttpClientFactory {
 
-  static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
-  static final int READ_TIMEOUT_MILLISECONDS = 60_000;
+  static final int DEFAULT_CONNECT_TIMEOUT_MILLISECONDS = 5_000;
+  static final int DEFAULT_READ_TIMEOUT_MILLISECONDS = 60_000;
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
@@ -59,8 +59,25 @@ public class OkHttpClientFactory {
   static OkHttpClient create(Logger logger) {
     OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
-    okHttpClientBuilder.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
-    okHttpClientBuilder.readTimeout(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+    int connectTimeout = 0;
+    int readTimeout = 0;
+    try {
+      if (!System.getProperty("http.connection.timeout", "").isEmpty()) {
+        connectTimeout = Integer.parseInt(System.getProperty("http.connection.timeout"));
+      }
+    } catch (NumberFormatException e) {
+      connectTimeout = DEFAULT_CONNECT_TIMEOUT_MILLISECONDS;
+    }
+    try {
+      if (!System.getProperty("http.socket.timeout", "").isEmpty()) {
+        readTimeout = Integer.parseInt(System.getProperty("http.socket.timeout"));
+      }
+    } catch (NumberFormatException e) {
+      readTimeout = DEFAULT_READ_TIMEOUT_MILLISECONDS;
+    }
+
+    okHttpClientBuilder.connectTimeout(connectTimeout, TimeUnit.MILLISECONDS);
+    okHttpClientBuilder.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
 
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
       .allEnabledTlsVersions()
