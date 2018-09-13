@@ -47,7 +47,7 @@ import static java.util.Arrays.asList;
 public class OkHttpClientFactory {
 
   static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
-  static final int READ_TIMEOUT_MILLISECONDS = 60_000;
+  static final int READ_TIMEOUT_MILLISECONDS = 500_000;
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
