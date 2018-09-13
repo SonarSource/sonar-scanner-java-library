@@ -23,6 +23,7 @@ import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -82,8 +83,8 @@ public class SSLTest {
   }
 
   private static void startSSLTransparentReverseProxy(boolean requireClientAuth) throws Exception {
-    int httpPort = NetworkUtils.getNextAvailablePort();
-    httpsPort = NetworkUtils.getNextAvailablePort();
+    int httpPort = NetworkUtils.getNextAvailablePort(InetAddress.getLocalHost());
+    httpsPort = NetworkUtils.getNextAvailablePort(InetAddress.getLocalHost());
 
     // Setup Threadpool
     QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -203,5 +204,4 @@ public class SSLTest {
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
   }
-
 }

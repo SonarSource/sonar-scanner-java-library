@@ -20,19 +20,32 @@
 package com.sonar.scanner.api.it;
 
 import com.sonar.orchestrator.Orchestrator;
+import com.sonar.orchestrator.locator.MavenLocation;
+import org.apache.commons.lang.StringUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import static org.assertj.core.api.Assertions.fail;
+
 @RunWith(Suite.class)
 @SuiteClasses({ProxyTest.class, SSLTest.class, PropertiesTest.class})
 public class ScannerApiTestSuite {
+  private static final String SONAR_RUNTIME_VERSION = "sonar.runtimeVersion";
 
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
-    .setOrchestratorProperty("javascriptVersion", "LATEST_RELEASE")
-    .addPlugin("javascript")
+    .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
+    .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "LATEST_RELEASE"))
     .build();
+
+  private static String getSystemPropertyOrFail(String orchestratorPropertiesSource) {
+    String propertyValue = System.getProperty(orchestratorPropertiesSource);
+    if (StringUtils.isEmpty(propertyValue)) {
+      fail(orchestratorPropertiesSource + " system property must be defined");
+    }
+    return propertyValue;
+  }
 
 }
