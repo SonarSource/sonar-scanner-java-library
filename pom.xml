@@ -52,7 +52,7 @@
 
     <!-- used for deployment to SonarSource Artifactory -->
     <gitRepositoryName>sonar-scanner-api</gitRepositoryName>
-    <okhttp.version>3.8.1</okhttp.version>
+    <okhttp.version>3.11.0</okhttp.version>
     <mockito.version>2.22.0</mockito.version>
   </properties>
 

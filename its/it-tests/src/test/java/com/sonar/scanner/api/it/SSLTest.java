@@ -47,22 +47,29 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.theories.DataPoint;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(Theories.class)
 public class SSLTest {
 
-  private static final String CLIENT_KEYSTORE = "/SSLTest/clientkeystore.jks";
-  private static final String CLIENT_KEYSTORE_PWD = "clientp12pwd";
+  private static final String JKS_PASSWORD = "abcdef";
 
-  private static final String CLIENT_TRUSTSTORE = "/SSLTest/clienttruststore.jks";
-  private static final String CLIENT_TRUSTSTORE_PWD = "clienttruststorepwd";
+  // This truststore contains only the CA used to sign the server certificate
+  @DataPoint
+  public static final String CLIENT_TRUSTSTORE_WITH_CA = "/SSLTest/client-with-ca.jks";
 
-  private static final String SERVER_TRUSTSTORE = "/SSLTest/servertruststore.jks";
-  private static final String SERVER_TRUSTSTORE_PWD = "servertruststorepwd";
+  // This truststore contains only the server certificate
+  @DataPoint
+  public static final String CLIENT_TRUSTSTORE_WITH_CERTIFICATE = "/SSLTest/client-with-certificate.jks";
 
-  private static final String SERVER_KEYSTORE = "/SSLTest/serverkeystore.jks";
-  private static final String SERVER_KEYSTORE_PWD = "serverkeystorepwd";
+  private static final String SERVER_TRUSTSTORE = "/SSLTest/server-with-client-ca.jks";
+  private static final String SERVER_KEYSTORE = "/SSLTest/server.jks";
+  private static final String CLIENT_KEYSTORE = "/SSLTest/client.jks";
 
   private static Server server;
   private static int httpsPort;
@@ -109,18 +116,19 @@ public class SSLTest {
     server.addConnector(http);
 
     Path serverKeyStore = Paths.get(SSLTest.class.getResource(SERVER_KEYSTORE).toURI()).toAbsolutePath();
-    String serverKeyPassword = "serverp12pwd";
-    Path serverTrustStore = Paths.get(SSLTest.class.getResource(SERVER_TRUSTSTORE).toURI()).toAbsolutePath();
     assertThat(serverKeyStore).exists();
-    assertThat(serverTrustStore).exists();
 
     // SSL Context Factory
     SslContextFactory sslContextFactory = new SslContextFactory();
     sslContextFactory.setKeyStorePath(serverKeyStore.toString());
-    sslContextFactory.setKeyStorePassword(SERVER_KEYSTORE_PWD);
-    sslContextFactory.setKeyManagerPassword(serverKeyPassword);
-    sslContextFactory.setTrustStorePath(serverTrustStore.toString());
-    sslContextFactory.setTrustStorePassword(SERVER_TRUSTSTORE_PWD);
+    sslContextFactory.setKeyStorePassword(JKS_PASSWORD);
+    sslContextFactory.setKeyManagerPassword("");
+    if (  requireClientAuth) {
+      Path serverTrustStore = Paths.get(SSLTest.class.getResource(SERVER_TRUSTSTORE).toURI()).toAbsolutePath();
+      sslContextFactory.setTrustStorePath(serverTrustStore.toString());
+      assertThat(serverTrustStore).exists();
+      sslContextFactory.setTrustStorePassword(JKS_PASSWORD);
+    }
     sslContextFactory.setNeedClientAuth(requireClientAuth);
     sslContextFactory.setExcludeCipherSuites("SSL_RSA_WITH_DES_CBC_SHA",
       "SSL_DHE_RSA_WITH_DES_CBC_SHA",
@@ -165,27 +173,54 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
-    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE).toURI()).toAbsolutePath();
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE_WITH_CA).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
     Path clientKeystore = Paths.get(SSLTest.class.getResource(CLIENT_KEYSTORE).toURI()).toAbsolutePath();
     assertThat(clientKeystore).exists();
 
     Map<String, String> params = new HashMap<>();
+    // In the truststore we have the CA allowing to connect to local TLS server
     params.put("javax.net.ssl.trustStore", clientTruststore.toString());
-    params.put("javax.net.ssl.trustStorePassword", CLIENT_TRUSTSTORE_PWD);
+    params.put("javax.net.ssl.trustStorePassword", JKS_PASSWORD);
+    // The KeyStore is storing the certificate to identify the user
     params.put("javax.net.ssl.keyStore", clientKeystore.toString());
-    params.put("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PWD);
+    params.put("javax.net.ssl.keyStorePassword", JKS_PASSWORD);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);
+  }
+
+  @Test
+  public void simple_analysis_with_server_and_without_client_certificate_is_failing() throws Exception {
+    startSSLTransparentReverseProxy(true);
+    SimpleScanner scanner = new SimpleScanner();
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
+
+    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
+
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE_WITH_CA).toURI()).toAbsolutePath();
+    assertThat(clientTruststore).exists();
+    Path clientKeystore = Paths.get(SSLTest.class.getResource(CLIENT_KEYSTORE).toURI()).toAbsolutePath();
+    assertThat(clientKeystore).exists();
+
+    Map<String, String> params = new HashMap<>();
+    // In the truststore we have the CA allowing to connect to local TLS server
+    params.put("javax.net.ssl.trustStore", clientTruststore.toString());
+    params.put("javax.net.ssl.trustStorePassword", JKS_PASSWORD);
+    // Voluntary missing client keystore
+
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
+    assertThat(buildResult.getLastStatus()).isEqualTo(1);
+    assertThat(buildResult.getLogs()).contains("bad_certificate");
   }
 
   private static Path project(String projectName) {
     return Paths.get("..", "projects", projectName);
   }
 
-  @Test
-  public void simple_analysis_with_server_certificate() throws Exception {
+  @Theory
+  public void simple_analysis_with_server_certificate(String clientTrustStore) throws Exception {
     startSSLTransparentReverseProxy(false);
     SimpleScanner scanner = new SimpleScanner();
 
@@ -193,13 +228,12 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
-    Path clientTruststore = Paths.get(SSLTest.class.getResource(CLIENT_TRUSTSTORE).toURI()).toAbsolutePath();
-    String truststorePassword = CLIENT_TRUSTSTORE_PWD;
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(clientTrustStore).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
 
     Map<String, String> params = new HashMap<>();
     params.put("javax.net.ssl.trustStore", clientTruststore.toString());
-    params.put("javax.net.ssl.trustStorePassword", truststorePassword);
+    params.put("javax.net.ssl.trustStorePassword", JKS_PASSWORD);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(0);

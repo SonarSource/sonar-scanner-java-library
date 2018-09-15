@@ -40,6 +40,7 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.internal.tls.OkHostnameVerifier;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
@@ -68,8 +69,10 @@ public class OkHttpClientFactory {
       .supportsTlsExtensions(true)
       .build();
     okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
+
     X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
     okHttpClientBuilder.sslSocketFactory(systemDefaultSslSocketFactory(systemDefaultTrustManager, logger), systemDefaultTrustManager);
+    okHttpClientBuilder.hostnameVerifier(OkHostnameVerifier.INSTANCE);
 
     // OkHttp detect 'http.proxyHost' java property, but credentials should be filled
     final String proxyUser = System.getProperty("http.proxyUser", "");
@@ -148,6 +151,8 @@ public class OkHttpClientFactory {
       logger.debug("init keymanager of type " + KeyManagerFactory.getDefaultAlgorithm());
       KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 
+      // FIXME : The password for opening keys inside the JKS is not mandatory to be the same
+      // as opening the JKS KeyStore
       if (P11KEYSTORE.equals(defaultKeyStoreType)) {
         // do not pass key passwd if using token
         kmf.init(ks, null);
