@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API - ITs
- * Copyright (C) 2011-2017 SonarSource SA
+ * Copyright (C) 2011-2018 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -19,17 +19,6 @@
  */
 package com.sonar.scanner.api.it.tools;
 
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteStreamHandler;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
-import org.apache.commons.io.output.TeeOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +33,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteStreamHandler;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.output.TeeOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CommandExecutor {
   private static final Logger LOG = LoggerFactory.getLogger(CommandExecutor.class);
@@ -68,7 +66,7 @@ public class CommandExecutor {
 
   public int execute(String[] args, Map<String, String> env, @Nullable Path workingDir) throws IOException {
     if (!Files.isExecutable(file)) {
-      Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+      Set<PosixFilePermission> perms = new HashSet<>();
       perms.add(PosixFilePermission.OWNER_READ);
       perms.add(PosixFilePermission.OWNER_EXECUTE);
       Files.setPosixFilePermissions(file, perms);

@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2017 SonarSource SA
+ * Copyright (C) 2011-2018 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -34,8 +34,6 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 public class UtilsTest {
   @Rule
@@ -74,13 +72,6 @@ public class UtilsTest {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.task", "views");
     assertThat(Utils.taskRequiresProject(props)).isFalse();
-  }
-
-  @Test
-  public void delete_quietly() {
-    Path f = mock(Path.class);
-    doThrow(IOException.class).when(f).getFileSystem();
-    Utils.deleteQuietly(f);
   }
 
   @Test

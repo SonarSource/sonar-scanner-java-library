@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2017 SonarSource SA
+ * Copyright (C) 2011-2018 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -19,24 +19,22 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import org.junit.Before;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
-
-import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.sonarsource.scanner.api.internal.ClassloadRules;
-import org.sonarsource.scanner.api.internal.IsolatedClassloader;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IsolatedClassloaderTest {
   @Rule
@@ -79,9 +77,11 @@ public class IsolatedClassloaderTest {
   }
 
   @Test
-  public void error_add_jars() {
+  public void error_add_jars() throws MalformedURLException {
     File f = mock(File.class);
-    when(f.toURI()).thenThrow(MalformedURLException.class);
+    URI uri = mock(URI.class);
+    when(f.toURI()).thenReturn(uri);
+    when(uri.toURL()).thenThrow(MalformedURLException.class);
     File[] files = {f};
 
     thrown.expect(IllegalStateException.class);

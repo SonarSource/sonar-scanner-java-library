@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API - ITs
- * Copyright (C) 2011-2017 SonarSource SA
+ * Copyright (C) 2011-2018 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -25,6 +25,7 @@ import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.ProxyAuthenticator;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -84,7 +85,7 @@ public class ProxyTest {
   }
 
   private static void startProxy(boolean needProxyAuth) throws Exception {
-    httpProxyPort = NetworkUtils.getNextAvailablePort();
+    httpProxyPort = NetworkUtils.getNextAvailablePort(InetAddress.getLocalHost());
 
     // Setup Threadpool
     QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -211,7 +212,7 @@ public class ProxyTest {
     params.put("http.proxyPassword", PROXY_PASSWORD);
     buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(seenByProxy).isNotEmpty();
-    if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals("6.1")) {
+    if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(6, 1)) {
       assertThat(buildResult.getLastStatus()).isEqualTo(0);
     }
   }
