@@ -54,6 +54,7 @@
     <gitRepositoryName>sonar-scanner-api</gitRepositoryName>
     <okhttp.version>3.11.0</okhttp.version>
     <mockito.version>2.22.0</mockito.version>
+    <byte-buddy.version>1.9.0</byte-buddy.version>
   </properties>
 
   <profiles>
@@ -136,6 +137,11 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-inline</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>${byte-buddy.version}</version>
       </dependency>
       <dependency>
         <groupId>org.assertj</groupId>
