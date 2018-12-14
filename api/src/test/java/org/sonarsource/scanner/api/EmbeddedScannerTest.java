@@ -40,6 +40,7 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -62,15 +63,18 @@ public class EmbeddedScannerTest {
   private IsolatedLauncher launcher;
   private EmbeddedScanner scanner;
   private Logger logger;
+  private System2 system;
 
   @Before
   public void setUp() {
     launcherFactory = mock(IsolatedLauncherFactory.class);
     launcher = mock(IsolatedLauncher.class);
     logger = mock(Logger.class);
+    system = mock(System2.class);
+
     when(launcher.getVersion()).thenReturn("5.2");
-    when(launcherFactory.createLauncher(any(Map.class), any(ClassloadRules.class))).thenReturn(launcher);
-    scanner = new EmbeddedScanner(launcherFactory, logger, mock(LogOutput.class));
+    when(launcherFactory.createLauncher(anyMap(), any(ClassloadRules.class))).thenReturn(launcher);
+    scanner = new EmbeddedScanner(launcherFactory, logger, mock(LogOutput.class), system);
   }
 
   @Test
@@ -92,6 +96,22 @@ public class EmbeddedScannerTest {
     EmbeddedScanner scanner = EmbeddedScanner.create("Eclipse", "3.1", mock(LogOutput.class));
     assertThat(scanner.app()).isEqualTo("Eclipse");
     assertThat(scanner.appVersion()).isEqualTo("3.1");
+  }
+
+  @Test
+  public void should_set_localhost_as_host_by_default() {
+    scanner.start();
+
+    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://localhost:9000");
+  }
+
+  @Test
+  public void should_set_sonarcloud_as_host_if_executed_from_bitbucket_cloud() {
+    when(system.getEnvironmentVariable("BITBUCKET_BUILD_NUMBER")).thenReturn("123");
+
+    scanner.start();
+
+    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("https://sonarcloud.io");
   }
 
   @Test
@@ -167,7 +187,7 @@ public class EmbeddedScannerTest {
   @Test
   public void should_launch_in_simulation_mode() throws IOException {
     launcherFactory = new IsolatedLauncherFactory(mock(Logger.class));
-    scanner = new EmbeddedScanner(launcherFactory, mock(Logger.class), mock(LogOutput.class));
+    scanner = new EmbeddedScanner(launcherFactory, mock(Logger.class), mock(LogOutput.class), system);
 
     File dump = temp.newFile();
     Map<String, String> p = new HashMap<>();
