@@ -36,9 +36,12 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
 
 /**
  * Entry point to run SonarQube analysis programmatically.
+ *
  * @since 2.2
  */
 public class EmbeddedScanner {
+  private static final String BITBUCKET_CLOUD_ENV_VAR = "BITBUCKET_BUILD_NUMBER";
+  private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
   private final LogOutput logOutput;
@@ -46,19 +49,25 @@ public class EmbeddedScanner {
   private final Logger logger;
   private final Set<String> classloaderMask = new HashSet<>();
   private final Set<String> classloaderUnmask = new HashSet<>();
+  private final System2 system;
 
-  EmbeddedScanner(IsolatedLauncherFactory bl, Logger logger, LogOutput logOutput) {
+  EmbeddedScanner(IsolatedLauncherFactory bl, Logger logger, LogOutput logOutput, System2 system) {
     this.logger = logger;
     this.launcherFactory = bl;
     this.logOutput = logOutput;
     this.classloaderUnmask.add("org.sonarsource.scanner.api.internal.batch.");
+    this.system = system;
+  }
+
+  public static EmbeddedScanner create(String app, String version, final LogOutput logOutput, System2 system2) {
+    Logger logger = new LoggerAdapter(logOutput);
+    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput, system2)
+      .setGlobalProperty(InternalProperties.SCANNER_APP, app)
+      .setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
   }
 
   public static EmbeddedScanner create(String app, String version, final LogOutput logOutput) {
-    Logger logger = new LoggerAdapter(logOutput);
-    return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput)
-      .setGlobalProperty(InternalProperties.SCANNER_APP, app)
-      .setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
+    return create(app, version, logOutput, new System2());
   }
 
   public Map<String, String> globalProperties() {
@@ -132,7 +141,12 @@ public class EmbeddedScanner {
   }
 
   private void initGlobalDefaultValues() {
-    setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
+    if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
+      setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
+      logger.info("Bitbucket Cloud Pipelines detected");
+    } else {
+      setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
+    }
   }
 
   private void initAnalysisProperties(Map<String, String> p) {
