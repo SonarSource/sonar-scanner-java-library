@@ -40,7 +40,6 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
-import okhttp3.internal.tls.OkHostnameVerifier;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
@@ -72,7 +71,6 @@ public class OkHttpClientFactory {
 
     X509TrustManager systemDefaultTrustManager = systemDefaultTrustManager();
     okHttpClientBuilder.sslSocketFactory(systemDefaultSslSocketFactory(systemDefaultTrustManager, logger), systemDefaultTrustManager);
-    okHttpClientBuilder.hostnameVerifier(OkHostnameVerifier.INSTANCE);
 
     // OkHttp detect 'http.proxyHost' java property, but credentials should be filled
     final String proxyUser = System.getProperty("http.proxyUser", "");
