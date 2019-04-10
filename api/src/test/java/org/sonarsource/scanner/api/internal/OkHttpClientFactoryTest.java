@@ -77,6 +77,17 @@ public class OkHttpClientFactoryTest {
     assertThat(underTest.sslSocketFactory()).isInstanceOf(SSLSocketFactory.getDefault().getClass());
   }
 
+  @Test
+  public void support_custom_timeouts() {
+    int readTimeout = 2000;
+    System.setProperty("sonar.ws.timeout", String.valueOf(readTimeout));
+
+    Logger logger = mock(Logger.class);
+    OkHttpClient underTest = OkHttpClientFactory.create(logger);
+
+    assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeout);
+  }
+
   private void assertTlsAndClearTextSpecifications(OkHttpClient client) {
     List<ConnectionSpec> connectionSpecs = client.connectionSpecs();
     assertThat(connectionSpecs).hasSize(2);
