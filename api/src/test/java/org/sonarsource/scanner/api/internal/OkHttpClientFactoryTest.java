@@ -73,7 +73,7 @@ public class OkHttpClientFactoryTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  @After()
+  @After
   public void cleanSystemProperty() {
     System.clearProperty(SONAR_WS_TIMEOUT);
   }
