@@ -40,7 +40,6 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,13 +87,13 @@ public class OkHttpClientFactoryTest {
 
   @Test
   public void support_custom_timeouts() {
-    int readTimeout = 2000;
-    System.setProperty(SONAR_WS_TIMEOUT, String.valueOf(readTimeout));
+    int readTimeoutSec = 2000;
+    System.setProperty(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec));
 
     Logger logger = mock(Logger.class);
     OkHttpClient underTest = OkHttpClientFactory.create(logger);
 
-    assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeout);
+    assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeoutSec * 1000);
   }
 
   @Test
