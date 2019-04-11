@@ -60,13 +60,9 @@ public class OkHttpClientFactory {
   static OkHttpClient create(Logger logger) {
     OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
-    int readTimeout = 0;
-    try {
-      if (!System.getProperty(READ_TIMEOUT_SEC_PROPERTY, "").isEmpty()) {
-        readTimeout = Integer.parseInt(System.getProperty(READ_TIMEOUT_SEC_PROPERTY));
-      }
-    } catch (NumberFormatException e) {
-      readTimeout = DEFAULT_READ_TIMEOUT_MILLISECONDS;
+    int readTimeout = DEFAULT_READ_TIMEOUT_MILLISECONDS;
+    if (!System.getProperty(READ_TIMEOUT_SEC_PROPERTY, "").isEmpty()) {
+      readTimeout = Integer.parseInt(System.getProperty(READ_TIMEOUT_SEC_PROPERTY));
     }
 
     okHttpClientBuilder.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
