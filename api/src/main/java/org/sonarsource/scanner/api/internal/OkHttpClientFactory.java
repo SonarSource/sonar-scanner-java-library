@@ -28,6 +28,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
@@ -48,7 +49,7 @@ public class OkHttpClientFactory {
 
   static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
   static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
-  static final int DEFAULT_READ_TIMEOUT_MILLISECONDS = 500_000;
+  static final int DEFAULT_READ_TIMEOUT_SEC = (int) Duration.ofMinutes(5).getSeconds();
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
@@ -60,13 +61,13 @@ public class OkHttpClientFactory {
   static OkHttpClient create(Logger logger) {
     OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
-    int readTimeout = DEFAULT_READ_TIMEOUT_MILLISECONDS;
+    int readTimeoutSec = DEFAULT_READ_TIMEOUT_SEC;
     if (!System.getProperty(READ_TIMEOUT_SEC_PROPERTY, "").isEmpty()) {
-      readTimeout = Integer.parseInt(System.getProperty(READ_TIMEOUT_SEC_PROPERTY));
+      readTimeoutSec = Integer.parseInt(System.getProperty(READ_TIMEOUT_SEC_PROPERTY));
     }
 
     okHttpClientBuilder.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
-    okHttpClientBuilder.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+    okHttpClientBuilder.readTimeout(readTimeoutSec, TimeUnit.SECONDS);
 
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
       .allEnabledTlsVersions()
