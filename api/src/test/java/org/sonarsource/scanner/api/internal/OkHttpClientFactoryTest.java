@@ -40,6 +40,8 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
@@ -51,6 +53,7 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
@@ -65,9 +68,15 @@ public class OkHttpClientFactoryTest {
   private static final String KEYSTORE_PASSWORD = "abcdef";
   private static final String KEYSTORE_FILE = "/server.jks";
   private static final Logger logger = mock(Logger.class);
+  private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
+
+  @After
+  public void cleanSystemProperty() {
+    System.clearProperty(SONAR_WS_TIMEOUT);
+  }
 
   @Test
   public void support_tls_versions_of_java8() {
@@ -75,6 +84,25 @@ public class OkHttpClientFactoryTest {
 
     assertTlsAndClearTextSpecifications(underTest);
     assertThat(underTest.sslSocketFactory()).isInstanceOf(SSLSocketFactory.getDefault().getClass());
+  }
+
+  @Test
+  public void support_custom_timeouts() {
+    int readTimeout = 2000;
+    System.setProperty(SONAR_WS_TIMEOUT, String.valueOf(readTimeout));
+
+    Logger logger = mock(Logger.class);
+    OkHttpClient underTest = OkHttpClientFactory.create(logger);
+
+    assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeout);
+  }
+
+  @Test
+  public void support_custom_timeouts_throws_exception_on_non_number() {
+    System.setProperty(SONAR_WS_TIMEOUT, "fail");
+
+    Logger logger = mock(Logger.class);
+    assertThatThrownBy(() -> OkHttpClientFactory.create(logger)).isInstanceOf(NumberFormatException.class);
   }
 
   private void assertTlsAndClearTextSpecifications(OkHttpClient client) {
