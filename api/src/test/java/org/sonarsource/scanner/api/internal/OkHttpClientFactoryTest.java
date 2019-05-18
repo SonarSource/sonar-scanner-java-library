@@ -68,6 +68,7 @@ public class OkHttpClientFactoryTest {
   private static final String KEYSTORE_FILE = "/server.jks";
   private static final Logger logger = mock(Logger.class);
   private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
+  private static final String SONAR_CONNECT_TIMEOUT = "sonar.connect.timeout";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -75,6 +76,7 @@ public class OkHttpClientFactoryTest {
   @After
   public void cleanSystemProperty() {
     System.clearProperty(SONAR_WS_TIMEOUT);
+    System.clearProperty(SONAR_CONNECT_TIMEOUT);
   }
 
   @Test
@@ -86,7 +88,7 @@ public class OkHttpClientFactoryTest {
   }
 
   @Test
-  public void support_custom_timeouts() {
+  public void support_custom_read_timeouts() {
     int readTimeoutSec = 2000;
     System.setProperty(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec));
 
@@ -97,8 +99,27 @@ public class OkHttpClientFactoryTest {
   }
 
   @Test
-  public void support_custom_timeouts_throws_exception_on_non_number() {
+  public void support_custom_read_timeouts_throws_exception_on_non_number() {
     System.setProperty(SONAR_WS_TIMEOUT, "fail");
+
+    Logger logger = mock(Logger.class);
+    assertThatThrownBy(() -> OkHttpClientFactory.create(logger)).isInstanceOf(NumberFormatException.class);
+  }
+
+  @Test
+  public void support_custom_connect_timeouts() {
+    int connectTimeoutSec = 2000;
+    System.setProperty(SONAR_CONNECT_TIMEOUT, String.valueOf(connectTimeoutSec));
+
+    Logger logger = mock(Logger.class);
+    OkHttpClient underTest = OkHttpClientFactory.create(logger);
+
+    assertThat(underTest.connectTimeoutMillis()).isEqualTo(connectTimeoutSec * 1000);
+  }
+
+  @Test
+  public void support_custom_connect_timeouts_throws_exception_on_non_number() {
+    System.setProperty(SONAR_CONNECT_TIMEOUT, "fail");
 
     Logger logger = mock(Logger.class);
     assertThatThrownBy(() -> OkHttpClientFactory.create(logger)).isInstanceOf(NumberFormatException.class);

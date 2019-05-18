@@ -48,7 +48,8 @@ import static java.util.Arrays.asList;
 public class OkHttpClientFactory {
 
   static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
-  static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
+  static final String CONNECT_TIMEOUT_SEC_PROPERTY = "sonar.connect.timeout";
+  static final int DEFAULT_CONNECT_TIMEOUT_SEC = 5;
   static final int DEFAULT_READ_TIMEOUT_SEC = (int) Duration.ofMinutes(5).getSeconds();
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
@@ -66,7 +67,12 @@ public class OkHttpClientFactory {
       readTimeoutSec = Integer.parseInt(System.getProperty(READ_TIMEOUT_SEC_PROPERTY));
     }
 
-    okHttpClientBuilder.connectTimeout(CONNECT_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+    int connectTimeoutSec = DEFAULT_CONNECT_TIMEOUT_SEC;
+    if (!System.getProperty(CONNECT_TIMEOUT_SEC_PROPERTY, "").isEmpty()) {
+      connectTimeoutSec = Integer.parseInt(System.getProperty(CONNECT_TIMEOUT_SEC_PROPERTY));
+    }
+
+    okHttpClientBuilder.connectTimeout(connectTimeoutSec, TimeUnit.SECONDS);
     okHttpClientBuilder.readTimeout(readTimeoutSec, TimeUnit.SECONDS);
 
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
