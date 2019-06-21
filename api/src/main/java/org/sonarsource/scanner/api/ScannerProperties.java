@@ -20,7 +20,7 @@
 package org.sonarsource.scanner.api;
 
 /**
- * Mostly used properties that can be passed to {@link EmbeddedScanner#addGlobalProperties(java.util.Properties)}.
+ * Mostly used properties that can be passed to EmbeddedScanner#addGlobalProperties(java.util.Properties).
  * See <a href="http://docs.sonarqube.org/display/SONAR/Analysis+Parameters">documentation</a> for more properties.
  *
  * @since 2.2

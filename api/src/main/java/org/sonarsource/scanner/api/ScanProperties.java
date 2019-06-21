@@ -20,7 +20,7 @@
 package org.sonarsource.scanner.api;
 
 /**
- * Most commonly used properties for a SonarQube analysis. These properties are passed to {@link EmbeddedScanner#runAnalysis(java.util.Properties)}.
+ * Most commonly used properties for a SonarQube analysis. These properties are passed to EmbeddedScanner#runAnalysis(java.util.Properties).
  * See <a href="http://docs.sonarqube.org/display/SONAR/Analysis+Parameters">documentation</a> for more properties.
  *
  * @since 2.2
