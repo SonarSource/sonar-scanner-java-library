@@ -68,6 +68,7 @@ public class OkHttpClientFactoryTest {
   private static final String KEYSTORE_FILE = "/server.jks";
   private static final Logger logger = mock(Logger.class);
   private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
+  private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -175,6 +176,33 @@ public class OkHttpClientFactoryTest {
     }
   }
 
+  @Theory
+  public void test_with_cookie(String clientKeyStore) throws Exception {
+    try (MockWebServer server = buildTLSServer()) {
+      String url = format("https://localhost:%d/", server.getPort());
+
+      // Add the truststore
+      Path clientTruststore = Paths.get(getClass().getResource(clientKeyStore).toURI()).toAbsolutePath();
+      System.setProperty("javax.net.ssl.trustStore", clientTruststore.toString());
+      System.setProperty("javax.net.ssl.trustStorePassword", KEYSTORE_PASSWORD);
+
+      OkHttpClientFactory.COOKIE_MANAGER.getCookieStore().removeAll();  // Clear any existing cookies
+
+      Response response = call(url);
+     assertThat(response.header("Set-Cookie")).isEqualTo(COOKIE);  // The server should have asked us to set a cookie
+     assertThat(response.body().string()).doesNotContain(COOKIE);
+
+      response = call(url);
+      assertThat(response.body().string()).contains(COOKIE);
+
+    } finally {
+      // Ensure to not keeping this property for other tests
+      System.clearProperty("javax.net.ssl.trustStore");
+      System.clearProperty("javax.net.ssl.trustStorePassword");
+    }
+  }
+
+
   private static Response call(String url) throws IOException {
     return OkHttpClientFactory.create(logger).newCall(
       new Request.Builder()
@@ -193,7 +221,18 @@ public class OkHttpClientFactoryTest {
     server.setDispatcher(new Dispatcher() {
       @Override
       public MockResponse dispatch(RecordedRequest request) {
-        return new MockResponse().setResponseCode(200).setBody("OK");
+        String responseBody = "OK";
+        MockResponse response = new MockResponse().setResponseCode(200);
+        String cookie = request.getHeader("Cookie");
+        if (cookie == null || cookie.isEmpty()) {
+          // Only set the cookie if it is not already set
+          response.addHeader("Set-Cookie", COOKIE);
+        } else {
+          // dump the cookie into the response body to aid in test inspection
+          responseBody += "\nCookie: " + cookie;
+        }
+        response.setBody(responseBody);
+        return response;
       }
     });
 
