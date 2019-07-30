@@ -212,7 +212,7 @@ public class SSLTest {
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
-    assertThat(buildResult.getLogs()).contains("bad_certificate");
+    assertThat(buildResult.getLogs()).contains("SSLProtocolException: Broken pipe");
   }
 
   private static Path project(String projectName) {
