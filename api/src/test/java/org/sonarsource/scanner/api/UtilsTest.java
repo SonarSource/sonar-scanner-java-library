@@ -78,7 +78,7 @@ public class UtilsTest {
   public void delete_non_empty_directory() throws IOException {
     /*-
      * Create test structure:
-     * tmp 
+     * tmp
      *   |-folder1
      *        |- file1
      *        |- folder2

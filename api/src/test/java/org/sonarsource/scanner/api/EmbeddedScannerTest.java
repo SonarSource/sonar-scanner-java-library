@@ -115,6 +115,15 @@ public class EmbeddedScannerTest {
   }
 
   @Test
+  public void should_set_url_from_env_as_host_if_host_env_var_provided() {
+    when(system.getEnvironmentVariable("SONAR_HOST_URL")).thenReturn("http://from-env.org:9000");
+
+    scanner.start();
+
+    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
+  }
+
+  @Test
   public void should_set_properties() {
     EmbeddedScanner scanner = EmbeddedScanner.create("test", "1.0", mock(LogOutput.class));
     scanner.setGlobalProperty("sonar.projectKey", "foo");
