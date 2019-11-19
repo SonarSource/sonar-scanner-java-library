@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2018 SonarSource SA
+ * Copyright (C) 2011-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -20,7 +20,7 @@
 package org.sonarsource.scanner.api;
 
 /**
- * Mostly used properties that can be passed to {@link EmbeddedScanner#addGlobalProperties(java.util.Properties)}.
+ * Mostly used properties that can be passed to EmbeddedScanner#addGlobalProperties(java.util.Properties).
  * See <a href="http://docs.sonarqube.org/display/SONAR/Analysis+Parameters">documentation</a> for more properties.
  *
  * @since 2.2

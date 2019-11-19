@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API - ITs
- * Copyright (C) 2011-2018 SonarSource SA
+ * Copyright (C) 2011-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -108,7 +108,7 @@ public class SSLTest {
 
     // Handler Structure
     HandlerCollection handlers = new HandlerCollection();
-    handlers.setHandlers(new Handler[] {proxyHandler(), new DefaultHandler()});
+    handlers.setHandlers(new Handler[]{proxyHandler(), new DefaultHandler()});
     server.setHandler(handlers);
 
     ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
@@ -123,7 +123,7 @@ public class SSLTest {
     sslContextFactory.setKeyStorePath(serverKeyStore.toString());
     sslContextFactory.setKeyStorePassword(JKS_PASSWORD);
     sslContextFactory.setKeyManagerPassword("");
-    if (  requireClientAuth) {
+    if (requireClientAuth) {
       Path serverTrustStore = Paths.get(SSLTest.class.getResource(SERVER_TRUSTSTORE).toURI()).toAbsolutePath();
       sslContextFactory.setTrustStorePath(serverTrustStore.toString());
       assertThat(serverTrustStore).exists();
@@ -212,7 +212,13 @@ public class SSLTest {
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
-    assertThat(buildResult.getLogs()).contains("bad_certificate");
+
+    // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
+    assertThat(buildResult.getLogs()).matches(p ->
+      p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarQube.*" +
+        "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*") ||
+        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarQube.*" +
+          "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*"));
   }
 
   private static Path project(String projectName) {

@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2018 SonarSource SA
+ * Copyright (C) 2011-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -21,6 +21,8 @@ package org.sonarsource.scanner.api.internal;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -41,6 +43,7 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.JavaNetCookieJar;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
@@ -53,10 +56,18 @@ public class OkHttpClientFactory {
   static final int DEFAULT_READ_TIMEOUT_SEC = (int) Duration.ofMinutes(5).getSeconds();
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
+  static final CookieManager COOKIE_MANAGER;
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
+  private static final JavaNetCookieJar COOKIE_JAR;  // use the same cookie jar for all instances
 
   private OkHttpClientFactory() {
     // only statics
+  }
+
+  static {
+    COOKIE_MANAGER = new CookieManager();
+    COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+    COOKIE_JAR = new JavaNetCookieJar(COOKIE_MANAGER);
   }
 
   static OkHttpClient create(Logger logger) {
@@ -74,6 +85,7 @@ public class OkHttpClientFactory {
 
     okHttpClientBuilder.connectTimeout(connectTimeoutSec, TimeUnit.SECONDS);
     okHttpClientBuilder.readTimeout(readTimeoutSec, TimeUnit.SECONDS);
+    okHttpClientBuilder.cookieJar(COOKIE_JAR);
 
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
       .allEnabledTlsVersions()

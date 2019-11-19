@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2018 SonarSource SA
+ * Copyright (C) 2011-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -78,7 +78,7 @@ public class UtilsTest {
   public void delete_non_empty_directory() throws IOException {
     /*-
      * Create test structure:
-     * tmp 
+     * tmp
      *   |-folder1
      *        |- file1
      *        |- folder2

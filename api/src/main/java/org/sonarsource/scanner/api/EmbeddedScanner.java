@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner API
- * Copyright (C) 2011-2018 SonarSource SA
+ * Copyright (C) 2011-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -41,6 +41,7 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
  */
 public class EmbeddedScanner {
   private static final String BITBUCKET_CLOUD_ENV_VAR = "BITBUCKET_BUILD_NUMBER";
+  private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
@@ -141,9 +142,12 @@ public class EmbeddedScanner {
   }
 
   private void initGlobalDefaultValues() {
+    String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
     if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
       setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
       logger.info("Bitbucket Cloud Pipelines detected");
+    } else if (sonarHostUrl != null) {
+      setGlobalDefaultValue(ScannerProperties.HOST_URL, sonarHostUrl);
     } else {
       setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
     }
