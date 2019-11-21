@@ -82,6 +82,8 @@ class ServerConnection {
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
       throw e;
+    }finally {
+      responseBody.close();
     }
   }
 
