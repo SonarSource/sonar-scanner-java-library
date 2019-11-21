@@ -75,9 +75,9 @@ class ServerConnection {
     }
     String url = baseUrlWithoutTrailingSlash + urlPath;
     logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath().toString()));
-    ResponseBody responseBody = callUrl(url);
 
-    try (InputStream in = responseBody.byteStream()) {
+    try (ResponseBody responseBody = callUrl(url);
+         InputStream in = responseBody.byteStream()) {
       Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
