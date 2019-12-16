@@ -82,7 +82,7 @@ public class IsolatedLauncherFactory implements Closeable {
         return objProxy;
       } catch (Exception e) {
         // Catch all other exceptions, which relates to reflection
-        throw new ScannerException("Unable to execute SonarQube", e);
+        throw new ScannerException("Unable to execute SonarScanner analysis", e);
       }
     });
   }

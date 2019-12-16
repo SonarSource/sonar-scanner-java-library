@@ -116,7 +116,7 @@ class ServerConnection {
       }
       return response.body();
     } catch (Exception e) {
-      logger.error(format("SonarQube server [%s] can not be reached", baseUrlWithoutTrailingSlash));
+      logger.error(format("%s server [%s] can not be reached", url.toLowerCase().contains("sonarcloud") ? "SonarCloud" : "SonarQube", baseUrlWithoutTrailingSlash));
       throw e;
     }
   }
