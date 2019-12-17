@@ -117,7 +117,7 @@ class ServerConnection {
       }
       return response.body();
     } catch (Exception e) {
-      logger.error(format("%s server [%s] can not be reached", url.toLowerCase(Locale.getDefault()).contains("sonarcloud") ? "SonarCloud" : "SonarQube", baseUrlWithoutTrailingSlash));
+      logger.error(format("%s server [%s] can not be reached", url.toLowerCase(Locale.ENGLISH).contains("sonarcloud") ? "SonarCloud" : "SonarQube", baseUrlWithoutTrailingSlash));
       throw e;
     }
   }
