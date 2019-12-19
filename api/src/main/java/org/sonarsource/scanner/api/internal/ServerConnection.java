@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import java.util.Map;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -116,7 +117,7 @@ class ServerConnection {
       }
       return response.body();
     } catch (Exception e) {
-      logger.error(format("SonarQube server [%s] can not be reached", baseUrlWithoutTrailingSlash));
+      logger.error(format("%s server [%s] can not be reached", url.toLowerCase(Locale.ENGLISH).contains("sonarcloud") ? "SonarCloud" : "SonarQube", baseUrlWithoutTrailingSlash));
       throw e;
     }
   }
