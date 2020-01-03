@@ -40,6 +40,7 @@ import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.SecurityHandler;
+import org.eclipse.jetty.security.UserStore;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -123,7 +124,9 @@ public class ProxyTest {
   private static final SecurityHandler basicAuth(String username, String password, String realm) {
 
     HashLoginService l = new HashLoginService();
-    l.putUser(username, Credential.getCredential(password), new String[] {"user"});
+    UserStore userStore = new UserStore();
+    userStore.addUser(username, Credential.getCredential(password), new String[] {"user"});
+    l.setUserStore(userStore);
     l.setName(realm);
 
     Constraint constraint = new Constraint();
