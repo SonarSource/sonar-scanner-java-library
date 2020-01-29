@@ -22,6 +22,7 @@ package org.sonarsource.scanner.api.internal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
@@ -32,7 +33,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 public class ServerConnectionTest {
@@ -67,6 +70,16 @@ public class ServerConnectionTest {
   }
 
   @Test
+  public void downloadString_fails_on_url_validation() {
+    ServerConnection connection = create(false, false);
+    answer(HELLO_WORLD);
+
+    assertThatThrownBy(() -> connection.downloadString("should_fail"))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("URL path must start with slash: should_fail");
+  }
+
+  @Test
   public void test_downloadFile() throws Exception {
     Path toFile = temp.newFile().toPath();
     answer(HELLO_WORLD);
@@ -75,6 +88,27 @@ public class ServerConnectionTest {
     underTest.downloadFile("/batch/index.txt", toFile);
 
     assertThat(new String(Files.readAllBytes(toFile), StandardCharsets.UTF_8)).isEqualTo(HELLO_WORLD);
+  }
+
+  @Test
+  public void downloadFile_fails_on_url_validation() {
+    ServerConnection connection = create(false, false);
+    answer(HELLO_WORLD);
+
+    assertThatThrownBy(() -> connection.downloadFile("should_fail", Paths.get("test-path")))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("URL path must start with slash: should_fail");
+  }
+
+  @Test
+  public void should_throw_ISE_if_response_not_successful() throws Exception {
+    Path toFile = temp.newFile().toPath();
+    answer(HELLO_WORLD, 400);
+
+    ServerConnection underTest = create(false, false);
+    assertThatThrownBy(() -> underTest.downloadFile("/batch/index.txt", toFile))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage(format("Status returned by url [http://localhost:%d/batch/index.txt] is not valid: [400]", server.getPort()));
   }
 
   @Test
@@ -104,7 +138,11 @@ public class ServerConnectionTest {
   }
 
   private void answer(String msg) {
-    MockResponse response = new MockResponse().setBody(msg);
+    answer(msg, 200);
+  }
+
+  private void answer(String msg, int responseCode) {
+    MockResponse response = new MockResponse().setBody(msg).setResponseCode(responseCode);
     server.enqueue(response);
   }
 }
