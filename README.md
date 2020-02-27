@@ -3,7 +3,7 @@ SonarQube Scanner API
 
 Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scanner for Gradle, SQ Scanner for Ant, ...). Used to programmatically run SQ analysis.
 
-[![Build Status](https://travis-ci.org/SonarSource/sonar-scanner-api.svg?branch=master)](https://travis-ci.org/SonarSource/sonar-scanner-api)
+![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-api.svg)
 
 Have Question or Feedback?
 --------------------------
