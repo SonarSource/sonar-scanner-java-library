@@ -86,6 +86,9 @@ qa_task:
     - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$SQ_VERSION -DjavaVersion=$JAVA_VERSION
   cleanup_before_cache_script:
     - cleanup_maven_repository
+  on_failure:
+    reports_artifacts:
+      path: "**/target/**/logs/*"
 
 promote_task:
   depends_on:
