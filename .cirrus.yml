@@ -68,8 +68,8 @@ qa_task:
   <<: *ONLY_SONARSOURCE_QA
   gke_container:
     <<: *CONTAINER_DEFINITION
-    cpu: 2
-    memory: 2G
+    cpu: 3
+    memory: 5G
   env:
     matrix:
       - SQ_VERSION: LATEST_RELEASE[7.9]
