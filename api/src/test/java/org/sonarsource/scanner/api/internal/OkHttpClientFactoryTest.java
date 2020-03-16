@@ -41,7 +41,6 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
@@ -149,7 +148,6 @@ public class OkHttpClientFactoryTest {
     }
   }
 
-  @Ignore // ignore to test cirrus QA
   @Theory
   public void test_with_custom_https_server(String clientKeyStore) throws Exception {
     try (MockWebServer server = buildTLSServer()) {
@@ -178,7 +176,6 @@ public class OkHttpClientFactoryTest {
     }
   }
 
-  @Ignore // ignore to test cirrus QA
   @Theory
   public void test_with_cookie(String clientKeyStore) throws Exception {
     try (MockWebServer server = buildTLSServer()) {
