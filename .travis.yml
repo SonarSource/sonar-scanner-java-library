@@ -3,7 +3,7 @@ sudo: false
 
 dist: trusty
 
-jdk: adoptopenjdk/openjdk11:jdk-11.0.3_7
+jdk: openjdk11:jdk-11.0.3_7
 
 install: true
 script: ./travis.sh
