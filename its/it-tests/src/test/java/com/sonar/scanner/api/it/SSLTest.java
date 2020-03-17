@@ -212,10 +212,15 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
 
     // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
-    assertThat(buildResult.getLogs()).matches(p -> p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-      "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*") ||
-      p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-        "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*"));
+    assertThat(buildResult.getLogs())
+      .matches(p -> p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
+        "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*")
+        ||
+        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
+          "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*")
+        ||
+        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
+          "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*"));
   }
 
   private static Path project(String projectName) {
