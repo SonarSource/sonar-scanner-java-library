@@ -9,7 +9,7 @@ ENV JAVA_URL https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bi
 ENV JAVA_SHA256 b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56
 
 RUN set -eux \
- 	&& curl -fL -o /openjdk.tgz "$JAVA_URL"; \
+ 	&& curl -fL -o /openjdk.tgz "$JAVA_URL" \
  	&& echo "$JAVA_SHA256 */openjdk.tgz" | sha256sum -c - \
  	&& mkdir -p "$JAVA_HOME" \
  	&& tar --extract --file /openjdk.tgz --directory "$JAVA_HOME" --strip-components 1 \
