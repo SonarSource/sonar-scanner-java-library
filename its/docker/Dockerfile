@@ -1,4 +1,4 @@
-FROM gcr.io/ci-cd-215716/jdk-12:latest
+FROM gcr.io/ci-cd-215716/jdk12:latest
 
 USER root
 
