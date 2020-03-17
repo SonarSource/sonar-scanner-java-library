@@ -4,8 +4,11 @@ USER root
 
 RUN apt-get update && apt-get -y install xvfb
 
+# TO DELETE
+ENV ARTIFACTORY_URL=https://repox.jfrog.io
+
 ENV JAVA_HOME /usr/java/openjdk-12
-#ENV PATH $JAVA_HOME/bin:$PATH
+ENV PATH $JAVA_HOME/bin:$PATH
 
 ENV JAVA_VERSION 12
 ENV JAVA_URL https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz
@@ -17,6 +20,10 @@ RUN set -eux \
  	&& mkdir -p "$JAVA_HOME" \
  	&& tar --extract --file /openjdk.tgz --directory "$JAVA_HOME" --strip-components 1 \
  	&& rm /openjdk.tgz
+
+# https://github.com/oracle/docker-images/blob/a56e0d1ed968ff669d2e2ba8a1483d0f3acc80c0/OracleJava/java-8/Dockerfile#L17-L19
+RUN java --version \
+  	javac --version
 
 
 # Back to the user of the base image
