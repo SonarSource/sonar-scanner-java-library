@@ -85,78 +85,82 @@ Certificate Request:
         Subject: C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = localhost
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
-                Public-Key: (4096 bit)
+                RSA Public-Key: (4096 bit)
                 Modulus:
-                    00:b2:8d:7e:74:e3:42:ec:24:bf:09:14:9b:18:9c:
-                    3b:06:01:5e:54:30:31:40:bb:a3:64:f6:3a:99:ea:
-                    07:db:d6:7d:a6:c9:6c:1e:73:c7:83:76:b2:0e:bd:
-                    e8:c2:92:f8:fc:0e:a4:95:7d:1c:a3:69:fc:03:b6:
-                    41:dd:2b:89:eb:51:5a:32:2d:4f:09:1f:55:a9:bb:
-                    b0:82:e2:36:a0:85:5d:d9:40:62:bf:a8:ae:23:1d:
-                    ad:c0:ae:75:d2:e6:42:5d:92:06:61:fc:05:b1:12:
-                    8a:b2:40:b5:aa:29:82:05:ee:3b:67:23:ac:5b:1c:
-                    73:b5:15:d5:e7:e5:7f:51:ce:b0:55:37:6e:bc:57:
-                    44:12:e2:14:9f:46:9c:90:b2:1f:94:b9:5d:72:2a:
-                    f6:1e:c0:2e:94:3f:11:a0:c5:b7:68:b9:ba:d5:6d:
-                    b5:47:3e:9b:2f:ea:57:a3:03:7e:9c:8c:dd:56:70:
-                    ae:a7:9e:7b:93:73:f7:68:f0:81:94:24:db:de:8b:
-                    49:5c:0e:57:c6:4f:32:fd:b1:32:6d:34:44:a1:16:
-                    1a:ba:f0:c3:37:e9:e1:08:84:37:44:ce:48:fb:e6:
-                    6f:3f:6a:7a:4c:ba:69:38:5e:38:0c:83:f5:c0:a3:
-                    0b:17:01:45:cf:53:f7:e9:fe:29:29:fb:e4:a8:73:
-                    1c:37:41:af:d0:d9:53:1f:c1:bb:a1:40:71:43:12:
-                    a3:7d:b8:31:0b:53:4e:4e:89:b6:36:78:bc:a7:c4:
-                    ce:50:53:35:87:27:7a:7b:33:d0:3d:86:4b:29:ff:
-                    8e:73:62:81:6b:f4:c8:67:30:58:fa:fd:0e:ac:7f:
-                    c4:63:0f:4d:41:c8:a8:b7:6f:88:9c:3c:d5:a8:dc:
-                    20:40:ae:19:8c:a4:a9:0c:22:b1:7c:af:30:56:be:
-                    63:30:50:35:d3:82:f1:a6:5d:4a:c8:9d:5f:73:94:
-                    6f:2c:98:00:dc:df:51:88:d5:d7:e9:4b:36:71:f2:
-                    61:aa:30:58:f7:01:12:2d:7d:24:45:70:ef:63:f1:
-                    cb:4a:ab:4c:b1:f2:59:97:02:ca:68:98:68:d4:0f:
-                    7e:bd:fe:a3:16:f4:43:f0:45:2e:7e:2f:6a:37:7d:
-                    e6:e9:a6:9b:d1:1b:02:5d:43:da:a0:49:12:6d:94:
-                    6e:b5:e0:b8:8e:51:88:4b:1b:3f:38:7e:be:9e:86:
-                    06:09:19:c7:d1:4e:2f:d9:9e:50:ed:5a:b5:0a:27:
-                    48:28:da:ce:34:9e:df:38:31:c9:b7:6c:80:df:18:
-                    1b:ba:76:14:ff:75:2d:0f:0c:2f:c3:7f:6d:2f:51:
-                    6a:42:bb:59:c5:de:81:f1:04:22:8a:fa:ed:94:f4:
-                    bb:ab:b1
+                    00:c8:2d:dc:64:1a:b6:d9:a9:3e:bd:3f:d3:ae:27:
+                    ab:00:a8:09:f7:9e:ae:b5:70:c0:11:ab:2d:45:48:
+                    6c:b9:b3:b1:4b:42:b7:4e:48:d3:2e:38:cb:e5:7d:
+                    14:30:d3:b8:1d:2f:e2:09:04:cc:aa:80:09:51:bc:
+                    59:9d:a7:7a:76:34:cc:7a:2b:ae:d3:ef:98:38:ef:
+                    b2:8a:0e:e9:2f:79:4e:d4:a9:10:63:2b:5b:05:05:
+                    ef:6b:98:41:e3:c0:3e:6c:5f:8a:66:10:ca:98:e5:
+                    37:c6:ea:13:48:c9:92:22:53:44:1a:61:27:f4:60:
+                    16:a7:a9:87:a9:d3:cf:88:5e:d4:47:44:24:4f:6d:
+                    5e:c0:4a:ff:ad:e4:82:63:da:82:eb:9e:b3:76:6f:
+                    5d:b4:2d:fc:96:4a:98:e4:f5:20:97:48:38:11:29:
+                    33:7d:5a:96:fa:28:49:9f:cb:24:f8:02:f6:bb:ed:
+                    f3:91:90:51:10:c2:93:28:56:6e:4d:51:51:10:27:
+                    8f:c3:f0:cd:ee:51:2d:dc:e5:a7:21:55:20:44:ac:
+                    8b:66:1d:b7:eb:e0:ed:69:f0:d4:32:82:ee:53:91:
+                    3b:ee:58:83:ba:3b:9d:3f:f7:23:0e:36:46:20:6b:
+                    6a:80:9b:11:46:28:39:60:25:69:9e:e5:d0:34:ba:
+                    2b:c3:33:f2:44:3d:fb:8f:2d:47:a6:ae:64:9a:b3:
+                    5a:f0:ed:cb:3e:86:33:80:23:32:d0:e7:51:91:a8:
+                    c6:97:d1:7c:e4:02:52:5d:7c:a9:97:83:00:c5:10:
+                    fb:13:f9:29:1f:79:c4:a5:8c:7b:64:e0:cd:b6:a1:
+                    34:36:aa:f4:63:63:77:12:d3:fa:fe:1d:54:2e:64:
+                    43:38:a2:71:28:72:7a:bf:33:cb:8c:27:a7:66:51:
+                    8f:6f:e8:d2:90:19:2f:d4:8e:ac:b4:7b:e0:53:a8:
+                    0f:11:d1:7d:08:71:de:0a:a4:63:10:79:c8:e8:bf:
+                    7e:be:8b:06:7d:43:9b:4b:a1:0a:49:a6:c8:c6:43:
+                    c4:24:23:13:2a:b2:f9:f2:b8:e7:8e:ab:3e:2a:b5:
+                    50:26:23:d6:b2:d3:ee:23:ec:d1:36:92:70:2e:df:
+                    82:6a:d2:07:bb:f0:97:51:42:e4:d8:49:69:35:bb:
+                    38:90:1f:8e:aa:1d:27:78:26:26:d4:36:75:ee:83:
+                    17:69:cb:7f:53:45:8f:b4:63:13:d5:fd:42:10:8a:
+                    d3:75:38:4a:bd:13:cf:68:5e:41:6d:f0:57:b5:75:
+                    e3:dc:10:82:ab:29:ed:a1:27:9c:50:74:f2:4c:4a:
+                    a3:78:2a:53:ca:90:a6:89:20:24:85:b5:ec:c9:c7:
+                    be:96:b5
                 Exponent: 65537 (0x10001)
         Attributes:
         Requested Extensions:
             X509v3 Subject Alternative Name: 
                 DNS:localhost
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment, Data Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
     Signature Algorithm: sha256WithRSAEncryption
-         10:cc:1d:6b:13:54:81:64:b4:1f:1e:73:ec:fd:78:af:b9:e6:
-         39:e1:8c:32:74:b1:f9:2b:87:d6:9e:30:d5:bb:db:72:d0:4d:
-         d8:92:b8:9b:c5:d5:46:a0:6b:f7:a9:bc:da:81:f5:19:04:0f:
-         69:4b:20:79:bf:ac:f3:92:4d:2f:28:76:d8:f6:22:de:be:0c:
-         02:51:c8:7d:11:d2:64:94:fe:4f:5e:5f:a0:c9:4f:4d:3c:4e:
-         0a:02:42:a7:8d:e9:fe:79:7e:e3:c0:1f:56:0e:33:ca:0a:0c:
-         d8:19:29:52:44:f5:47:a2:f0:28:7b:0c:cc:dd:68:b9:c2:d4:
-         1b:b9:03:58:d1:d5:75:9f:b5:3d:de:1e:8c:54:9e:2f:e7:71:
-         ec:09:9e:bc:f0:d6:1e:e1:2d:b0:ef:03:26:2c:7c:7e:bb:5c:
-         4f:2f:35:40:e2:2b:46:7e:99:4e:fe:6a:9a:ff:2b:f9:ff:06:
-         a3:94:b6:57:92:f2:b3:8b:b2:4b:de:7c:bc:16:dd:39:91:05:
-         79:27:1d:c3:a2:ba:c3:c7:4c:c4:39:c9:f3:4d:a1:a3:7f:37:
-         b2:e4:f6:29:40:cb:8a:1a:bc:74:4c:ed:e5:6b:cc:73:f7:65:
-         59:df:6a:23:52:9a:0b:71:7c:84:11:d7:1f:d8:ad:d0:5e:49:
-         8a:b3:f4:e6:eb:2e:b2:d8:1e:3b:0e:12:04:7b:c4:3e:2b:cb:
-         c8:3e:7b:fc:55:ba:53:da:50:fc:c6:aa:1c:8d:7a:3f:91:d9:
-         ab:63:99:b3:45:82:c2:8a:fc:35:13:a4:91:ec:2f:28:d1:2b:
-         01:e9:93:a3:a1:4a:ad:68:75:42:60:87:90:63:6f:a6:a2:bb:
-         ef:39:f5:49:93:4b:26:74:01:15:e6:4d:7a:fb:af:a6:15:76:
-         c8:f3:58:67:99:29:96:bb:bd:3f:c0:a8:a2:1c:26:31:d7:55:
-         7f:17:c6:8f:b9:b1:f0:92:bf:da:a8:fd:ab:d3:66:d9:30:25:
-         d4:ce:bb:74:ea:e0:fe:6f:64:74:72:cd:23:a9:22:63:d6:ae:
-         45:06:66:4d:26:1d:77:4c:25:4c:98:99:6f:9c:32:a3:c2:43:
-         7e:e4:21:d5:cb:67:60:a4:1e:67:b7:90:80:38:2a:02:f1:84:
-         29:12:8d:f6:3c:e5:58:d1:bd:50:69:cc:af:e8:c4:6c:1b:87:
-         70:ae:8a:a6:cb:25:06:e9:5d:b2:ca:23:75:f3:ae:57:74:a8:
-         1b:66:90:1c:81:5e:a6:97:a5:96:89:88:3f:c6:ff:d0:63:5d:
-         16:7b:53:51:cd:25:7a:71:a0:11:74:ed:e6:9b:0f:ac:e7:10:
-         4e:2c:a9:ac:86:97:cf:83
+         bf:9d:6e:2f:cc:40:9b:92:29:c2:f1:0a:85:6c:35:eb:8e:fa:
+         13:0c:53:58:33:5f:7b:09:58:5f:dd:94:7e:2c:65:ed:73:91:
+         2a:6b:cc:2d:ec:26:1c:8e:95:57:d9:35:19:82:4f:42:59:81:
+         d9:b7:bb:08:70:28:70:35:50:f6:6a:46:e0:2a:ab:90:50:5a:
+         dc:b0:c3:b8:52:d7:5c:90:8f:4c:61:09:2c:ba:4a:31:37:6f:
+         e0:b9:6b:98:dd:aa:dd:52:66:7e:06:f1:8a:4b:bc:23:0d:62:
+         d3:b9:86:8f:3e:cc:05:2b:4d:c4:ad:cf:ae:be:33:22:f6:95:
+         00:f0:36:96:26:5e:42:84:d0:2a:79:41:1e:18:10:1c:96:3e:
+         9a:8b:cc:a5:f9:59:5b:78:d0:a1:a5:2e:4d:55:30:10:0b:cd:
+         13:bc:75:9a:49:e0:de:a4:4d:ed:9b:e8:42:2f:74:2b:dc:6f:
+         2d:d3:38:a9:e8:f8:98:2c:56:aa:3e:dd:0d:48:78:16:4c:50:
+         fd:0a:b3:3c:28:ac:64:7e:e9:bb:10:0e:3b:29:68:40:a9:19:
+         5a:2c:5c:d6:7e:32:39:96:49:a7:4c:6a:a6:09:8e:d4:b8:1e:
+         3e:2c:93:c3:2c:da:f2:09:20:ef:f4:a9:d2:ff:de:cd:7b:20:
+         66:46:ff:c2:36:c3:7d:32:d6:55:d1:fe:0f:00:9a:23:56:97:
+         52:a1:0a:52:64:29:50:c7:5d:b4:1e:e4:67:9a:07:3f:fb:85:
+         03:00:22:d8:f5:e6:bc:95:bf:bc:08:ab:4d:32:4c:d6:52:e0:
+         72:3e:8a:a5:85:72:43:d6:d4:51:6e:99:9a:1f:d8:0e:fd:4d:
+         59:81:7e:c1:81:6d:3b:69:76:ce:53:a4:c0:69:46:72:b2:fe:
+         40:b3:a5:5c:b0:ce:d2:61:83:be:0f:c3:85:a0:21:a7:e8:fd:
+         2f:2c:1c:68:24:1d:9b:a3:43:cb:5e:30:21:af:e8:2e:4e:ec:
+         ea:a7:d2:68:f1:bd:3f:3c:41:48:ac:91:f9:9d:e8:f2:3d:cb:
+         d0:82:d2:00:ed:7b:fa:d8:98:e3:a8:74:f2:ce:70:95:0a:9d:
+         c2:b2:cc:08:d1:fd:de:26:d3:3e:c0:62:28:9b:b4:2d:f4:b5:
+         6d:48:c9:d3:05:f5:1e:68:17:6b:fb:02:2e:20:98:1a:de:d4:
+         ae:6b:e0:68:97:98:e0:4f:47:ec:14:fd:dc:57:d2:e2:5c:59:
+         36:a5:0b:94:b7:4e:b8:ae:ee:c9:ac:02:ae:43:bf:9f:07:da:
+         0c:44:b0:47:69:1d:64:ea:bd:68:af:4f:a7:9a:1f:b1:b9:1d:
+         71:0e:86:4e:0c:ff:a3:1d
 ```
 
 #### Let's sign this certificate with our own CA
@@ -165,7 +169,7 @@ The CSR will be signed with our previously created ca.key
 We'll sign it to be valid for 10years (3650)
 
 ```bash
-$ openssl x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.pem -sha256
+$ openssl x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.pem -sha256 -extfile v3.ext
 Signature ok
 subject=C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = localhost
 Getting CA Private Key
@@ -177,113 +181,108 @@ Let's verify what are in this certificate :
 $ openssl x509 -in server.pem -text -noout
 Certificate:
     Data:
-        Version: 1 (0x0)
+        Version: 3 (0x2)
         Serial Number:
-            d5:c5:2a:c2:c8:f6:43:bb
-    Signature Algorithm: sha256WithRSAEncryption
-        Issuer: C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = SonarSource
+            d5:c5:2a:c2:c8:f6:43:c7
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = SonarSource SA
         Validity
-            Not Before: Sep 14 13:51:02 2018 GMT
-            Not After : Sep 11 13:51:02 2028 GMT
+            Not Before: Mar 17 14:12:29 2020 GMT
+            Not After : Mar 15 14:12:29 2030 GMT
         Subject: C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = localhost
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
-                Public-Key: (4096 bit)
+                RSA Public-Key: (4096 bit)
                 Modulus:
-                    00:b2:8d:7e:74:e3:42:ec:24:bf:09:14:9b:18:9c:
-                    3b:06:01:5e:54:30:31:40:bb:a3:64:f6:3a:99:ea:
-                    07:db:d6:7d:a6:c9:6c:1e:73:c7:83:76:b2:0e:bd:
-                    e8:c2:92:f8:fc:0e:a4:95:7d:1c:a3:69:fc:03:b6:
-                    41:dd:2b:89:eb:51:5a:32:2d:4f:09:1f:55:a9:bb:
-                    b0:82:e2:36:a0:85:5d:d9:40:62:bf:a8:ae:23:1d:
-                    ad:c0:ae:75:d2:e6:42:5d:92:06:61:fc:05:b1:12:
-                    8a:b2:40:b5:aa:29:82:05:ee:3b:67:23:ac:5b:1c:
-                    73:b5:15:d5:e7:e5:7f:51:ce:b0:55:37:6e:bc:57:
-                    44:12:e2:14:9f:46:9c:90:b2:1f:94:b9:5d:72:2a:
-                    f6:1e:c0:2e:94:3f:11:a0:c5:b7:68:b9:ba:d5:6d:
-                    b5:47:3e:9b:2f:ea:57:a3:03:7e:9c:8c:dd:56:70:
-                    ae:a7:9e:7b:93:73:f7:68:f0:81:94:24:db:de:8b:
-                    49:5c:0e:57:c6:4f:32:fd:b1:32:6d:34:44:a1:16:
-                    1a:ba:f0:c3:37:e9:e1:08:84:37:44:ce:48:fb:e6:
-                    6f:3f:6a:7a:4c:ba:69:38:5e:38:0c:83:f5:c0:a3:
-                    0b:17:01:45:cf:53:f7:e9:fe:29:29:fb:e4:a8:73:
-                    1c:37:41:af:d0:d9:53:1f:c1:bb:a1:40:71:43:12:
-                    a3:7d:b8:31:0b:53:4e:4e:89:b6:36:78:bc:a7:c4:
-                    ce:50:53:35:87:27:7a:7b:33:d0:3d:86:4b:29:ff:
-                    8e:73:62:81:6b:f4:c8:67:30:58:fa:fd:0e:ac:7f:
-                    c4:63:0f:4d:41:c8:a8:b7:6f:88:9c:3c:d5:a8:dc:
-                    20:40:ae:19:8c:a4:a9:0c:22:b1:7c:af:30:56:be:
-                    63:30:50:35:d3:82:f1:a6:5d:4a:c8:9d:5f:73:94:
-                    6f:2c:98:00:dc:df:51:88:d5:d7:e9:4b:36:71:f2:
-                    61:aa:30:58:f7:01:12:2d:7d:24:45:70:ef:63:f1:
-                    cb:4a:ab:4c:b1:f2:59:97:02:ca:68:98:68:d4:0f:
-                    7e:bd:fe:a3:16:f4:43:f0:45:2e:7e:2f:6a:37:7d:
-                    e6:e9:a6:9b:d1:1b:02:5d:43:da:a0:49:12:6d:94:
-                    6e:b5:e0:b8:8e:51:88:4b:1b:3f:38:7e:be:9e:86:
-                    06:09:19:c7:d1:4e:2f:d9:9e:50:ed:5a:b5:0a:27:
-                    48:28:da:ce:34:9e:df:38:31:c9:b7:6c:80:df:18:
-                    1b:ba:76:14:ff:75:2d:0f:0c:2f:c3:7f:6d:2f:51:
-                    6a:42:bb:59:c5:de:81:f1:04:22:8a:fa:ed:94:f4:
-                    bb:ab:b1
+                    00:a2:43:1e:8b:60:b5:e0:61:3e:99:a4:54:93:c8:
+                    16:14:c2:fa:fd:e5:7c:05:02:71:09:46:d9:2a:52:
+                    57:12:d7:74:46:6a:bd:d4:de:4a:06:b2:51:83:2c:
+                    98:07:8c:b0:f7:e1:8a:aa:fc:0c:30:c6:d7:ec:57:
+                    0b:a7:12:45:e3:13:1a:26:e8:22:d8:fd:2a:9e:ae:
+                    7b:20:b8:41:99:50:0e:b7:1c:bb:78:18:60:25:67:
+                    78:5b:af:d8:7f:d1:01:12:81:0a:1f:dd:f0:54:bc:
+                    57:16:05:22:7c:65:a2:7e:03:ed:e8:7f:50:b1:cd:
+                    7c:e8:7b:58:cb:df:6d:e3:04:03:78:a4:83:e7:20:
+                    c4:37:bc:00:ba:7c:12:d9:ac:52:88:88:72:df:fc:
+                    35:8f:94:f0:1b:33:f8:94:b8:bc:ab:0e:89:68:5f:
+                    92:1b:af:c9:da:c2:c2:e2:a1:c3:8e:c8:16:1a:9e:
+                    89:7a:b4:24:2c:24:df:c5:26:59:ab:d8:f9:06:39:
+                    02:c0:0d:88:5a:0c:14:e7:bc:c5:b8:4c:e5:e0:85:
+                    b2:0b:88:36:b3:d5:35:10:e9:b8:5a:48:69:1a:b3:
+                    2a:4a:d6:f3:f5:6a:91:41:f8:1e:da:d0:0e:21:c3:
+                    a2:f8:5c:08:42:a2:2b:13:be:63:e5:67:d5:19:2f:
+                    2c:96:6d:17:1c:7f:34:19:68:cf:91:b6:14:d9:9a:
+                    1b:1c:f9:08:d7:f9:2d:c3:48:14:3d:02:d4:90:f7:
+                    f2:74:65:f8:22:2d:46:b2:76:cd:46:c1:8e:ab:a1:
+                    11:d7:12:14:77:e3:1c:c3:1c:fa:32:79:0e:0e:59:
+                    55:e4:9d:60:d7:18:0b:25:82:97:28:30:df:de:89:
+                    5b:56:37:a2:33:86:26:12:83:75:f0:02:ae:88:b5:
+                    d6:5e:a2:b7:e7:57:9d:de:72:ad:d6:55:2a:e1:a8:
+                    4c:15:18:a9:e3:22:52:f1:74:e1:b0:d2:e7:9b:ec:
+                    f9:6d:5f:86:c2:9c:e2:22:f2:f4:11:a2:d1:71:b8:
+                    77:e4:8c:4c:ed:84:e8:f9:82:a2:f1:73:95:19:08:
+                    92:d5:b3:50:be:bc:c2:ec:0e:d7:da:53:d2:22:36:
+                    c8:d8:48:d1:22:0d:42:a7:68:6d:e5:b6:5f:00:7d:
+                    70:e4:5f:fe:df:db:3a:96:30:c8:76:89:e9:d1:98:
+                    1e:63:e2:d0:29:46:b0:3d:f6:38:d7:07:40:47:0e:
+                    a3:a5:70:1c:8b:80:c1:81:d1:35:cd:3d:93:20:c6:
+                    7c:10:a4:09:ed:41:12:2e:c3:66:e5:47:96:58:de:
+                    53:1b:d5:67:2c:1d:55:3b:c1:03:28:cf:5e:aa:33:
+                    2b:8c:e1
                 Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Authority Key Identifier: 
+                keyid:26:4F:F6:F9:E6:8B:B6:F7:59:CE:30:23:5C:90:2E:AE:7A:20:C4:DB
+
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Key Usage: 
+                Digital Signature, Non Repudiation, Key Encipherment, Data Encipherment
+            X509v3 Subject Alternative Name: 
+                DNS:localhost
     Signature Algorithm: sha256WithRSAEncryption
-         0a:0a:c0:cb:4c:79:b2:13:45:34:e4:61:20:3d:3a:ce:44:31:
-         2c:ff:04:f2:42:ac:62:6e:f9:a3:3d:76:6a:5a:16:a8:d9:a2:
-         ab:53:fd:b0:44:0b:e5:a2:79:19:b4:8e:3b:c1:bf:c1:84:ab:
-         1a:aa:a0:7c:09:a9:88:8f:29:5b:64:14:2c:29:56:5d:2b:59:
-         5e:79:5e:d2:69:6e:e2:b0:54:2c:0b:7b:2a:bf:80:46:fe:d8:
-         21:51:7e:cf:41:ad:9d:c2:93:6d:61:5e:b6:b3:7e:ed:bf:9b:
-         a9:4b:31:f9:fe:ee:1f:a5:4c:07:9e:cc:30:39:de:c9:6e:5d:
-         40:10:c2:21:95:23:14:82:d1:7b:fe:36:d0:70:15:88:dc:0f:
-         58:17:33:b9:c5:ae:45:8e:73:3d:e7:de:c0:bd:f2:cf:96:15:
-         5b:bb:08:d7:6a:33:60:ee:26:03:ad:e5:dd:e7:df:d4:37:b5:
-         1f:87:83:a0:d3:5b:49:77:12:f2:52:3e:a0:6b:a1:f6:b1:62:
-         76:eb:45:0d:96:28:3c:97:07:1a:21:ce:ff:22:5b:37:19:21:
-         06:3a:fb:07:96:67:0e:a2:9f:29:0c:d8:6c:e2:2e:e7:20:11:
-         4d:46:ae:33:ff:62:cf:fb:07:2e:a8:69:de:fd:5c:c3:fc:3b:
-         a7:ef:4e:ce:bf:be:31:c4:c5:d2:6c:19:f8:52:87:ff:fe:ae:
-         3d:20:de:26:e0:00:83:48:eb:e5:30:54:a2:26:1c:ab:09:9f:
-         08:45:a6:16:81:35:cb:c9:6f:bc:1a:7c:15:8d:1f:a3:82:4d:
-         ee:cf:04:7a:a3:56:3c:82:60:ab:35:3f:80:ed:07:2a:f1:40:
-         10:1b:7c:3d:1c:53:a0:8c:33:7f:e4:6e:67:cb:cd:c6:4d:6b:
-         11:63:57:b3:00:07:ef:2f:53:d7:81:9f:15:d2:29:e3:29:f7:
-         9c:e2:e7:d2:0e:d5:71:a0:48:ef:aa:dd:4b:f2:36:2d:f4:9f:
-         39:93:94:38:07:00:5e:61:bf:26:40:a4:78:27:b4:65:6f:e0:
-         c5:31:a7:80:65:bc:47:5b:bf:a8:6a:65:0b:c7:9b:9b:ae:36:
-         f3:13:ec:a9:3c:c8:2e:71:24:f7:a0:d3:d3:28:dc:5d:e8:c4:
-         f7:98:52:c7:c5:ed:35:c0:36:e9:70:95:1a:f1:70:e2:b8:0b:
-         22:c7:d7:27:15:10:eb:df:de:f0:7e:f8:ad:55:69:53:03:ed:
-         bb:f2:de:4f:e2:47:1f:50:f5:3d:a2:fb:81:5c:7a:f8:77:fc:
-         7c:0c:e3:4b:a2:53:99:6b:c9:7e:4f:ba:32:2f:56:8c:21:73:
-         d1:39:24:b6:d6:f7:bc:17
+         b0:df:99:da:44:e1:22:c6:51:da:e1:b5:a9:fd:fe:82:d6:74:
+         07:ad:d4:b4:f8:29:3e:57:7a:1b:98:36:4e:0a:23:68:f5:27:
+         c7:52:59:90:cd:94:23:08:83:6f:a4:af:14:a3:e3:ed:f2:13:
+         e4:17:f7:7c:27:45:bc:8c:9a:1d:f3:90:c6:b4:3e:e8:7a:c1:
+         18:e4:8e:8c:28:ac:02:c7:d1:4c:e3:67:7a:13:69:ff:a4:74:
+         c4:82:d7:54:d3:cb:7b:4e:f9:25:36:90:33:43:f0:b8:a5:e6:
+         7c:ea:3d:41:fe:51:3c:bc:d2:c6:4e:9c:dc:04:69:23:08:70:
+         bf:69:2a:bd:28:8c:3f:a1:f0:b0:88:87:a2:af:63:85:86:e3:
+         07:2a:74:89:d0:69:b3:8c:7d:a5:db:ec:f2:5c:56:33:89:04:
+         c6:75:a9:a2:b8:c0:1b:b5:dd:0f:96:50:71:ad:39:36:39:13:
+         d0:80:f3:c8:50:db:d2:65:4d:56:75:9c:70:c2:d6:0c:6b:4a:
+         6e:f7:f1:76:1b:82:16:13:eb:37:4f:05:fd:8f:06:89:15:d7:
+         6d:a7:4e:43:bb:ee:b1:a8:c0:f4:cd:d7:1f:17:c3:3f:1a:79:
+         8f:6e:46:a4:e5:1f:82:8d:60:6f:6c:a2:f4:9b:6e:59:85:48:
+         73:ae:78:dd:c1:fa:81:1f:38:56:84:fc:31:98:af:a8:e4:bf:
+         62:45:16:38:4a:5d:0e:6a:c4:bf:e1:9b:2b:c4:eb:dc:d4:85:
+         82:0f:6c:31:54:1c:46:62:51:22:c3:0d:e4:ca:2e:c9:5f:f5:
+         8c:7a:8c:c2:1d:f2:a8:f9:65:e6:ca:4e:6d:21:4e:55:07:6c:
+         58:0d:fd:59:76:9c:65:7f:26:8f:8b:7b:01:70:5f:59:25:66:
+         a8:9b:0a:70:a1:d8:fd:61:26:7e:4d:5f:3c:28:74:2b:94:fb:
+         2a:8e:35:51:77:5a:96:a9:9b:4e:18:b6:6d:0b:55:4e:2e:15:
+         ca:e7:cb:15:29:0e:b9:fd:23:56:a7:ad:dc:a1:b9:1b:1b:19:
+         24:10:e3:a5:cb:69:2b:40:74:3c:3e:31:ac:a9:0d:17:6b:51:
+         61:d4:5e:d1:98:b6:81:29:55:92:1f:00:8d:4c:72:d4:3a:0e:
+         fd:1f:30:73:04:b8:99:6f:27:57:9a:6c:2b:e1:fa:c2:d3:bf:
+         d3:d2:24:f3:5c:30:a3:25:d6:f5:18:91:13:d4:55:1e:33:89:
+         b7:99:27:a9:14:e4:d9:32:50:ba:56:2f:53:b7:a1:d7:d3:14:
+         2f:e2:73:5a:d4:b2:94:73:14:ef:ac:6f:a1:c1:84:31:17:fd:
+         fa:f8:62:d3:eb:a5:8a:34
 ```
 
-#### Let's create a JKS file to be used for starting a TLS server
-
-Before being able to import, we have to create a pkcs12 file (it's a standard format whereas JKS is proprietary, and we cannot import key and certificate directly with `keytool`).
+#### Let's create a PKCS12 file to be used for starting a TLS server
 
 ```bash
-$ openssl pkcs12 -export -in server.pem -inkey server.key -passout pass: -name localhost -out server.p12
-Enter Export Password:
-Verifying - Enter Export Password:
+$ openssl pkcs12 -export -in server.pem -inkey server.key -name localhost -out server.p12
+Enter Export Password: pwdServerP12
+Verifying - Enter Export Password: pwdServerP12
 ```
 
-Do not enter any password, this is not necessary.
+The password of the PKCS12 file is `pwdServerP12`
 
-Then we need to convert it to JKS (note that pkcs12 files are the standard since Java 9) :
-```bash
-$ keytool -importkeystore -srcstorepass "" -deststorepass abcdef -destkeystore server.jks -srckeystore server.p12 -srcstoretype PKCS12
-Importing keystore server.p12 to server.jks...
-Entry for alias localhost successfully imported.
-Import command completed:  1 entries successfully imported, 0 entries failed or cancelled
-
-Warning:
-The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS12 which is an industry standard format using "keytool -importkeystore -srckeystore server.jks -destkeystore server.jks -deststoretype pkcs12".
-```
-
-The password of the JKS file is `abcdef`
-
-The `server.jks` file can now be used to start a TLS server.
+The `server.p12` file can now be used to start a TLS server.
 
 #### Now let's a client to connect to our TLS server
 
@@ -294,9 +293,9 @@ Since we've created a self signed certificate. The client must either have our c
 This one is more easier :
 
 ```bash
-$ keytool -import -alias localhost -keystore client-with-certificate.jks -file server.pem 
-  Enter keystore password:  
-  Re-enter new password: 
+$ keytool -import -alias localhost -keystore client-with-certificate.p12 -file server.pem 
+  Enter keystore password: pwdClientP12 
+  Re-enter new password: pwdClientP12
   Owner: CN=localhost, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
   Issuer: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
   Serial number: d5c52ac2c8f643bb
@@ -312,15 +311,15 @@ $ keytool -import -alias localhost -keystore client-with-certificate.jks -file s
   Certificate was added to keystore
 ``` 
 
-The password is again `abcdef` and you have to `Trust this certificate`.
-This JKS file must be used in a TrustedKeyStore.
+The password is `pwdClientP12` and you have to `Trust this certificate`.
+This PKCS12 file must be used in a TrustedKeyStore.
 
 ##### Let's create a JKS with CA certificate
 
 ```bash
-$ keytool -import -trustcacerts -alias localhost -keystore client-with-ca.jks -file ca.crt
-  Enter keystore password:  
-  Re-enter new password: 
+$ keytool -import -trustcacerts -alias localhost -keystore client-with-ca.p12 -file ca.crt
+  Enter keystore password: pwdClientCAP12 
+  Re-enter new password: pwdClientCAP12
   Owner: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
   Issuer: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
   Serial number: c0196248f8364c3a
@@ -361,7 +360,8 @@ $ keytool -import -trustcacerts -alias localhost -keystore client-with-ca.jks -f
   Certificate was added to keystore
 ``` 
 
-This JKS file must be used in a TrustedKeyStore.
+The password is `pwdClientCAP12` and you have to `Trust this certificate`.
+This PKCS12 file must be used in a TrustedKeyStore.
 
 ### Create a certificate that will be used to authenticate a user
 
@@ -404,28 +404,18 @@ Getting CA Private Key
 Let's create the pkcs12 certificate containing the client certificate
 
 ```bash
-$ openssl pkcs12 -export -in client.pem -inkey client.key -passout pass: -name julienhenry -out client.p12
-```
-
-Transform it to JKS :
-
-**It's important to set the destkeypass, as we are expecting in the code OkHttpClientFactory#getDefaultKeyManager to have the key stored with password identical to the password of the keystore.**
- 
-```bash
-$ keytool -importkeystore -srcstorepass "" -deststorepass abcdef -destkeypass abcdef -destkeystore client.jks -srckeystore client.p12 -srcstoretype PKCS12
-Importing keystore client.p12 to client.jks...
-Entry for alias localhost successfully imported.
-Import command completed:  1 entries successfully imported, 0 entries failed or cancelled
-
-Warning:
-The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS12 which is an industry standard format using "keytool -importkeystore -srckeystore client.jks -destkeystore client.jks -deststoretype pkcs12".
+$ openssl pkcs12 -export -in client.pem -inkey client.key -name julienhenry -out client.p12
+Enter Export Password: pwdClientCertP12
+Verifying - Enter Export Password: pwdClientCertP12
 ```
 
 This will go to client keyStore. 
-Now we'll generate the `server-with-client-ca.jks` file that will have the CA certificate. Since we don't need to add the key of the certificate (only required to sign, not to verify), we can import it directly with keytool.
+Now we'll generate the `server-with-client-ca.p12` file that will have the CA certificate. Since we don't need to add the key of the certificate (only required to sign, not to verify), we can import it directly with keytool.
 
 ```bash
-$ keytool -import -trustcacerts -alias client-ca -keystore server-with-client-ca.jks -file ca-client-auth.crt
+$ keytool -import -trustcacerts -alias client-ca -keystore server-with-client-ca.p12 -file ca-client-auth.crt
+Enter keystore password: pwdServerWithClientCA 
+Re-enter new password: pwdServerWithClientCA
 Owner: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
 Issuer: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
 Serial number: ed8bcadd4888ffac
@@ -478,7 +468,5 @@ KeyIdentifier [
 
 Trust this certificate? [no]:  yes
 Certificate was added to keystore
-
-$ openssl pkcs12 -export -in client.pem -inkey client.key -passout pass: -name localhost -out client.p12
 
 ```
