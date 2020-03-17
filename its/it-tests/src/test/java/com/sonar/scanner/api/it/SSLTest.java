@@ -117,7 +117,7 @@ public class SSLTest {
     assertThat(serverKeyStore).exists();
 
     // SSL Context Factory
-    SslContextFactory sslContextFactory = new SslContextFactory();
+    SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
     sslContextFactory.setKeyStorePath(serverKeyStore.toString());
     sslContextFactory.setKeyStorePassword(SERVER_KEYSTORE_PASSWORD);
     sslContextFactory.setKeyManagerPassword(SERVER_KEYSTORE_PASSWORD);
