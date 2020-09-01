@@ -213,14 +213,27 @@ public class SSLTest {
 
     // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
     assertThat(buildResult.getLogs())
-      .matches(p -> p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-        "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*")
-        ||
-        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-          "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*")
-        ||
-        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-          "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*"));
+        .matches(p -> p.matches(
+            "(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*"
+                +
+                "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*")
+            ||
+            p.matches(
+                "(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*"
+                    +
+                    "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*")
+            ||
+            p.matches(
+                "(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*"
+                    +
+                    "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*")
+            ||
+            p.matches(
+                "(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarQube.*"
+                +
+                    "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*")
+
+        );
   }
 
   private static Path project(String projectName) {
@@ -242,7 +255,7 @@ public class SSLTest {
     SimpleScanner scanner = new SimpleScanner();
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
-    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(clientTrustStore).toURI()).toAbsolutePath();
@@ -253,6 +266,6 @@ public class SSLTest {
     params.put("javax.net.ssl.trustStorePassword", keyStorePassword);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
   }
 }
