@@ -220,7 +220,12 @@ public class SSLTest {
           "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*")
         ||
         p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
-          "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*"));
+          "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*")
+        ||
+        p.matches("(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*" +
+              "Caused by: java\\.net\\.SocketException: Broken pipe \\(Write failed\\).*" +
+            "java\\.base/sun\\.security\\.ssl\\.SSLSocketOutputRecord.*")
+      );
   }
 
   private static Path project(String projectName) {
