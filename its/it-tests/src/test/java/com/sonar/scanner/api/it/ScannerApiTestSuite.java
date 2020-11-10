@@ -20,7 +20,12 @@
 package com.sonar.scanner.api.it;
 
 import com.sonar.orchestrator.Orchestrator;
+import com.sonar.orchestrator.http.HttpMethod;
 import com.sonar.orchestrator.locator.MavenLocation;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import org.apache.commons.lang.StringUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
