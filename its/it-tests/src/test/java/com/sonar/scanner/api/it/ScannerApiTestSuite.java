@@ -52,7 +52,7 @@ public class ScannerApiTestSuite {
     return propertyValue;
   }
 
-  public static resetData(Orchestrator orchestrator) {
+  public static void resetData(Orchestrator orchestrator) {
     // We add one day to ensure that today's entries are deleted.
     Instant instant = Instant.now().plus(1, ChronoUnit.DAYS);
 
