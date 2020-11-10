@@ -77,7 +77,7 @@ public class SSLTest {
 
   @Before
   public void deleteData() {
-    ORCHESTRATOR.resetData();
+    ScannerApiTestSuite.resetData(ORCHESTRATOR);
   }
 
   @After

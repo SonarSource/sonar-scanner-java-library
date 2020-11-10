@@ -20,7 +20,12 @@
 package com.sonar.scanner.api.it;
 
 import com.sonar.orchestrator.Orchestrator;
+import com.sonar.orchestrator.http.HttpMethod;
 import com.sonar.orchestrator.locator.MavenLocation;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import org.apache.commons.lang.StringUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -50,6 +55,23 @@ public class ScannerApiTestSuite {
       fail(orchestratorPropertiesSource + " system property must be defined");
     }
     return propertyValue;
+  }
+
+  public static void resetData(Orchestrator orchestrator) {
+    // We add one day to ensure that today's entries are deleted.
+    Instant instant = Instant.now().plus(1, ChronoUnit.DAYS);
+
+    // The expected format is yyyy-MM-dd.
+    String currentDateTime = DateTimeFormatter.ISO_LOCAL_DATE
+      .withZone(ZoneId.of("UTC"))
+      .format(instant);
+
+    orchestrator.getServer()
+      .newHttpCall("/api/projects/bulk_delete")
+      .setAdminCredentials()
+      .setMethod(HttpMethod.POST)
+      .setParams("analyzedBefore", currentDateTime)
+      .execute();
   }
 
 }

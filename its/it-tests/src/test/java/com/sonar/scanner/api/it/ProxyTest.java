@@ -74,7 +74,7 @@ public class ProxyTest {
 
   @Before
   public void deleteData() {
-    ORCHESTRATOR.resetData();
+    ScannerApiTestSuite.resetData(ORCHESTRATOR);
     seenByProxy.clear();
   }
 
