@@ -52,4 +52,21 @@ public class ScannerApiTestSuite {
     return propertyValue;
   }
 
+  public static resetData(Orchestrator orchestrator) {
+    // We add one day to ensure that today's entries are deleted.
+    Instant instant = Instant.now().plus(1, ChronoUnit.DAYS);
+
+    // The expected format is yyyy-MM-dd.
+    String currentDateTime = DateTimeFormatter.ISO_LOCAL_DATE
+      .withZone(ZoneId.of("UTC"))
+      .format(instant);
+
+    orchestrator.getServer()
+      .newHttpCall("/api/projects/bulk_delete")
+      .setAdminCredentials()
+      .setMethod(HttpMethod.POST)
+      .setParams("analyzedBefore", currentDateTime)
+      .execute();
+  }
+
 }
