@@ -96,8 +96,9 @@ class ServerConnection {
     }
     String url = baseUrlWithoutTrailingSlash + urlPath;
     logger.debug(format("Download: %s", url));
-    ResponseBody responseBody = callUrl(url);
-    return responseBody.string();
+    try (ResponseBody responseBody = callUrl(url)) {
+      return responseBody.string();
+    }
   }
 
   /**
@@ -113,6 +114,7 @@ class ServerConnection {
         .build();
       Response response = httpClient.newCall(request).execute();
       if (!response.isSuccessful()) {
+        response.close();
         throw new IllegalStateException(format("Status returned by url [%s] is not valid: [%s]", response.request().url(), response.code()));
       }
       return response.body();
