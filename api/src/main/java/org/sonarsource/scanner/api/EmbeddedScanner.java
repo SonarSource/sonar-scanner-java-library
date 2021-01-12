@@ -143,11 +143,11 @@ public class EmbeddedScanner {
 
   private void initGlobalDefaultValues() {
     String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
-    if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
-      logger.info("Bitbucket Cloud Pipelines detected");
-    } else if (sonarHostUrl != null) {
+    if (sonarHostUrl != null) {
       setGlobalDefaultValue(ScannerProperties.HOST_URL, sonarHostUrl);
+    } else if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
+      setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
+      logger.info("Bitbucket Cloud Pipelines detected, no host variable set. Defaulting to sonarcloud.io.");
     } else {
       setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
     }

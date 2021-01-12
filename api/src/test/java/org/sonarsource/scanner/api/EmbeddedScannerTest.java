@@ -106,12 +106,22 @@ public class EmbeddedScannerTest {
   }
 
   @Test
-  public void should_set_sonarcloud_as_host_if_executed_from_bitbucket_cloud() {
+  public void should_set_sonarcloud_as_host_if_executed_from_bitbucket_cloud_and_no_host_env() {
     when(system.getEnvironmentVariable("BITBUCKET_BUILD_NUMBER")).thenReturn("123");
 
     scanner.start();
 
     assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("https://sonarcloud.io");
+  }
+
+  @Test
+  public void should_set_url_from_env_as_host_if_host_env_var_provided_even_on_bitbucket_cloud() {
+    when(system.getEnvironmentVariable("BITBUCKET_BUILD_NUMBER")).thenReturn("123");
+    when(system.getEnvironmentVariable("SONAR_HOST_URL")).thenReturn("http://from-env.org:9000");
+
+    scanner.start();
+
+    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
   }
 
   @Test
