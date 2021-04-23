@@ -11,7 +11,7 @@
   <description>Integration tests</description>
   
   <properties>
-    <jetty.version>9.4.35.v20201120</jetty.version>
+    <jetty.version>11.0.2</jetty.version>
     <logback.version>1.1.7</logback.version>
     <sonar.skip>true</sonar.skip>
     <skipTests>true</skipTests>
