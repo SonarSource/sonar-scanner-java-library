@@ -18,7 +18,6 @@ jobs:
         id: run_release
         uses: SonarSource/gh-action_release/main@v3
         with:
-          distribute: true
           publish_to_binaries: true
           attach_artifacts_to_github_release: false
           run_rules_cov: false
