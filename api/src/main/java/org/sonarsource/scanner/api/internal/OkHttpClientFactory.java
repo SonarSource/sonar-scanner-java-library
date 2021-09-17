@@ -51,7 +51,7 @@ import static java.util.Arrays.asList;
 public class OkHttpClientFactory {
 
   static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
-  static final int CONNECT_TIMEOUT_MILLISECONDS = 5_000;
+  static final int CONNECT_TIMEOUT_MILLISECONDS = 30_000;
   static final int DEFAULT_READ_TIMEOUT_SEC = (int) Duration.ofMinutes(5).getSeconds();
   static final String NONE = "NONE";
   static final String P11KEYSTORE = "PKCS11";
