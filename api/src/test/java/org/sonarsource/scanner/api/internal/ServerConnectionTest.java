@@ -108,7 +108,7 @@ public class ServerConnectionTest {
     ServerConnection underTest = create(false, false);
     assertThatThrownBy(() -> underTest.downloadFile("/batch/index.txt", toFile))
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage(format("Status returned by url [http://localhost:%d/batch/index.txt] is not valid: [400]", server.getPort()));
+      .hasMessage(format("Status returned by url [http://%s:%d/batch/index.txt] is not valid: [400]", server.getHostName(), server.getPort()));
   }
 
   @Test
