@@ -44,8 +44,8 @@ class BootstrapIndexDownloader {
     return parse(index);
   }
 
-  private static Collection<JarEntry> parse(String index) {
-    Collection<JarEntry> entries = new ArrayList<>();
+  private Collection<JarEntry> parse(String index) {
+    final Collection<JarEntry> entries = new ArrayList<>();
 
     String[] lines = index.split("[\r\n]+");
     for (String line : lines) {
@@ -56,6 +56,7 @@ class BootstrapIndexDownloader {
         String hash = libAndHash[1];
         entries.add(new JarEntry(filename, hash));
       } catch (Exception e) {
+        logger.error("Failed bootstrap index response: " + index);
         throw new IllegalStateException("Fail to parse entry in bootstrap index: " + line);
       }
     }

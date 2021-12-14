@@ -73,6 +73,22 @@ public class BootstrapIndexDownloaderTest {
   }
 
   @Test
+  public void test_handles_empty_line_gracefully() throws Exception {
+    when(connection.downloadString("/batch/index")).thenReturn("\n");
+
+    Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
+    assertThat(index).hasSize(0);
+    verify(connection, times(1)).downloadString("/batch/index");
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void test_handles_empty_string_with_exception() throws Exception {
+    when(connection.downloadString("/batch/index")).thenReturn("");
+
+    bootstrapIndexDownloader.getIndex();
+  }
+
+  @Test
   public void should_fail() throws IOException {
     when(connection.downloadString("/batch/index")).thenThrow(new IOException("io error"));
 
