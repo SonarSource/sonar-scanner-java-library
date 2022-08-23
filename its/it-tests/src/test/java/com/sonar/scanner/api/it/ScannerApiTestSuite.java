@@ -42,11 +42,8 @@ public class ScannerApiTestSuite {
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
     .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
-    // The scanner api should still be compatible with previous LTS 6.7, and not the 7.9
-    // at the time of writing, so the installed plugins should be compatible with
-    // both 6.7 and 8.x. The latest releases of analysers drop the compatibility with
-    // 6.7, that's why versions are hardcoded here.
-    .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "5.2.1.7778"))
+    // The scanner api should still be compatible with 7.9
+    .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.0.1.14561"))
     .build();
 
   private static String getSystemPropertyOrFail(String orchestratorPropertiesSource) {
@@ -58,8 +55,7 @@ public class ScannerApiTestSuite {
   }
 
   public static void resetData(Orchestrator orchestrator) {
-    // We add one day to ensure that today's entries are deleted.
-    Instant instant = Instant.now().plus(1, ChronoUnit.DAYS);
+    Instant instant = Instant.now();
 
     // The expected format is yyyy-MM-dd.
     String currentDateTime = DateTimeFormatter.ISO_LOCAL_DATE
