@@ -76,9 +76,9 @@ qa_task:
     memory: 3G
   env:
     matrix:
-      - SQ_VERSION: LATEST_RELEASE[7.9]
-      - SQ_VERSION: LATEST_RELEASE
-      - SQ_VERSION: DEV
+      - QA_CATEGORY: RELEASE-7-9
+      - QA_CATEGORY: RELEASE
+      - QA_CATEGORY: DEV
     JAVA_VERSION:
       - LATEST_RELEASE
   maven_cache:
@@ -87,7 +87,8 @@ qa_task:
     - source cirrus-env QA
     - source set_maven_build_version $BUILD_NUMBER
     - cd its
-    - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$SQ_VERSION -DjavaVersion=$JAVA_VERSION
+    - function get_sq_version() { case $QA_CATEGORY in "RELEASE-7-9") echo "LATEST_RELEASE[7.9]";; "RELEASE") echo "LATEST_RELEASE";; *) echo "$QA_CATEGORY";; esac }
+    - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$(get_sq_version) -DjavaVersion=$JAVA_VERSION
   cleanup_before_cache_script:
     - cleanup_maven_repository
   on_failure:
