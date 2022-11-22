@@ -19,6 +19,7 @@
  */
 package com.sonar.scanner.api.it.tools;
 
+import com.sonar.scanner.api.it.ScannerApiTestSuite;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,6 +77,7 @@ public class SimpleScanner {
     analysisProperties.load(Files.newInputStream(propertiesFile));
     analysisProperties.setProperty("sonar.projectBaseDir", baseDir.toAbsolutePath().toString());
     analysisProperties.setProperty("sonar.host.url", host);
+    analysisProperties.setProperty("sonar.login", ScannerApiTestSuite.ORCHESTRATOR.getDefaultAdminToken());
     analysisProperties.putAll(extraProps);
     return (Map) analysisProperties;
   }

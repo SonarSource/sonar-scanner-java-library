@@ -25,7 +25,6 @@ import com.sonar.orchestrator.locator.MavenLocation;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import org.apache.commons.lang.StringUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -42,6 +41,7 @@ public class ScannerApiTestSuite {
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
     .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
+    .useDefaultAdminCredentialsForBuilds(true)
     // The scanner api should still be compatible with 7.9
     .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.0.1.14561"))
     .build();

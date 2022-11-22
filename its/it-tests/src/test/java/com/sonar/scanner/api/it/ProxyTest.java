@@ -182,7 +182,7 @@ public class ProxyTest {
 
     // Don't use proxy
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl());
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
     assertThat(seenByProxy).isEmpty();
 
     Map<String, String> params = new HashMap<>();
@@ -192,7 +192,7 @@ public class ProxyTest {
     params.put("http.proxyPort", "" + httpProxyPort);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
     assertThat(seenByProxy).isNotEmpty();
   }
 
@@ -217,7 +217,7 @@ public class ProxyTest {
     buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
     assertThat(seenByProxy).isNotEmpty();
     if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(6, 1)) {
-      assertThat(buildResult.getLastStatus()).isEqualTo(0);
+      assertThat(buildResult.getLastStatus()).isZero();
     }
   }
 
