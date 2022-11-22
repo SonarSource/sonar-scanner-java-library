@@ -168,7 +168,7 @@ public class SSLTest {
     SimpleScanner scanner = new SimpleScanner();
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
-    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA).toURI()).toAbsolutePath();
@@ -185,7 +185,7 @@ public class SSLTest {
     params.put("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PASSWORD);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
   }
 
   @Test
@@ -194,7 +194,7 @@ public class SSLTest {
     SimpleScanner scanner = new SimpleScanner();
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
-    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA).toURI()).toAbsolutePath();
@@ -247,7 +247,7 @@ public class SSLTest {
     SimpleScanner scanner = new SimpleScanner();
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
-    assertThat(buildResult.getLastStatus()).isNotEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(clientTrustStore).toURI()).toAbsolutePath();
@@ -258,6 +258,6 @@ public class SSLTest {
     params.put("javax.net.ssl.trustStorePassword", keyStorePassword);
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    assertThat(buildResult.getLastStatus()).isZero();
   }
 }
