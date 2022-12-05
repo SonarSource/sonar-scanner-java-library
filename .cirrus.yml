@@ -1,6 +1,3 @@
-# content of service-account-credentials.json, used to access to Google Cloud Platform
-gcp_credentials: ENCRYPTED[8b32c15733323dbb62734f04c9090473e2272ed5820f6deb0b2263cac589600488eb62ae049c7550db89d9d3934954f7]
-
 #
 # ENV VARIABLES
 #
@@ -32,9 +29,9 @@ env:
 # RE-USABLE CONFIGS
 #
 container_definition: &CONTAINER_DEFINITION
-  image: us.gcr.io/sonarqube-team/base:j11-m3-latest
-  cluster_name: cirrus-ci-cluster
-  zone: us-central1-a
+  image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j11-m3-latest
+  cluster_name: ${CIRRUS_CLUSTER_NAME}
+  region: eu-central-1
   namespace: default
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
@@ -44,7 +41,7 @@ only_sonarsource_qa: &ONLY_SONARSOURCE_QA
 # TASKS
 #
 build_task:
-  gke_container:
+  eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 2
     memory: 1G
@@ -65,7 +62,7 @@ qa_task:
   depends_on:
     - build
   <<: *ONLY_SONARSOURCE_QA
-  gke_container:
+  eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 2
     memory: 3G
@@ -95,7 +92,7 @@ promote_task:
   depends_on:
     - qa
   <<: *ONLY_SONARSOURCE_QA
-  gke_container:
+  eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 0.5
     memory: 500M
