@@ -13,8 +13,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@d42e8be3a9772d0447a7d2f3d2be31312b218383  # tag=5.0.1
-    with:
-      publishToBinaries: true
-      mavenCentralSync: true
-      slackChannel: sonarqube-build
+    steps:
+      - uses: SonarSource/gh-action_release/.github/workflows/main.yaml@d42e8be3a9772d0447a7d2f3d2be31312b218383  # tag=5.0.1
+        with:
+          publishToBinaries: true
+          mavenCentralSync: true
+          slackChannel: sonarqube-build
