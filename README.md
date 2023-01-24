@@ -1,20 +1,16 @@
-SonarQube Scanner API
-=====================
+# SonarQube Scanner API
 
 Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scanner for Gradle, SQ Scanner for Ant, ...). Used to programmatically run SQ analysis.
 
 ![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-api.svg)
 
-Have Question or Feedback?
---------------------------
+## Have Question or Feedback?
 
-For support questions ("How do I?", "I got this error, why?", ...), please head to the [SonarSource forum](https://community.sonarsource.com/c/help). There are chances that a question similar to yours has already been answered. 
+For support questions ("How do I?", "I got this error, why?", ...), please head to the [SonarSource forum](https://community.sonarsource.com/c/help). There are chances that a question similar to yours has already been answered.
 
 Be aware that this forum is a community, so the standard pleasantries ("Hi", "Thanks", ...) are expected. And if you don't get an answer to your thread, you should sit on your hands for at least three days before bumping it. Operators are not standing by. :-)
 
-
-Contributing
-------------
+## Contributing
 
 If you would like to see a new feature, please create a new thread in the forum ["Suggest new features"](https://community.sonarsource.com/c/suggestions/features).
 
@@ -24,10 +20,8 @@ With that in mind, if you would like to submit a code contribution, please creat
 
 Make sure that you follow our [code style](https://github.com/SonarSource/sonar-developer-toolset#code-style) and all tests are passing (Travis build is executed for each pull request).
 
+## License
 
-License
--------
-
-Copyright 2011-2022 SonarSource.
+Copyright 2011-2023 SonarSource.
 
 Licensed under the [GNU Lesser General Public License, Version 3.0](http://www.gnu.org/licenses/lgpl.txt)
