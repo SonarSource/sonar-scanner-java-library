@@ -42,8 +42,8 @@ public class ScannerApiTestSuite {
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
     .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
     .useDefaultAdminCredentialsForBuilds(true)
-    // The scanner api should still be compatible with 7.9
-    .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.0.1.14561"))
+    // We need to use a plugin compatible with both SonarQube DEV & SonarQube version defined in .cirrus.yml (currently SQ 7.9)
+    .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.4.4.15624"))
     .build();
 
   private static String getSystemPropertyOrFail(String orchestratorPropertiesSource) {
