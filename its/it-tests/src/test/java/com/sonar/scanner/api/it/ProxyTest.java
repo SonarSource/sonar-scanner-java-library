@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API - ITs
+ * SonarQube Scanner Commons - ITs
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -68,13 +68,13 @@ public class ProxyTest {
   private static int httpProxyPort;
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
+  public static final Orchestrator ORCHESTRATOR = ScannerCommonsTestSuite.ORCHESTRATOR;
 
   private static ConcurrentLinkedDeque<String> seenByProxy = new ConcurrentLinkedDeque<>();
 
   @Before
   public void deleteData() {
-    ScannerApiTestSuite.resetData(ORCHESTRATOR);
+    ScannerCommonsTestSuite.resetData(ORCHESTRATOR);
     seenByProxy.clear();
   }
 

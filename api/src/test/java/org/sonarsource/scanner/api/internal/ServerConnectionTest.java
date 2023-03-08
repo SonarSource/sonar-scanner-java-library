@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API
+ * SonarQube Scanner Commons
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *

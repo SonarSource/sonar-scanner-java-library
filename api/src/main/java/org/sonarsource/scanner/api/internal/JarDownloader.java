@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API
+ * SonarQube Scanner Commons
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -48,8 +48,8 @@ class JarDownloader {
 
   List<File> download() {
     List<File> files = new ArrayList<>();
-    logger.debug("Extract sonar-scanner-api-batch in temp...");
-    files.add(jarExtractor.extractToTemp("sonar-scanner-api-batch").toFile());
+    logger.debug("Extract sonar-scanner-commons-batch in temp...");
+    files.add(jarExtractor.extractToTemp("sonar-scanner-commons-batch").toFile());
     files.addAll(getScannerEngineFiles());
     return files;
   }

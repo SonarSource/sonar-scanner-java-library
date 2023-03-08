@@ -1,4 +1,4 @@
-# SonarQube Scanner API
+# SonarQube Scanner Commons
 
 Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scanner for Gradle, SQ Scanner for Ant, ...). Used to programmatically run SQ analysis.
 

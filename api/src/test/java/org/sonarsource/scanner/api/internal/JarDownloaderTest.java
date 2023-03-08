@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API
+ * SonarQube Scanner Commons
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -67,8 +67,8 @@ public class JarDownloaderTest {
 
   @Test
   public void should_download_jar_files() throws Exception {
-    File batchJar = temp.newFile("sonar-scanner-api-batch.jar");
-    when(jarExtractor.extractToTemp("sonar-scanner-api-batch")).thenReturn(batchJar.toPath());
+    File batchJar = temp.newFile("sonar-scanner-commons-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-commons-batch")).thenReturn(batchJar.toPath());
 
     Collection<JarEntry> jars = new ArrayList<>();
     jars.add(new JarEntry("cpd.jar", "CA124VADFSDS"));

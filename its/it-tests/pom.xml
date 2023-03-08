@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.sonarsource.scanner.api</groupId>
+    <groupId>org.sonarsource.scanner.commons</groupId>
     <artifactId>it</artifactId>
     <version>2.17-SNAPSHOT</version>
   </parent>
   
-  <artifactId>it-sonar-scanner-api</artifactId>
-  <name>SonarQube Scanner API - ITs</name>
+  <artifactId>it-sonar-scanner-commons</artifactId>
+  <name>SonarQube Scanner Commons - ITs</name>
   <description>Integration tests</description>
   
   <properties>
@@ -43,14 +43,14 @@
     
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>it-scanner-api-simple-scanner</artifactId>
+      <artifactId>it-scanner-commons-simple-scanner</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
       <exclusions>
         <!-- Will be embedded in jar-with-dependency -->
         <exclusion>
           <groupId>${project.groupId}</groupId>
-          <artifactId>sonar-scanner-api</artifactId>
+          <artifactId>sonar-scanner-commons</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -100,7 +100,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <includes>
-              <include>**/ScannerApiTestSuite.java</include>
+              <include>**/ScannerCommonsTestSuite.java</include>
             </includes>
           </configuration>
         </plugin>
