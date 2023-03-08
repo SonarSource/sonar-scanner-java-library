@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API - ITs
+ * SonarQube Scanner Commons - ITs
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -73,11 +73,11 @@ public class SSLTest {
   private static int httpsPort;
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
+  public static final Orchestrator ORCHESTRATOR = ScannerCommonsTestSuite.ORCHESTRATOR;
 
   @Before
   public void deleteData() {
-    ScannerApiTestSuite.resetData(ORCHESTRATOR);
+    ScannerCommonsTestSuite.resetData(ORCHESTRATOR);
   }
 
   @After

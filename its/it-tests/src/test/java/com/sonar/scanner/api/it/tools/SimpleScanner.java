@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API - ITs
+ * SonarQube Scanner Commons - ITs
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -19,7 +19,7 @@
  */
 package com.sonar.scanner.api.it.tools;
 
-import com.sonar.scanner.api.it.ScannerApiTestSuite;
+import com.sonar.scanner.api.it.ScannerCommonsTestSuite;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -77,7 +77,7 @@ public class SimpleScanner {
     analysisProperties.load(Files.newInputStream(propertiesFile));
     analysisProperties.setProperty("sonar.projectBaseDir", baseDir.toAbsolutePath().toString());
     analysisProperties.setProperty("sonar.host.url", host);
-    analysisProperties.setProperty("sonar.login", ScannerApiTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+    analysisProperties.setProperty("sonar.login", ScannerCommonsTestSuite.ORCHESTRATOR.getDefaultAdminToken());
     analysisProperties.putAll(extraProps);
     return (Map) analysisProperties;
   }

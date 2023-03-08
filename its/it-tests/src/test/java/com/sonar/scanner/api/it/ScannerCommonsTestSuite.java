@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API - ITs
+ * SonarQube Scanner Commons - ITs
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 @RunWith(Suite.class)
 @SuiteClasses({ProxyTest.class, SSLTest.class, PropertiesTest.class})
-public class ScannerApiTestSuite {
+public class ScannerCommonsTestSuite {
   private static final String SONAR_RUNTIME_VERSION = "sonar.runtimeVersion";
 
   @ClassRule

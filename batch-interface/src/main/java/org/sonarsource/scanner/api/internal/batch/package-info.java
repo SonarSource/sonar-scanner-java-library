@@ -1,5 +1,5 @@
 /*
- * SonarQube Scanner API - Batch Interface
+ * SonarQube Scanner Commons - Batch Interface
  * Copyright (C) 2011-2023 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
