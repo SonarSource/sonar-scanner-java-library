@@ -98,8 +98,7 @@ promote_task:
     memory: 500M
   env:
     GITHUB_TOKEN: VAULT[development/github/token/${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-promotion token]
-    GCF_ACCESS_TOKEN: VAULT[development/kv/data/promote data.token]
-    PROMOTE_URL: VAULT[development/kv/data/promote data.url]
+    ARTIFACTORY_PROMOTE_ACCESS_TOKEN: VAULT[development/artifactory/token/${CIRRUS_REPO_OWNER}-${CIRRUS_REPO_NAME}-promoter access_token]
   maven_cache:
     folder: $CIRRUS_WORKING_DIR/.m2/repository
   script:
