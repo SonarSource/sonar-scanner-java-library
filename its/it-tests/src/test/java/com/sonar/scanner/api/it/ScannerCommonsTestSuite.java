@@ -19,8 +19,8 @@
  */
 package com.sonar.scanner.api.it;
 
-import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.http.HttpMethod;
+import com.sonar.orchestrator.junit4.OrchestratorRule;
 import com.sonar.orchestrator.locator.MavenLocation;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -39,7 +39,7 @@ public class ScannerCommonsTestSuite {
   private static final String SONAR_RUNTIME_VERSION = "sonar.runtimeVersion";
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
+  public static final OrchestratorRule ORCHESTRATOR = OrchestratorRule.builderEnv()
     .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
     .useDefaultAdminCredentialsForBuilds(true)
     // We need to use a plugin compatible with both SonarQube DEV & SonarQube version defined in .cirrus.yml (currently SQ 7.9)
@@ -54,7 +54,7 @@ public class ScannerCommonsTestSuite {
     return propertyValue;
   }
 
-  public static void resetData(Orchestrator orchestrator) {
+  public static void resetData(OrchestratorRule orchestrator) {
     Instant instant = Instant.now();
 
     // The expected format is yyyy-MM-dd.
