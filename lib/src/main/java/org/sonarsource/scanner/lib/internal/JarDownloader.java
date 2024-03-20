@@ -58,7 +58,7 @@ class JarDownloader {
   private List<File> getScannerEngineFiles() {
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
     return index.stream()
-      .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), scannerFileDownloader))
+      .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader))
       .collect(Collectors.toList());
   }
 
@@ -71,7 +71,7 @@ class JarDownloader {
 
     @Override
     public void download(String filename, File toFile) throws IOException {
-      connection.downloadFile(format("/batch/file?name=%s", filename), toFile.toPath());
+      connection.downloadFromWebApi(format("/batch/file?name=%s", filename), toFile.toPath());
     }
   }
 }

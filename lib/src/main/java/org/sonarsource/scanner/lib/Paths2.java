@@ -17,27 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib;
 
-import javax.annotation.Nullable;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-public class VersionUtils {
-  private VersionUtils() {
-    // only util static methods
+/**
+ * A proxy class for {@link java.nio.file.Paths} (for mocking).
+ */
+public class Paths2 {
+  public Path get(String first, String... more) {
+    return Paths.get(first, more);
   }
-
-  public static boolean isAtLeast52(@Nullable String version) {
-    // it can be snapshot (5.2-SNAPSHOT)
-    if (version == null) {
-      return false;
-    }
-
-    int endIndex = Math.min(3, version.length());
-    try {
-      return Double.parseDouble(version.substring(0, endIndex)) >= 5.2;
-    } catch (NumberFormatException e) {
-      return false;
-    }
-  }
-
 }

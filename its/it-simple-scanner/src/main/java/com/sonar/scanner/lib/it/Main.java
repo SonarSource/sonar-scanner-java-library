@@ -50,7 +50,7 @@ public class Main {
 
   private static void runProject(Map<String, String> props, LogOutput logOutput) throws Exception {
 
-    try (var scannerEngine = new ScannerEngineBootstrapper("Simple Scanner", "1.0", logOutput)
+    try (var scannerEngine = ScannerEngineBootstrapper.create("Simple Scanner", "1.0", logOutput)
       .addBootstrapProperties(props)
       .bootstrap()) {
       scannerEngine.analyze(props);

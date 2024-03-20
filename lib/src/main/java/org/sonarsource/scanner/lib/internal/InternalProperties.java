@@ -22,6 +22,6 @@ package org.sonarsource.scanner.lib.internal;
 public interface InternalProperties {
   String SCANNER_APP = "sonar.scanner.app";
   String SCANNER_APP_VERSION = "sonar.scanner.appVersion";
-  String SCANNER_DUMP_TO_FILE = "sonar.scanner.dumpToFile";
-  String SCANNER_VERSION_SIMULATION = "sonar.scanner.versionSimulation";
+  String SCANNER_DUMP_TO_FILE = "sonar.scanner.internal.dumpToFile";
+  String SCANNER_VERSION_SIMULATION = "sonar.scanner.internal.sqVersion";
 }

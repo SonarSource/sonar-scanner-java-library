@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Locale;
 import java.util.Map;
 import javax.annotation.Nullable;
 import okhttp3.Credentials;
@@ -41,55 +40,74 @@ import static java.lang.String.format;
 
 public class ServerConnection {
 
-  private final String baseUrlWithoutTrailingSlash;
-  private final String userAgent;
-  private final OkHttpClient httpClient;
+  private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
+  private String webApiBaseUrl;
+  private String restApiBaseUrl;
+  private String userAgent;
   @Nullable
-  private final String credentials;
+  private String credentials;
+  private OkHttpClient httpClient;
   private final Logger logger;
 
-  ServerConnection(String baseUrl, String userAgent, @Nullable String credentials, Logger logger, Map<String, String> bootstrapProperties, Path sonarUserHome) {
-    this.credentials = credentials;
+  public ServerConnection(Logger logger) {
     this.logger = logger;
-    this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
-    this.userAgent = userAgent;
-    this.httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
+  }
+
+  public void init(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+    webApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL));
+    restApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.API_BASE_URL));
+    userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP),
+      bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
+    String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
+    String login = bootstrapProperties.getOrDefault(ScannerProperties.SONAR_LOGIN, token);
+    if (login != null) {
+      credentials = Credentials.basic(login, bootstrapProperties.getOrDefault(ScannerProperties.SONAR_PASSWORD, ""));
+    }
+    httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
   }
 
   private static String removeTrailingSlash(String url) {
     return url.replaceAll("(/)+$", "");
   }
 
-  public static ServerConnection create(Map<String, String> bootstrapProperties, Logger logger, Path sonarUserHome) {
-    String serverUrl = bootstrapProperties.get("sonar.host.url");
-    String userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
-    String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
-    String login = bootstrapProperties.getOrDefault(ScannerProperties.SONAR_LOGIN, token);
-    String credentials = null;
-    if (login != null) {
-      credentials = Credentials.basic(login, bootstrapProperties.getOrDefault(ScannerProperties.SONAR_PASSWORD, ""));
+  public void downloadFromRestApi(String urlPath, Path toFile) throws IOException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
-    return new ServerConnection(serverUrl, userAgent, credentials, logger, bootstrapProperties, sonarUserHome);
+    String url = restApiBaseUrl + urlPath;
+    downloadFile(url, toFile, true);
+  }
+
+  public void downloadFromWebApi(String urlPath, Path toFile) throws IOException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
+    }
+    String url = webApiBaseUrl + urlPath;
+    downloadFile(url, toFile, true);
+  }
+
+  public void downloadFromExternalUrl(String url, Path toFile) throws IOException {
+    downloadFile(url, toFile, false);
   }
 
   /**
-   * Download file
+   * Download file from the given URL.
    *
-   * @param urlPath path starting with slash, for instance {@code "/batch/index"}
-   * @param toFile  the target file
+   * @param url            the URL of the file to download
+   * @param toFile         the target file
+   * @param authentication if true, the request will be authenticated with the token
    * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  public void downloadFile(String urlPath, Path toFile) throws IOException {
-    if (!urlPath.startsWith("/")) {
-      throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
+  private void downloadFile(String url, Path toFile, boolean authentication) throws IOException {
+    if (httpClient == null) {
+      throw new IllegalStateException("ServerConnection must be initialized");
     }
-    String url = baseUrlWithoutTrailingSlash + urlPath;
-    logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath().toString()));
+    logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath()));
 
-    try (ResponseBody responseBody = callUrl(url);
-      InputStream in = responseBody.byteStream()) {
+    try (ResponseBody responseBody = callUrl(url, authentication, "application/octet-stream");
+         InputStream in = responseBody.byteStream()) {
       Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
@@ -97,43 +115,69 @@ public class ServerConnection {
     }
   }
 
+  public String callRestApi(String urlPath) throws IOException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
+    }
+    String url = restApiBaseUrl + urlPath;
+    return callApi(url);
+  }
+
+  public String callWebApi(String urlPath) throws IOException {
+    if (!urlPath.startsWith("/")) {
+      throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
+    }
+    String url = webApiBaseUrl + urlPath;
+    return callApi(url);
+  }
+
   /**
-   * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
+   * Call a server API and get the response as a string.
+   *
+   * @param url the url to call
+   * @throws IOException           if connectivity problem or timeout (network)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  public String downloadString(String urlPath) throws IOException {
-    if (!urlPath.startsWith("/")) {
-      throw new IllegalArgumentException(format("URL path must start with slash: %s", urlPath));
+  private String callApi(String url) throws IOException {
+    if (httpClient == null) {
+      throw new IllegalStateException("ServerConnection must be initialized");
     }
-    String url = baseUrlWithoutTrailingSlash + urlPath;
-    logger.debug(format("Download: %s", url));
-    try (ResponseBody responseBody = callUrl(url)) {
+    logger.debug(format("Call API: %s", url));
+    try (ResponseBody responseBody = callUrl(url, true, null)) {
       return responseBody.string();
     }
   }
 
   /**
+   * Call the given URL.
+   *
+   * @param url            the URL to call
+   * @param authentication if true, the request will be authenticated with the token
+   * @param acceptHeader   the value of the Accept header
    * @throws IOException           if connectivity error/timeout (network)
    * @throws IllegalStateException if HTTP code is different than 2xx
    */
-  private ResponseBody callUrl(String url) throws IOException {
+  private ResponseBody callUrl(String url, boolean authentication, @Nullable String acceptHeader) throws IOException {
     try {
       var requestBuilder = new Request.Builder()
         .get()
         .url(url)
         .addHeader("User-Agent", userAgent);
-      if (credentials != null) {
+      if (authentication && credentials != null) {
         requestBuilder.header("Authorization", credentials);
+      }
+      if (acceptHeader != null) {
+        requestBuilder.header("Accept", acceptHeader);
       }
       Request request = requestBuilder.build();
       Response response = httpClient.newCall(request).execute();
       if (!response.isSuccessful()) {
         response.close();
-        throw new IllegalStateException(format("Status returned by url [%s] is not valid: [%s]", response.request().url(), response.code()));
+        throw new IllegalStateException(format("Error status returned by url [%s]: %s", response.request().url(), response.code()));
       }
       return response.body();
     } catch (Exception e) {
-      logger.error(format("%s server [%s] can not be reached", url.toLowerCase(Locale.ENGLISH).contains("sonarcloud") ? "SonarCloud" : "SonarQube", baseUrlWithoutTrailingSlash));
+      logger.error(format("Call to URL [%s] failed", url));
       throw e;
     }
   }
