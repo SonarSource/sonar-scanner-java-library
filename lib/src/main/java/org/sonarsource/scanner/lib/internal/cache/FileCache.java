@@ -30,7 +30,7 @@ import javax.annotation.CheckForNull;
 
 /**
  * This class is responsible for managing Sonar batch file cache. You can put file into cache and
- * later try to retrieve them. MD5 is used to differentiate files (name is not secure as files may come
+ * later try to retrieve them. The checksum is used to differentiate files (name is not secure as files may come
  * from different Sonar servers and have same name but be actually different, and same for SNAPSHOTs).
  */
 public class FileCache {
@@ -48,7 +48,8 @@ public class FileCache {
     this.tmpDir = createDir(dir.resolve("_tmp"), "temp dir");
   }
 
-  static FileCache create(Path dir, Logger logger) {
+  public static FileCache create(Path sonarUserHome, Logger logger) {
+    var dir = sonarUserHome.resolve("cache");
     return new FileCache(dir, new FileHashes(), logger);
   }
 
@@ -57,7 +58,7 @@ public class FileCache {
   }
 
   /**
-   * Look for a file in the cache by its filename and md5 checksum. If the file is not
+   * Look for a file in the cache by its filename and checksum. If the file is not
    * present then return null.
    */
   @CheckForNull
@@ -75,17 +76,17 @@ public class FileCache {
     void download(String filename, File toFile) throws IOException;
   }
 
-  public File get(String filename, String hash, Downloader downloader) {
+  public File get(String filename, String hash, String hashAlgorithm, Downloader downloader) {
     // Does not fail if another process tries to create the directory at the same time.
     Path hashDir = hashDir(hash);
     Path targetFile = hashDir.resolve(filename);
     if (!Files.exists(targetFile)) {
       Path tempFile = newTempFile();
       download(downloader, filename, tempFile);
-      String downloadedHash = hashes.of(tempFile.toFile());
+      String downloadedHash = hashes.of(tempFile.toFile(), hashAlgorithm);
       if (!hash.equals(downloadedHash)) {
-        throw new IllegalStateException("INVALID HASH: File " + tempFile.toAbsolutePath() + " was expected to have hash " + hash
-          + " but was downloaded with hash " + downloadedHash);
+        throw new HashMismatchException("INVALID HASH: File " + tempFile.toAbsolutePath() + " was expected to have hash " + hash
+                                        + " but was downloaded with hash " + downloadedHash);
       }
       mkdirQuietly(hashDir);
       renameQuietly(tempFile, targetFile);

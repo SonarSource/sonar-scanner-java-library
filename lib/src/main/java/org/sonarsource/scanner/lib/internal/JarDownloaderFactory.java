@@ -21,24 +21,21 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.nio.file.Path;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.FileCacheBuilder;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 class JarDownloaderFactory {
   private final ServerConnection serverConnection;
   private final Logger logger;
-  private final Path sonarUserHome;
+  private final FileCache fileCache;
 
-  JarDownloaderFactory(ServerConnection conn, Logger logger, Path sonarUserHome) {
+  JarDownloaderFactory(ServerConnection conn, Logger logger, FileCache fileCache) {
     this.serverConnection = conn;
     this.logger = logger;
-    this.sonarUserHome = sonarUserHome;
+    this.fileCache = fileCache;
   }
 
   JarDownloader create() {
-    FileCache fileCache = new FileCacheBuilder(logger, sonarUserHome)
-      .build();
     BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(serverConnection, logger);
     JarDownloader.ScannerFileDownloader scannerFileDownloader = new JarDownloader.ScannerFileDownloader(serverConnection);
     JarExtractor jarExtractor = new JarExtractor();

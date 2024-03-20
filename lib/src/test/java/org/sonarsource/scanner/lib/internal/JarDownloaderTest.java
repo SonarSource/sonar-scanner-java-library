@@ -78,13 +78,14 @@ public class JarDownloaderTest {
     // index of the files to download
     when(bootstrapIndexDownloader.getIndex()).thenReturn(jars);
 
-    JarDownloader jarDownloader = new JarDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor, mock(Logger.class));
+    JarDownloader jarDownloader = new JarDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor,
+      mock(Logger.class));
     List<File> files = jarDownloader.download();
 
     assertThat(files).isNotNull();
     verify(bootstrapIndexDownloader).getIndex();
-    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), any(FileCache.Downloader.class));
-    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class));
     verifyNoMoreInteractions(fileCache);
   }
 
@@ -94,6 +95,6 @@ public class JarDownloaderTest {
     JarDownloader.ScannerFileDownloader downloader = new JarDownloader.ScannerFileDownloader(connection);
     File toFile = temp.newFile();
     downloader.download("squid.jar", toFile);
-    verify(connection).downloadFile("/batch/file?name=squid.jar", toFile.toPath());
+    verify(connection).downloadServerFile("/batch/file?name=squid.jar", toFile.toPath());
   }
 }

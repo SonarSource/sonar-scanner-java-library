@@ -17,24 +17,11 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.cache;
 
-import org.junit.Test;
+public class HashMismatchException extends RuntimeException {
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class VersionUtilsTest {
-
-  @Test
-  public void parse_version() {
-    assertThat(VersionUtils.isAtLeast52("5.2")).isTrue();
-    assertThat(VersionUtils.isAtLeast52(null)).isFalse();
-    assertThat(VersionUtils.isAtLeast52("52")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("5.0")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("trash")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("6.0.0")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("5.2-SNAPSHOT")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("6.3.0.1234")).isTrue();
+  public HashMismatchException(String message) {
+    super(message);
   }
 }

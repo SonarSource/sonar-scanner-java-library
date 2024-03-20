@@ -23,9 +23,9 @@ import java.io.File;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
+import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
@@ -34,20 +34,18 @@ public class IsolatedLauncherFactory {
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
-  private final Path sonarUserHome;
 
   /**
    * For unit tests
    */
-  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger, Path sonarUserHome) {
+  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger) {
     this.tempCleaning = tempCleaning;
     this.launcherImplClassName = isolatedLauncherClassName;
     this.logger = logger;
-    this.sonarUserHome = sonarUserHome;
   }
 
-  public IsolatedLauncherFactory(Logger logger, Path sonarUserHome) {
-    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger, sonarUserHome);
+  public IsolatedLauncherFactory(Logger logger) {
+    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
   }
 
   private IsolatedClassloader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
@@ -57,18 +55,13 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncherAndClassloader createLauncher(Map<String, String> props, ClassloadRules rules) {
-    if (props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE)) {
-      String version = props.get(InternalProperties.SCANNER_VERSION_SIMULATION);
-      if (version == null) {
-        version = "5.6";
-      }
-      return new IsolatedLauncherAndClassloader(new SimulatedLauncher(version, logger), null);
-    }
-    ServerConnection serverConnection = ServerConnection.create(props, logger, sonarUserHome);
-    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, sonarUserHome).create();
-
+  public IsolatedLauncherAndClassloader createLauncher(ClassloadRules rules, ServerConnection serverConnection, FileCache fileCache) {
+    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, fileCache).create();
     return createLauncher(jarDownloader, rules);
+  }
+
+  public IsolatedLauncherAndClassloader createSimulationLauncher() {
+    return new IsolatedLauncherAndClassloader(new SimulatedLauncher(logger), null);
   }
 
   IsolatedLauncherAndClassloader createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {

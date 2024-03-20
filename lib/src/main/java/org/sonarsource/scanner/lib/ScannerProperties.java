@@ -79,4 +79,29 @@ public final class ScannerProperties {
    */
   public static final String SKIP = "sonar.scanner.skip";
 
+  /**
+   * Path of the java executable to be used by the scanner-engine.
+   */
+  public static final String JAVA_EXECUTABLE_PATH = "sonar.scanner.javaExePath";
+
+  /**
+   * Flag to skip the JRE provisioning.
+   */
+  public static final String SKIP_JRE_PROVISIONING = "sonar.scanner.skipJreProvisioning";
+
+  /**
+   * Name of the operating system to be used for JRE provisioning.
+   * See {@link org.sonarsource.scanner.lib.internal.OsResolver.OperatingSystem} for possible values.
+   */
+  public static final String SCANNER_OS = "sonar.scanner.os";
+
+  /**
+   * Name of the architecture to be used for JRE provisioning.
+   */
+  public static final String SCANNER_ARCH = "sonar.scanner.arch";
+
+  /**
+   * Java options to be used by the scanner-engine.
+   */
+  public static final String SCANNER_JAVA_OPTS = "sonar.scanner.javaOpts";
 }

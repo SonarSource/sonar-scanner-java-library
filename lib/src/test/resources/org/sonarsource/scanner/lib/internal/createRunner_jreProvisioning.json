@@ -1,0 +1,18 @@
+[
+  {
+    "filename": "fake-jre.zip",
+    "sha256": "123456",
+    "javaPath": "bin/java",
+    "os": "windows",
+    "arch": "x64",
+    "downloadUrl": "https://scanner.sonarcloud.io/jres/OpenJDK21U-jre_x64_windows_hotspot_21.0.2_13.tar.gz"
+  },
+  {
+    "filename": "fake-jre.zip",
+    "sha256": "123456",
+    "javaPath": "bin/java",
+    "os": "linux",
+    "arch": "x64",
+    "downloadUrl": "https://scanner.sonarcloud.io/jres/OpenJDK21U-jre_x64_linux_21.0.2_13.tar.gz"
+  }
+]

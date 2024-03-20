@@ -39,7 +39,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 public class SimulatedLauncherTest {
-  private static final String VERSION = "5.2";
   private SimulatedLauncher launcher;
   private Logger logger;
   private String filename;
@@ -52,7 +51,7 @@ public class SimulatedLauncherTest {
   @Before
   public void setUp() {
     logger = mock(Logger.class);
-    launcher = new SimulatedLauncher(VERSION, logger);
+    launcher = new SimulatedLauncher(logger);
     filename = new File(temp.getRoot(), "props").getAbsolutePath();
   }
 
@@ -95,19 +94,9 @@ public class SimulatedLauncherTest {
     return prop;
   }
 
-  @Test
-  public void version() {
-    assertThat(launcher.getVersion()).isEqualTo(VERSION);
-  }
-
   private void assertDump(Map<String, String> props) throws IOException {
-    if (props != null) {
-      Properties p = new Properties();
-      p.load(new FileInputStream(new File(filename)));
-      assertThat(p).isEqualTo(props);
-    } else {
-      assertThat(new File(filename)).doesNotExist();
-    }
+    Properties p = new Properties();
+    p.load(new FileInputStream(filename));
+    assertThat(p).isEqualTo(props);
   }
-
 }

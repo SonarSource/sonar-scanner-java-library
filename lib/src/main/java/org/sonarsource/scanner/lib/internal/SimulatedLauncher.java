@@ -36,11 +36,9 @@ import org.sonarsource.scanner.lib.internal.batch.LogOutput;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public class SimulatedLauncher implements IsolatedLauncher {
-  private final String version;
   private final Logger logger;
 
-  SimulatedLauncher(String version, Logger logger) {
-    this.version = version;
+  SimulatedLauncher(Logger logger) {
     this.logger = logger;
   }
 
@@ -75,10 +73,4 @@ public class SimulatedLauncher implements IsolatedLauncher {
       throw new IllegalStateException("Fail to export scanner properties", e1);
     }
   }
-
-  @Override
-  public String getVersion() {
-    return version;
-  }
-
 }

@@ -209,7 +209,7 @@ public class ProxyTest {
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
-    assertThat(buildResult.getLogs()).contains("Status returned by url", "is not valid: [407]");
+    assertThat(buildResult.getLogs()).contains("Error status returned by url", ": 407");
     assertThat(seenByProxy).isEmpty();
 
     params.put("http.proxyUser", PROXY_USER);

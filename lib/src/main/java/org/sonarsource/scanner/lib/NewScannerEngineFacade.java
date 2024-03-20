@@ -17,24 +17,28 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.cache;
+package org.sonarsource.scanner.lib;
 
-import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import java.util.Map;
+import javax.annotation.Nullable;
+import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+public class NewScannerEngineFacade extends ScannerEngineFacade {
+  private final ScannerEngineLauncher launcher;
 
-class FileCacheBuilderTest {
-
-  @Test
-  void create_cache_in_user_home(@TempDir Path sonarUserHome) {
-    FileCache cache = new FileCacheBuilder(mock(Logger.class), sonarUserHome).build();
-
-    assertThat(cache.getDir()).isDirectory().exists();
-    assertThat(cache.getDir()).hasName("cache");
-    assertThat(cache.getDir()).hasParent(sonarUserHome.toFile());
+  NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher, LogOutput logOutput,
+                         boolean isSonarCloud, @Nullable String serverVersion) {
+    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion);
+    this.launcher = launcher;
   }
 
+  @Override
+  void doAnalyze(Map<String, String> allProps) {
+    launcher.execute(allProps);
+  }
+
+  @Override
+  public void close() throws Exception {
+    // nothing to do
+  }
 }

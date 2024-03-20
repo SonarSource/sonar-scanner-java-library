@@ -37,7 +37,7 @@ class BootstrapIndexDownloader {
     String index;
     try {
       logger.debug("Get bootstrap index...");
-      index = conn.downloadString("/batch/index");
+      index = conn.callServerApi("/batch/index");
       logger.debug("Get bootstrap completed");
     } catch (Exception e) {
       throw new IllegalStateException("Fail to get bootstrap index from server", e);

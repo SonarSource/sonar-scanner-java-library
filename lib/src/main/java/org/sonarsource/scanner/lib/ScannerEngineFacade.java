@@ -24,30 +24,29 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
+import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
-public class ScannerEngineFacade implements AutoCloseable {
-  private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
-  private final LogOutput logOutput;
+public abstract class ScannerEngineFacade implements AutoCloseable {
+  protected final LogOutput logOutput;
   private final Map<String, String> bootstrapProperties;
   private final Logger logger;
   private final boolean isSonarCloud;
+  private final String serverVersion;
 
-  ScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl, LogOutput logOutput, boolean isSonarCloud) {
+  ScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion) {
     this.bootstrapProperties = bootstrapProperties;
     this.logger = new LoggerAdapter(logOutput);
-    this.launcherAndCl = launcherAndCl;
     this.logOutput = logOutput;
     this.isSonarCloud = isSonarCloud;
+    this.serverVersion = serverVersion;
   }
-
 
   public String getServerVersion() {
     if (isSonarCloud) {
       throw new UnsupportedOperationException("Server version is not available for SonarCloud.");
     }
-    return launcherAndCl.getLauncher().getVersion();
+    return serverVersion;
   }
 
   public boolean isSonarCloud() {
@@ -59,8 +58,10 @@ public class ScannerEngineFacade implements AutoCloseable {
     allProps.putAll(bootstrapProperties);
     allProps.putAll(analysisProps);
     initAnalysisProperties(allProps);
-    launcherAndCl.getLauncher().execute(allProps, (formattedMessage, level) -> logOutput.log(formattedMessage, LogOutput.Level.valueOf(level.name())));
+    doAnalyze(allProps);
   }
+
+  abstract void doAnalyze(Map<String, String> allProps);
 
   private void initAnalysisProperties(Map<String, String> p) {
     initSourceEncoding(p);
@@ -76,12 +77,7 @@ public class ScannerEngineFacade implements AutoCloseable {
       p.put(AnalysisProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
     }
     logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
-      + (platformDependent ? " (analysis is platform dependent)" : ""));
-  }
-
-  @Override
-  public void close() throws Exception {
-    launcherAndCl.close();
+                + (platformDependent ? " (analysis is platform dependent)" : ""));
   }
 
   public Map<String, String> getBootstrapProperties() {

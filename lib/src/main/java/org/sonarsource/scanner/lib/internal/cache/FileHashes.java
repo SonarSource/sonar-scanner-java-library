@@ -35,9 +35,9 @@ class FileHashes {
 
   private static final int STREAM_BUFFER_LENGTH = 1024;
 
-  String of(File file) {
+  String of(File file, String hashAlgorithm) {
     try {
-      return of(new FileInputStream(file));
+      return of(new FileInputStream(file), hashAlgorithm);
     } catch (IOException e) {
       throw new IllegalStateException("Fail to compute hash of: " + file.getAbsolutePath(), e);
     }
@@ -46,9 +46,9 @@ class FileHashes {
   /**
    * Computes the hash of given stream. The stream is closed by this method.
    */
-  String of(InputStream input) {
+  String of(InputStream input, String hashAlgorithm) {
     try (InputStream is = input) {
-      MessageDigest digest = MessageDigest.getInstance("MD5");
+      MessageDigest digest = MessageDigest.getInstance(hashAlgorithm);
       byte[] hash = digest(is, digest);
       return toHex(hash);
     } catch (Exception e) {
