@@ -29,6 +29,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.sonarsource.scanner.lib.ScannerProperties;
+import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -44,7 +46,7 @@ import static org.mockito.Mockito.mock;
 
 class ServerConnectionTest {
 
-  public static final String HELLO_WORLD = "hello, world!";
+  private static final String HELLO_WORLD = "hello, world!";
 
   @RegisterExtension
   static WireMockExtension sonarqube = WireMockExtension.newInstance()
@@ -54,46 +56,46 @@ class ServerConnectionTest {
   @TempDir
   private Path sonarUserHome;
 
-  private Logger logger = mock(Logger.class);
+  private final Logger logger = mock(Logger.class);
 
   @Test
   void download_success() throws Exception {
     ServerConnection connection = create();
     answer(HELLO_WORLD);
 
-    String response = connection.downloadString("/batch/index.txt");
+    String response = connection.callWebApi("/batch/index.txt");
 
     assertThat(response).isEqualTo(HELLO_WORLD);
   }
 
   @Test
-  void downloadString_fails_on_url_validation() {
+  void callWebApi_fails_on_url_validation() {
     ServerConnection connection = create();
     answer(HELLO_WORLD);
 
-    assertThatThrownBy(() -> connection.downloadString("should_fail"))
+    assertThatThrownBy(() -> connection.callWebApi("should_fail"))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessage("URL path must start with slash: should_fail");
   }
 
   @Test
-  void test_downloadFile(@TempDir Path tmpFolder) throws Exception {
+  void test_downloadFromWebApi(@TempDir Path tmpFolder) throws Exception {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD);
 
     ServerConnection underTest = create();
-    underTest.downloadFile("/batch/index.txt", toFile);
+    underTest.downloadFromWebApi("/batch/index.txt", toFile);
 
-    assertThat(new String(Files.readAllBytes(toFile), StandardCharsets.UTF_8)).isEqualTo(HELLO_WORLD);
+    assertThat(Files.readString(toFile)).isEqualTo(HELLO_WORLD);
   }
 
   @Test
-  void downloadFile_fails_on_url_validation(@TempDir Path tmpFolder) {
+  void downloadFromWebApi_fails_on_url_validation(@TempDir Path tmpFolder) {
     var toFile = tmpFolder.resolve("index.txt");
     ServerConnection connection = create();
     answer(HELLO_WORLD);
 
-    assertThatThrownBy(() -> connection.downloadFile("should_fail", toFile))
+    assertThatThrownBy(() -> connection.downloadFromWebApi("should_fail", toFile))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessage("URL path must start with slash: should_fail");
   }
@@ -104,42 +106,37 @@ class ServerConnectionTest {
     answer(HELLO_WORLD, 400);
 
     ServerConnection underTest = create();
-    assertThatThrownBy(() -> underTest.downloadFile("/batch/index.txt", toFile))
+    assertThatThrownBy(() -> underTest.downloadFromWebApi("/batch/index.txt", toFile))
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage(format("Status returned by url [http://%s:%d/batch/index.txt] is not valid: [400]", "localhost", sonarqube.getPort()));
+      .hasMessage(format("Error status returned by url [http://%s:%d/batch/index.txt]: 400", "localhost", sonarqube.getPort()));
   }
 
   @Test
   void should_support_server_url_without_trailing_slash() throws Exception {
-    Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", ""));
-    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
+    ServerConnection connection = create(sonarqube.baseUrl().replaceAll("(/)+$", ""));
 
     answer(HELLO_WORLD);
-    String content = connection.downloadString("/batch/index.txt");
+    String content = connection.callWebApi("/batch/index.txt");
     assertThat(content).isEqualTo(HELLO_WORLD);
   }
 
   @Test
   void should_support_server_url_with_trailing_slash() throws Exception {
-    Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
-    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
+    ServerConnection connection = create(sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
 
     answer(HELLO_WORLD);
-    String content = connection.downloadString("/batch/index.txt");
+    String content = connection.callWebApi("/batch/index.txt");
     assertThat(content).isEqualTo(HELLO_WORLD);
   }
 
   @Test
   void should_authenticate_with_token() throws Exception {
     Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", sonarqube.baseUrl());
     props.put("sonar.token", "some_token");
-    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
+    ServerConnection connection = create(sonarqube.baseUrl(), props);
 
     answer(HELLO_WORLD);
-    String content = connection.downloadString("/batch/index.txt");
+    String content = connection.callWebApi("/batch/index.txt");
     assertThat(content).isEqualTo(HELLO_WORLD);
 
     sonarqube.verify(getRequestedFor(anyUrl())
@@ -149,21 +146,51 @@ class ServerConnectionTest {
   @Test
   void should_authenticate_with_username_password() throws Exception {
     Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", sonarqube.baseUrl());
     props.put("sonar.login", "some_username");
     props.put("sonar.password", "some_password");
-    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
+    ServerConnection connection = create(sonarqube.baseUrl(), props);
 
     answer(HELLO_WORLD);
-    String content = connection.downloadString("/batch/index.txt");
+    String content = connection.callWebApi("/batch/index.txt");
     assertThat(content).isEqualTo(HELLO_WORLD);
 
     sonarqube.verify(getRequestedFor(anyUrl())
-      .withHeader("Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
+      .withHeader("Authorization",
+        equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
+  }
+
+  @Test
+  void downloadFromExternalUrl_shouldNotPassAuth(@TempDir Path tmpFolder) throws Exception {
+    var toFile = tmpFolder.resolve("index.txt");
+    answer(HELLO_WORLD);
+
+    ServerConnection underTest = create();
+    underTest.downloadFromExternalUrl(sonarqube.baseUrl() + "/batch/index.txt", toFile);
+    assertThat(Files.readString(toFile)).isEqualTo(HELLO_WORLD);
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withoutHeader("Authorization"));
   }
 
   private ServerConnection create() {
-    return new ServerConnection(sonarqube.baseUrl(), "user-agent", null, logger, Map.of(), sonarUserHome);
+    return create(sonarqube.baseUrl());
+  }
+
+  private ServerConnection create(String url) {
+    return create(url, new HashMap<>());
+  }
+
+  private ServerConnection create(String url, Map<String, String> additionalProps) {
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.HOST_URL, url);
+    props.put(ScannerProperties.API_BASE_URL, url);
+    props.put(InternalProperties.SCANNER_APP, "user");
+    props.put(InternalProperties.SCANNER_APP_VERSION, "agent");
+    props.putAll(additionalProps);
+
+    ServerConnection connection = new ServerConnection(logger);
+    connection.init(props, sonarUserHome);
+    return connection;
   }
 
   private void answer(String msg) {

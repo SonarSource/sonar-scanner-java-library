@@ -19,22 +19,41 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.nio.file.Path;
+import com.google.gson.Gson;
+import java.io.File;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-class JarDownloaderFactoryTest {
+@ExtendWith(MockitoExtension.class)
+class ScannerEngineLauncherTest {
+
+  @TempDir
+  private File temp;
+
+  @Mock
+  private JavaRunner javaRunner;
+
   @Test
-  void should_create(@TempDir Path sonarUserHome) {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    FileCache cache = mock(FileCache.class);
-    assertThat(new JarDownloaderFactory(conn, logger, cache).create()).isNotNull();
+  void execute() {
+    File scannerEngine = new File(temp, "scanner-engine.jar");
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, scannerEngine, mock(Logger.class));
+
+    Map<String, String> properties = Map.of(ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g",
+      ScannerProperties.HOST_URL, "http://localhost:9000");
+    launcher.execute(properties);
+
+    verify(javaRunner).execute(
+      List.of("-Xmx4g", "-jar", scannerEngine.getAbsolutePath()),
+      "{\"scannerProperties\":" + new Gson().toJson(properties) + "}");
   }
 }

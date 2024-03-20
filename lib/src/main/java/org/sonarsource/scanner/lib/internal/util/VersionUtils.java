@@ -17,22 +17,28 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.cache;
+package org.sonarsource.scanner.lib.internal.util;
 
-import java.nio.file.Path;
+import java.lang.module.ModuleDescriptor.Version;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
 
-public class FileCacheBuilder {
-  private final Logger logger;
-  private final Path sonarUserHome;
-
-  public FileCacheBuilder(Logger logger, Path sonarUserHome) {
-    this.logger = logger;
-    this.sonarUserHome = sonarUserHome;
+public class VersionUtils {
+  private VersionUtils() {
+    // only util static methods
   }
 
-  public FileCache build() {
-    var cacheDir = sonarUserHome.resolve("cache");
-    return FileCache.create(cacheDir, logger);
+  /**
+   * Checks if a given version is at least the target version.
+   *
+   * @param version       the version to compare
+   * @param targetVersion the target version to compare with
+   * @return true if the version is at least the target version
+   */
+  public static boolean isAtLeast(@Nullable String version, String targetVersion) {
+    if (StringUtils.isBlank(version) || String.valueOf(version.charAt(0)).matches("\\D")) {
+      return false;
+    }
+    return Version.parse(version).compareTo(Version.parse(targetVersion)) >= 0;
   }
-
 }

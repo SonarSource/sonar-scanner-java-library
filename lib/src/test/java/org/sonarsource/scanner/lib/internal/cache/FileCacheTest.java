@@ -23,40 +23,39 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import java.nio.file.Path;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class FileCacheTest {
+class FileCacheTest {
+  private static final String HASH_ALGO = "algo";
   private FileHashes fileHashes;
   private FileCache cache;
 
-  @Before
-  public void setUp() throws IOException {
+  @TempDir
+  private Path temp;
+
+  @BeforeEach
+  public void setUp() {
     fileHashes = mock(FileHashes.class);
-    cache = new FileCache(temp.getRoot().toPath(), fileHashes, mock(Logger.class));
+    cache = new FileCache(temp, fileHashes, mock(Logger.class));
   }
 
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
   @Test
-  public void not_in_cache() throws IOException {
+  void not_in_cache() {
     assertThat(cache.get("sonar-foo-plugin-1.5.jar", "ABCDE")).isNull();
   }
 
   @Test
-  public void found_in_cache() throws IOException {
+  void found_in_cache() throws IOException {
     // populate the cache. Assume that hash is correct.
     File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
     write(cachedFile, "body");
@@ -65,50 +64,51 @@ public class FileCacheTest {
   }
 
   @Test
-  public void fail_to_download() {
-    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+  void fail_to_download() {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
         throw new IOException("fail");
       }
     };
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to download");
-    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
+    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Fail to download");
   }
 
   @Test
-  public void fail_create_temp_file() throws IOException {
-    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
-    new File(temp.getRoot(), "_tmp").delete();
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to create temp file");
-    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", mock(FileCache.Downloader.class));
+  void fail_create_temp_file() throws IOException {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
+    Files.delete(temp.resolve("_tmp"));
+    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Fail to create temp file");
   }
 
   @Test
-  public void fail_create_hash_dir() throws IOException {
-    File file = temp.newFile();
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Unable to create user cache");
-    cache = new FileCache(file.toPath(), fileHashes, mock(Logger.class));
+  void fail_create_hash_dir() throws IOException {
+    Path file = temp.resolve("some-file");
+    Files.createFile(file);
+    assertThatThrownBy(() -> new FileCache(file, fileHashes, mock(Logger.class)))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Unable to create user cache");
   }
 
   @Test
-  public void fail_to_create_hash_dir() throws IOException {
-    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+  void fail_to_create_hash_dir() throws IOException {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     File hashDir = new File(cache.getDir(), "ABCDE");
     hashDir.createNewFile();
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to create cache directory");
-    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", mock(FileCache.Downloader.class));
+    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Fail to create cache directory");
   }
 
   @Test
-  public void download_and_add_to_cache() throws IOException {
-    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+  void download_and_add_to_cache() throws IOException {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       boolean single = false;
@@ -121,37 +121,36 @@ public class FileCacheTest {
         single = true;
       }
     };
-    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
-    assertThat(cachedFile).isNotNull().exists().isFile();
-    assertThat(cachedFile.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
-    assertThat(cachedFile.getParentFile().getParentFile()).isEqualTo(cache.getDir());
+    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(cachedFile).isNotNull().exists().isFile()
+      .hasName("sonar-foo-plugin-1.5.jar");
+    assertThat(cachedFile.getParentFile()).hasParent(cache.getDir());
     assertThat(read(cachedFile)).isEqualTo("body");
 
-    File againFromCache = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
-    assertThat(againFromCache).isNotNull().exists().isFile();
-    assertThat(againFromCache.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
-    assertThat(againFromCache.getParentFile().getParentFile()).isEqualTo(cache.getDir());
+    File againFromCache = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(againFromCache).isNotNull().exists().isFile()
+      .hasName("sonar-foo-plugin-1.5.jar");
+    assertThat(againFromCache.getParentFile()).hasParent(cache.getDir());
     assertThat(read(againFromCache)).isEqualTo("body");
   }
 
   @Test
-  public void download_corrupted_file() throws IOException {
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("INVALID HASH");
-
-    when(fileHashes.of(any(File.class))).thenReturn("VWXYZ");
+  void download_corrupted_file() {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("VWXYZ");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
         write(toFile, "corrupted body");
       }
     };
-    cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
+    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
+      .isInstanceOf(HashMismatchException.class)
+      .hasMessageContaining("INVALID HASH");
   }
 
   @Test
-  public void concurrent_download() throws IOException {
-    when(fileHashes.of(any(File.class))).thenReturn("ABCDE");
+  void concurrent_download() throws IOException {
+    when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
       public void download(String filename, File toFile) throws IOException {
@@ -164,10 +163,10 @@ public class FileCacheTest {
     };
 
     // do not fail
-    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", downloader);
-    assertThat(cachedFile).isNotNull().exists().isFile();
-    assertThat(cachedFile.getName()).isEqualTo("sonar-foo-plugin-1.5.jar");
-    assertThat(cachedFile.getParentFile().getParentFile()).isEqualTo(cache.getDir());
+    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(cachedFile).isNotNull().exists().isFile()
+      .hasName("sonar-foo-plugin-1.5.jar");
+    assertThat(cachedFile.getParentFile()).hasParent(cache.getDir());
     assertThat(read(cachedFile)).contains("downloaded by");
   }
 
@@ -177,6 +176,6 @@ public class FileCacheTest {
   }
 
   private static String read(File f) throws IOException {
-    return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+    return Files.readString(f.toPath());
   }
 }

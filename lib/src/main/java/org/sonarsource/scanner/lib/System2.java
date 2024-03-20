@@ -23,11 +23,16 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * A proxy class for java.lang.System (for mocking).
+ * A proxy class for {@link java.lang.System} (for mocking).
  */
 public class System2 {
   @CheckForNull
   public String getEnvironmentVariable(@Nonnull String key) {
     return System.getenv(key);
+  }
+
+  @CheckForNull
+  public String getProperty(@Nonnull String key) {
+    return System.getProperty(key);
   }
 }

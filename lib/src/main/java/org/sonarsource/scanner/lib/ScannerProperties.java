@@ -35,6 +35,16 @@ public final class ScannerProperties {
   public static final String HOST_URL = "sonar.host.url";
 
   /**
+   * Base URL for all REST-compliant API calls.
+   */
+  public static final String API_BASE_URL = "sonar.scanner.apiBaseUrl";
+
+  /**
+   * URL of the SonarCloud server, default to https://sonarcloud.io. Useful for testing purposes.
+   */
+  public static final String SONARCLOUD_URL = "sonar.scanner.sonarcloudUrl";
+
+  /**
    * Working directory containing generated reports and temporary data.
    */
   public static final String WORK_DIR = "sonar.working.directory";
@@ -79,4 +89,29 @@ public final class ScannerProperties {
    */
   public static final String SKIP = "sonar.scanner.skip";
 
+  /**
+   * Path of the java executable to be used by the scanner-engine.
+   */
+  public static final String JAVA_EXECUTABLE_PATH = "sonar.scanner.javaExePath";
+
+  /**
+   * Flag to skip the JRE provisioning.
+   */
+  public static final String SKIP_JRE_PROVISIONING = "sonar.scanner.skipJreProvisioning";
+
+  /**
+   * Name of the operating system to be used for JRE provisioning.
+   * See {@link org.sonarsource.scanner.lib.internal.OsResolver.OperatingSystem} for possible values.
+   */
+  public static final String SCANNER_OS = "sonar.scanner.os";
+
+  /**
+   * Name of the architecture to be used for JRE provisioning.
+   */
+  public static final String SCANNER_ARCH = "sonar.scanner.arch";
+
+  /**
+   * Java options to be used by the scanner-engine.
+   */
+  public static final String SCANNER_JAVA_OPTS = "sonar.scanner.javaOpts";
 }

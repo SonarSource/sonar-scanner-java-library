@@ -37,7 +37,7 @@ public class ScannerJavaLibraryTestSuite {
 
   @ClassRule
   public static final OrchestratorRule ORCHESTRATOR = OrchestratorRule.builderEnv()
-    .setSonarVersion(System.getProperty(SONAR_RUNTIME_VERSION, "LATEST_RELEASE"))
+    .setSonarVersion(System.getProperty(SONAR_RUNTIME_VERSION, "DEV"))
     .useDefaultAdminCredentialsForBuilds(true)
     // We need to use a plugin compatible with both SonarQube DEV & SonarQube version defined in .cirrus.yml (currently SQ 7.9)
     .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.4.4.15624"))
