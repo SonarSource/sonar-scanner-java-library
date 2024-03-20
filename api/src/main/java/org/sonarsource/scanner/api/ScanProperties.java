@@ -80,4 +80,6 @@ public interface ScanProperties {
    */
   String SKIP = "sonar.scanner.skip";
 
+  String TOKEN = "sonar.token";
+  String LOGIN = "sonar.login";
 }

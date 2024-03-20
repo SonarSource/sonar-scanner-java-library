@@ -30,4 +30,9 @@ public class System2 {
   public String getEnvironmentVariable(@Nonnull String key) {
     return System.getenv(key);
   }
+
+  @CheckForNull
+  public String getProperty(@Nonnull String key) {
+    return System.getProperty(key);
+  }
 }

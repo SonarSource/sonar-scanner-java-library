@@ -40,5 +40,25 @@ public interface ScannerProperties {
    * Working directory containing generated reports and temporary data.
    */
   String WORK_DIR = "sonar.working.directory";
-  
+
+  /**
+   * Home directory to be used by the scanner.
+   */
+  String USER_HOME = "sonar.userHome";
+
+  /**
+   * Path of the java executable to be used by the scanner-engine.
+   */
+  String SCANNER_JAVA_EXECUTABLE = "sonar.scanner.javaExecutable";
+
+  /**
+   * Name of the operating system to be used for JRE auto-provisioning.
+   * See {@link OperatingSystem} for possible values.
+   */
+  String SCANNER_OS = "sonar.scanner.os";
+
+  /**
+   * Name of the architecture to be used for JRE auto-provisioning.
+   */
+  String SCANNER_ARCH = "sonar.scanner.arch";
 }

@@ -31,7 +31,7 @@ import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static java.lang.String.format;
 
-class JarDownloader {
+public class JarDownloader {
   private final FileCache fileCache;
   private final JarExtractor jarExtractor;
   private final Logger logger;
@@ -54,7 +54,7 @@ class JarDownloader {
     return files;
   }
 
-  private List<File> getScannerEngineFiles() {
+  public List<File> getScannerEngineFiles() {
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
     return index.stream()
       .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), scannerFileDownloader))

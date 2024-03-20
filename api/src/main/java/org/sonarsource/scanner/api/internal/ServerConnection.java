@@ -37,7 +37,7 @@ import static java.lang.String.format;
 import static org.sonarsource.scanner.api.internal.InternalProperties.SCANNER_APP;
 import static org.sonarsource.scanner.api.internal.InternalProperties.SCANNER_APP_VERSION;
 
-class ServerConnection {
+public class ServerConnection {
 
   private final String baseUrlWithoutTrailingSlash;
   private final String userAgent;
@@ -98,6 +98,15 @@ class ServerConnection {
     logger.debug(format("Download: %s", url));
     try (ResponseBody responseBody = callUrl(url)) {
       return responseBody.string();
+    }
+  }
+
+  public String getServerVersion() {
+    try {
+      //TODO authentication with SONAR_TOKEN?
+      return downloadString("/api/server/version");
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to get server version", e);
     }
   }
 

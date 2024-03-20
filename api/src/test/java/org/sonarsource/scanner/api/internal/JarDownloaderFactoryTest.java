@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.api.internal;
 
 import org.junit.Test;
+import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +31,7 @@ public class JarDownloaderFactoryTest {
   public void should_create() {
     ServerConnection conn = mock(ServerConnection.class);
     Logger logger = mock(Logger.class);
-    String userHome = "userhome";
-    assertThat(new JarDownloaderFactory(conn, logger, userHome).create()).isNotNull();
+    FileCache cache = mock(FileCache.class);
+    assertThat(new JarDownloaderFactory(conn, logger, cache).create()).isNotNull();
   }
 }

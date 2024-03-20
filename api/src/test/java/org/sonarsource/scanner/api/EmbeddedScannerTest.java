@@ -35,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentMatcher;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.api.internal.JarDownloader;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
@@ -73,7 +74,7 @@ public class EmbeddedScannerTest {
     system = mock(System2.class);
 
     when(launcher.getVersion()).thenReturn("5.2");
-    when(launcherFactory.createLauncher(anyMap(), any(ClassloadRules.class))).thenReturn(launcher);
+    when(launcherFactory.createLauncher(anyMap(), any(ClassloadRules.class), any(JarDownloader.class))).thenReturn(launcher);
     scanner = new EmbeddedScanner(launcherFactory, logger, mock(LogOutput.class), system);
   }
 
@@ -161,7 +162,7 @@ public class EmbeddedScannerTest {
       public boolean matches(Map o) {
         return "foo".equals(o.get("sonar.projectKey"));
       }
-    }), any(ClassloadRules.class));
+    }), any(ClassloadRules.class), any(JarDownloader.class));
 
     // it should have added a few properties to analysisProperties
     final String[] mustHaveKeys = {"sonar.working.directory", "sonar.sourceEncoding", "sonar.projectBaseDir"};
@@ -193,7 +194,7 @@ public class EmbeddedScannerTest {
       public boolean matches(Map o) {
         return "foo".equals(o.get("sonar.projectKey"));
       }
-    }), any(ClassloadRules.class));
+    }), any(ClassloadRules.class), any(JarDownloader.class));
 
     verify(launcher).execute(argThat(new ArgumentMatcher<Map>() {
       @Override
