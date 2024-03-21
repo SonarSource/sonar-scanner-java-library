@@ -27,7 +27,6 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
-import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 public class IsolatedLauncherFactory implements Closeable {

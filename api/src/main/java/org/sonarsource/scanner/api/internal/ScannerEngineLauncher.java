@@ -57,7 +57,7 @@ public class ScannerEngineLauncher {
     }
   }
 
-  private File buildPropertyFile(Map<String, String> properties) {
+  private static File buildPropertyFile(Map<String, String> properties) {
     try {
       File propertyFile = File.createTempFile("sonar-scanner", ".json");
       try (JsonWriter writer = new JsonWriter(new FileWriter(propertyFile, StandardCharsets.UTF_8))) {
@@ -87,7 +87,7 @@ public class ScannerEngineLauncher {
     return command;
   }
 
-  private Map<String, String> buildEnvVars(Map<String, String> properties) {
+  private static Map<String, String> buildEnvVars(Map<String, String> properties) {
     Map<String, String> envVars = new HashMap<>();
     String token = properties.get(ScanProperties.TOKEN);
     if (token == null) {

@@ -104,7 +104,8 @@ public class JreDownloader {
 
   private static FileLock createLockWithRetries(FileChannel channel) throws IOException {
     int tryCount = 0;
-    while (tryCount++ < 10) {
+    while (tryCount < 10) {
+      tryCount++;
       try {
         return channel.lock();
       } catch (OverlappingFileLockException ofle) {
