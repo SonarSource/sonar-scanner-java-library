@@ -91,7 +91,7 @@ public class OsArchProvider {
 
     public static OperatingSystem from(String value) {
       return Arrays.stream(OperatingSystem.values())
-        .filter(softwareQualityRest -> softwareQualityRest.name().equals(value))
+        .filter(softwareQualityRest -> softwareQualityRest.name().equalsIgnoreCase(value))
         .findAny()
         .orElseThrow(() -> new IllegalArgumentException("Unsupported OperatingSystem: " + value));
     }

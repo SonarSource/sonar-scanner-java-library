@@ -28,13 +28,15 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
-import org.sonarsource.scanner.api.ZipUtils;
+import org.sonarsource.scanner.api.CompressionUtils;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 
 import static java.lang.String.format;
 import static org.sonarsource.scanner.api.Utils.deleteQuietly;
 
 public class JreDownloader {
+  private static final String EXTENSION_ZIP = "zip";
+  private static final String EXTENSION_GZ = "gz";
   private final ServerConnection serverConnection;
   private final FileCache fileCache;
 
@@ -47,8 +49,8 @@ public class JreDownloader {
     var jreInfo = getJreInfo(serverConnection, osArch);
     File cachedFile = fileCache.get(jreInfo.filename, jreInfo.checksum,
       new JreArchiveDownloader(serverConnection));
-    File unzipDirectory = unzipFile(cachedFile);
-    return new File(unzipDirectory, jreInfo.javaPath);
+    File extractedDirectory = extractArchive(cachedFile);
+    return new File(extractedDirectory, jreInfo.javaPath);
   }
 
   private static JreInfo getJreInfo(ServerConnection serverConnection, OsArchProvider.OsArch osArch) {
@@ -74,7 +76,7 @@ public class JreDownloader {
 
   }
 
-  private static File unzipFile(File cachedFile) {
+  private static File extractArchive(File cachedFile) {
     String filename = cachedFile.getName();
     File destDir = new File(cachedFile.getParentFile(), filename + "_unzip");
     File lockFile = new File(cachedFile.getParentFile(), filename + "_unzip.lock");
@@ -85,15 +87,14 @@ public class JreDownloader {
           // Recheck in case of concurrent processes
           if (!destDir.exists()) {
             File tempDir = Files.createTempDirectory(cachedFile.getParentFile().toPath(), "jre").toFile();
-            //TODO Handle other compression types
-            ZipUtils.unzip(cachedFile, tempDir);
+            extract(cachedFile, tempDir);
             Files.move(tempDir.toPath(), destDir.toPath());
           }
         } finally {
           lock.release();
         }
       } catch (IOException e) {
-        throw new IllegalStateException("Failed to unzip file", e);
+        throw new IllegalStateException("Failed to extract archive", e);
       } finally {
         deleteQuietly(lockFile.toPath());
       }
@@ -116,6 +117,20 @@ public class JreDownloader {
       }
     }
     throw new IOException("Unable to get lock after " + tryCount + " tries");
+  }
+
+  private static void extract(File compressedFile, File targetDir) throws IOException {
+    String extension = compressedFile.getName().substring(compressedFile.getName().lastIndexOf('.') + 1);
+    switch (extension) {
+      case EXTENSION_ZIP:
+        CompressionUtils.unzip(compressedFile, targetDir);
+        break;
+      case EXTENSION_GZ:
+        CompressionUtils.extractTarGz(compressedFile, targetDir);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported compressed archive extension: " + extension);
+    }
   }
 
   private static class JreArchiveDownloader implements FileCache.Downloader {

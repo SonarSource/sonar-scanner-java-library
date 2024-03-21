@@ -19,7 +19,9 @@
  */
 package org.sonarsource.scanner.api;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,13 +31,17 @@ import java.util.Enumeration;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.io.IOUtils;
 
-public final class ZipUtils {
+public final class CompressionUtils {
 
   private static final String ERROR_CREATING_DIRECTORY = "Error creating directory: ";
 
-  private ZipUtils() {
-    // only static methods
+  private CompressionUtils() {
+    // utility class
   }
 
   /**
@@ -94,11 +100,36 @@ public final class ZipUtils {
   }
 
   private static void copy(ZipFile zipFile, ZipEntry entry, File to) throws IOException {
-    try (InputStream input = zipFile.getInputStream(entry); OutputStream fos = Files.newOutputStream(to.toPath())) {
-      int len;
-      byte[] buffer = new byte[1024];
-      while ((len = input.read(buffer)) > 0) {
-        fos.write(buffer, 0, len);
+    try (InputStream input = zipFile.getInputStream(entry);
+         OutputStream fos = Files.newOutputStream(to.toPath())) {
+      IOUtils.copy(input, fos);
+    }
+  }
+
+  public static void extractTarGz(File compressedFile, File targetDir) throws IOException {
+    try (InputStream fis = new FileInputStream(compressedFile);
+         InputStream bis = new BufferedInputStream(fis);
+         InputStream gzis = new GzipCompressorInputStream(bis);
+         TarArchiveInputStream archive = new TarArchiveInputStream(gzis)) {
+      ArchiveEntry entry;
+      while ((entry = archive.getNextEntry()) != null) {
+        if (!archive.canReadEntryData(entry)) {
+          continue;
+        }
+        File f = new File(targetDir, entry.getName());
+        if (entry.isDirectory()) {
+          if (!f.isDirectory() && !f.mkdirs()) {
+            throw new IOException("failed to create directory " + f);
+          }
+        } else {
+          File parent = f.getParentFile();
+          if (!parent.isDirectory() && !parent.mkdirs()) {
+            throw new IOException("failed to create directory " + parent);
+          }
+          try (OutputStream o = Files.newOutputStream(f.toPath())) {
+            IOUtils.copy(archive, o);
+          }
+        }
       }
     }
   }
