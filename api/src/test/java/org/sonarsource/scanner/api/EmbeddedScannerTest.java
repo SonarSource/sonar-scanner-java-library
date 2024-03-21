@@ -34,6 +34,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentMatcher;
 import org.sonarsource.scanner.api.internal.ClassloadRules;
+import org.sonarsource.scanner.api.internal.InternalProperties;
 import org.sonarsource.scanner.api.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.api.internal.JarDownloader;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
@@ -76,6 +77,8 @@ public class EmbeddedScannerTest {
     when(launcher.getVersion()).thenReturn("5.2");
     when(launcherFactory.createLauncher(anyMap(), any(ClassloadRules.class), any(JarDownloader.class))).thenReturn(launcher);
     scanner = new EmbeddedScanner(launcherFactory, logger, mock(LogOutput.class), system);
+
+    scanner.globalProperties().put(InternalProperties.SCANNER_DUMP_TO_FILE, "true");
   }
 
   @Test
