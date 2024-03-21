@@ -19,14 +19,12 @@
  */
 package org.sonarsource.scanner.api;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonObject.Member;
-import com.eclipsesource.json.JsonValue;
+import com.google.gson.stream.JsonReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,18 +47,14 @@ public class Utils {
     Properties props = new Properties();
 
     if (scannerParams != null) {
-      try {
-
-        JsonValue jsonValue = Json.parse(scannerParams);
-        JsonObject jsonObject = jsonValue.asObject();
-        Iterator<Member> it = jsonObject.iterator();
-
-        while (it.hasNext()) {
-          Member member = it.next();
-          String key = member.getName();
-          String value = member.getValue().asString();
+      try (JsonReader reader = new JsonReader(new StringReader(scannerParams))) {
+        reader.beginObject();
+        while (reader.hasNext()) {
+          String key = reader.nextName();
+          String value = reader.nextString();
           props.put(key, value);
         }
+        reader.endObject();
       } catch (Exception e) {
         throw new IllegalStateException("Failed to parse JSON in SONARQUBE_SCANNER_PARAMS environment variable", e);
       }

@@ -54,6 +54,11 @@ class LoggerAdapter implements Logger {
   }
 
   @Override
+  public void trace(String msg) {
+    logOutput.log(msg, LogOutput.Level.TRACE);
+  }
+
+  @Override
   public void debug(String msg) {
     logOutput.log(msg, LogOutput.Level.DEBUG);
   }

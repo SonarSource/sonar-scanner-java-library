@@ -19,12 +19,12 @@
  */
 package org.sonarsource.scanner.api;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
+import com.google.gson.stream.JsonWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -201,7 +201,7 @@ public class EmbeddedScanner {
         p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
       }
       logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
-                  + (platformDependent ? " (analysis is platform dependent)" : ""));
+        + (platformDependent ? " (analysis is platform dependent)" : ""));
     }
   }
 
@@ -212,18 +212,23 @@ public class EmbeddedScanner {
   }
 
   private Path buildPropertyFile(Map<String, String> properties) {
-    JsonArray root = Json.array();
-    for (Map.Entry<String, String> prop : properties.entrySet()) {
-      if (!SENSITIVE_PROPERTIES.contains(prop.getKey())) {
-        root.add(Json.object().add("key", prop.getKey()).add("value", prop.getValue()));
-      }
-    }
-
     try {
-      //TODO Where to create the property file?
       Path propertyFile = Files.createTempFile("sonar-scanner", ".json");
-      try (Writer writer = Files.newBufferedWriter(propertyFile)) {
-        root.writeTo(writer);
+      try (JsonWriter writer = new JsonWriter(new FileWriter(propertyFile.toFile(), StandardCharsets.UTF_8))) {
+
+        writer.beginArray();
+        for (Map.Entry<String, String> prop : properties.entrySet()) {
+          if (!SENSITIVE_PROPERTIES.contains(prop.getKey())) {
+            writer.beginObject();
+            writer.name("key").value(prop.getKey());
+            writer.name("value").value(prop.getValue());
+            writer.endObject();
+          }
+        }
+        writer.endArray();
+
+      } catch (IOException e) {
+        e.printStackTrace();
       }
       return propertyFile;
     } catch (IOException e) {
@@ -240,7 +245,7 @@ public class EmbeddedScanner {
 
     //TODO Maybe call with new method and fallback to old one
     if (!isSimulation() && (isSonarCloud(globalProperties) || serverConnection.getServerVersion().startsWith("10.5"))) {
-      JavaRunner javaRunner = setUpJre(serverConnection, fileCache);
+      JavaRunner javaRunner = setUpJre(serverConnection, fileCache, logger);
       File scannerEngine = jarDownloader.getScannerEngineFiles().get(0);
       scannerEngineLauncher = new ScannerEngineLauncher(javaRunner, scannerEngine);
     } else {
@@ -262,20 +267,20 @@ public class EmbeddedScanner {
     return false;
   }
 
-  private JavaRunner setUpJre(ServerConnection serverConnection, FileCache fileCache) {
+  private JavaRunner setUpJre(ServerConnection serverConnection, FileCache fileCache, Logger logger) {
     File javaExecutable;
     String javaExecutableProp = globalProperties.get(SCANNER_JAVA_EXECUTABLE);
     if (javaExecutableProp != null) {
       javaExecutable = new File(javaExecutableProp);
-      logger.info(String.format("JRE auto-provisioning is disabled, the java executable %s will be used.", javaExecutableProp));
+      this.logger.info(String.format("JRE auto-provisioning is disabled, the java executable %s will be used.", javaExecutableProp));
     } else {
-      OsArchProvider.OsArch osArch = new OsArchProvider(system, logger).getOsArch(globalProperties);
-      logger.info("JRE auto-provisioning: " + osArch);
+      OsArchProvider.OsArch osArch = new OsArchProvider(system, this.logger).getOsArch(globalProperties);
+      this.logger.info("JRE auto-provisioning: " + osArch);
 
       javaExecutable = new JreDownloader(serverConnection, fileCache).download(osArch);
     }
 
-    JavaRunner javaRunner = new JavaRunner(javaExecutable);
+    JavaRunner javaRunner = new JavaRunner(javaExecutable, logger);
     jreSanityCheck(javaRunner);
     return javaRunner;
   }

@@ -1,6 +1,6 @@
 /*
  * SonarQube Scanner Commons
- * Copyright (C) 2011-2023 SonarSource SA
+ * Copyright (C) 2011-2024 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -19,8 +19,8 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,8 +28,6 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
 import org.sonarsource.scanner.api.ZipUtils;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 
@@ -37,10 +35,6 @@ import static java.lang.String.format;
 import static org.sonarsource.scanner.api.Utils.deleteQuietly;
 
 public class JreDownloader {
-
-  private static final String JRE_INFO_FILENAME = "filename";
-  private static final String JRE_INFO_CHECKSUM = "checksum";
-  private static final String JRE_INFO_JAVA_PATH = "javaPath";
   private final ServerConnection serverConnection;
   private final FileCache fileCache;
 
@@ -50,26 +44,34 @@ public class JreDownloader {
   }
 
   public File download(OsArchProvider.OsArch osArch) {
-    Map<String, String> jreInfo = getJreInfo(serverConnection, osArch);
-    File cachedFile = fileCache.get(jreInfo.get(JRE_INFO_FILENAME), jreInfo.get(JRE_INFO_CHECKSUM),
+    var jreInfo = getJreInfo(serverConnection, osArch);
+    File cachedFile = fileCache.get(jreInfo.filename, jreInfo.checksum,
       new JreArchiveDownloader(serverConnection));
     File unzipDirectory = unzipFile(cachedFile);
-    return new File(unzipDirectory, jreInfo.get(JRE_INFO_JAVA_PATH));
+    return new File(unzipDirectory, jreInfo.javaPath);
   }
 
-  private static Map<String, String> getJreInfo(ServerConnection serverConnection, OsArchProvider.OsArch osArch) {
+  private static JreInfo getJreInfo(ServerConnection serverConnection, OsArchProvider.OsArch osArch) {
     try {
       String jreInfoResponse = serverConnection.downloadString(
         String.format("/api/v2/scanner/jre/info?os=%s&arch=%s", osArch.getOs(), osArch.getArch()));
-      Map<String, String> jreInfo = new HashMap<>();
-      JsonObject jsonObject = Json.parse(jreInfoResponse).asObject();
-      for (JsonObject.Member member : jsonObject) {
-        jreInfo.put(member.getName(), member.getValue().asString());
-      }
-      return jreInfo;
+      return new Gson().fromJson(jreInfoResponse, JreInfo.class);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get JRE info", e);
     }
+  }
+
+  private static class JreInfo {
+
+    @SerializedName("filename")
+    private String filename;
+
+    @SerializedName("checksum")
+    private String checksum;
+
+    @SerializedName("javaPath")
+    private String javaPath;
+
   }
 
   private static File unzipFile(File cachedFile) {
