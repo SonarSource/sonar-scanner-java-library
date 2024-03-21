@@ -47,6 +47,7 @@ public class JavaRunner {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.getAbsolutePath());
+      //TODO possibility to pass custom vm args
       ProcessBuilder builder = new ProcessBuilder(command);
       if (envVars != null) {
         builder.environment().putAll(envVars);

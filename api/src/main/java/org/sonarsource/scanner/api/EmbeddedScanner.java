@@ -64,7 +64,6 @@ public class EmbeddedScanner {
   private static final String BITBUCKET_CLOUD_ENV_VAR = "BITBUCKET_BUILD_NUMBER";
   private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
-  private static final List<String> SENSITIVE_PROPERTIES = Arrays.asList(ScanProperties.TOKEN, ScanProperties.LOGIN);
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
   private ScannerEngineLauncher scannerEngineLauncher;
@@ -158,11 +157,7 @@ public class EmbeddedScanner {
     initAnalysisProperties(allProps);
 
     if (scannerEngineLauncher != null) {
-      String token = allProps.get(ScanProperties.TOKEN);
-      if (token == null) {
-        token = allProps.get(ScanProperties.LOGIN);
-      }
-      scannerEngineLauncher.execute(buildPropertyFile(allProps), token);
+      scannerEngineLauncher.execute(allProps);
     } else {
       checkLauncherExists();
       try (IsolatedLauncherFactory launcherFactoryToBeClosed = launcherFactory) {
@@ -211,31 +206,6 @@ public class EmbeddedScanner {
     }
   }
 
-  private Path buildPropertyFile(Map<String, String> properties) {
-    try {
-      Path propertyFile = Files.createTempFile("sonar-scanner", ".json");
-      try (JsonWriter writer = new JsonWriter(new FileWriter(propertyFile.toFile(), StandardCharsets.UTF_8))) {
-
-        writer.beginArray();
-        for (Map.Entry<String, String> prop : properties.entrySet()) {
-          if (!SENSITIVE_PROPERTIES.contains(prop.getKey())) {
-            writer.beginObject();
-            writer.name("key").value(prop.getKey());
-            writer.name("value").value(prop.getValue());
-            writer.endObject();
-          }
-        }
-        writer.endArray();
-
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      return propertyFile;
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to create property file", e);
-    }
-  }
-
   protected void doStart() {
     ServerConnection serverConnection = ServerConnection.create(globalProperties(), logger);
     FileCache fileCache = new FileCacheBuilder(logger)
@@ -247,7 +217,7 @@ public class EmbeddedScanner {
     if (!isSimulation() && (isSonarCloud(globalProperties) || serverConnection.getServerVersion().startsWith("10.5"))) {
       JavaRunner javaRunner = setUpJre(serverConnection, fileCache, logger);
       File scannerEngine = jarDownloader.getScannerEngineFiles().get(0);
-      scannerEngineLauncher = new ScannerEngineLauncher(javaRunner, scannerEngine);
+      scannerEngineLauncher = new ScannerEngineLauncher(javaRunner, scannerEngine, logger);
     } else {
       checkLauncherDoesntExist();
       ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);

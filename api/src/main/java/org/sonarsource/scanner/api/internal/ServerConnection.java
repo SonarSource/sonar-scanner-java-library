@@ -103,7 +103,6 @@ public class ServerConnection {
 
   public String getServerVersion() {
     try {
-      //TODO authentication with SONAR_TOKEN?
       return downloadString("/api/server/version");
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get server version", e);
