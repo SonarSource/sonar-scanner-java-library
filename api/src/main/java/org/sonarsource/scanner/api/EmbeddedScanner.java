@@ -286,7 +286,7 @@ public class EmbeddedScanner {
   }
 
   private static void jreSanityCheck(JavaRunner javaRunner) {
-    javaRunner.execute(Collections.singletonList("-version"), null);
+    javaRunner.execute(Collections.singletonList("--version"), null);
   }
 
   protected void doExecute(Map<String, String> properties) {

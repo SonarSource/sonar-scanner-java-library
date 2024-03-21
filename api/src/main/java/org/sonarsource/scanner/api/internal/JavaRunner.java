@@ -47,13 +47,12 @@ public class JavaRunner {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.getAbsolutePath());
-      ProcessBuilder builder = new ProcessBuilder();
+      ProcessBuilder builder = new ProcessBuilder(command);
       if (envVars != null) {
         builder.environment().putAll(envVars);
       }
-      builder.command(command);
       Process process = builder.start();
-      new StreamGobbler(process.getInputStream(), stdout -> tryParse(stdout)).start();
+      new StreamGobbler(process.getInputStream(), this::tryParse).start();
       new StreamGobbler(process.getErrorStream(), stderr -> logger.error("[stderr] " + stderr)).start();
       if (process.waitFor() != 0) {
         throw new IllegalStateException("Error returned by the Java command execution");
@@ -108,7 +107,7 @@ public class JavaRunner {
   private static class Log {
     @SerializedName("level")
     private String level;
-    @SerializedName("message")
+    @SerializedName("formattedMessage")
     private String message;
     @SerializedName("throwable")
     private String throwable;
