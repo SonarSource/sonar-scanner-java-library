@@ -19,25 +19,26 @@
  */
 package org.sonarsource.scanner.api.internal;
 
+import java.lang.module.ModuleDescriptor.Version;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
 
 public class VersionUtils {
   private VersionUtils() {
     // only util static methods
   }
 
-  public static boolean isAtLeast52(@Nullable String version) {
-    // it can be snapshot (5.2-SNAPSHOT)
-    if (version == null) {
+  /**
+   * Checks if a given version is at least the target version.
+   *
+   * @param version       the version to compare
+   * @param targetVersion the target version to compare with
+   * @return true if the version is at least the target version
+   */
+  public static boolean isAtLeast(@Nullable String version, String targetVersion) {
+    if (StringUtils.isBlank(version) || String.valueOf(version.charAt(0)).matches("\\D")) {
       return false;
     }
-
-    int endIndex = Math.min(3, version.length());
-    try {
-      return Double.parseDouble(version.substring(0, endIndex)) >= 5.2;
-    } catch (NumberFormatException e) {
-      return false;
-    }
+    return Version.parse(version).compareTo(Version.parse(targetVersion)) >= 0;
   }
-
 }

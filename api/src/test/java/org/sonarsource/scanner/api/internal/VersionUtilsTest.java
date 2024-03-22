@@ -26,15 +26,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class VersionUtilsTest {
 
   @Test
-  public void parse_version() {
-    assertThat(VersionUtils.isAtLeast52("5.2")).isTrue();
-    assertThat(VersionUtils.isAtLeast52(null)).isFalse();
-    assertThat(VersionUtils.isAtLeast52("52")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("5.0")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("trash")).isFalse();
-    assertThat(VersionUtils.isAtLeast52("6.0.0")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("5.2-SNAPSHOT")).isTrue();
-    assertThat(VersionUtils.isAtLeast52("6.3.0.1234")).isTrue();
+  public void isAtLeast_shouldCompareCorrectly() {
+    assertThat(VersionUtils.isAtLeast("10.5", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeast("10.10", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeast(null, "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("105", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeast("10", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("10.0", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("trash", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("11.0.0", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeast("10.4.9", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("10.5-SNAPSHOT", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeast("10.6-SNAPSHOT", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeast("10.5.0.1234", "10.5")).isTrue();
   }
 }

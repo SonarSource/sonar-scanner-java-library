@@ -40,6 +40,7 @@ import org.sonarsource.scanner.api.internal.JreDownloader;
 import org.sonarsource.scanner.api.internal.OsArchProvider;
 import org.sonarsource.scanner.api.internal.ScannerEngineLauncher;
 import org.sonarsource.scanner.api.internal.ServerConnection;
+import org.sonarsource.scanner.api.internal.VersionUtils;
 import org.sonarsource.scanner.api.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 import org.sonarsource.scanner.api.internal.cache.FileCacheBuilder;
@@ -206,8 +207,7 @@ public class EmbeddedScanner {
       .build();
     JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, fileCache).create();
 
-    //TODO Maybe call with new method and fallback to old one
-    if (!isSimulation() && (isSonarCloud(globalProperties) || serverConnection.getServerVersion().startsWith("10.5"))) {
+    if (!isSimulation() && (isSonarCloud(globalProperties) || VersionUtils.isAtLeast(serverConnection.getServerVersion(), "10.5"))) {
       JavaRunner javaRunner = setUpJre(serverConnection, fileCache, logger);
       File scannerEngine = jarDownloader.getScannerEngineFiles().get(0);
       scannerEngineLauncher = new ScannerEngineLauncher(javaRunner, scannerEngine, logger);
