@@ -57,7 +57,7 @@ public class OsArchProvider {
     String osName = system.getProperty("os.name");
     if (osName != null) {
       String osNameLowerCase = osName.toLowerCase(Locale.ENGLISH);
-      if (osNameLowerCase.contains("windows")) {
+      if (osNameLowerCase.contains("win")) {
         return OperatingSystem.WINDOWS;
       } else if (osNameLowerCase.contains("linux")) {
         return isAlpine() ? OperatingSystem.ALPINE : OperatingSystem.LINUX;

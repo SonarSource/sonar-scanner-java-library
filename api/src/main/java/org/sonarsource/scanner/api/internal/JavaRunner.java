@@ -22,14 +22,16 @@ package org.sonarsource.scanner.api.internal;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.api.internal.cache.Logger;
@@ -44,16 +46,17 @@ public class JavaRunner {
     this.logger = logger;
   }
 
-  public void execute(List<String> args, @Nullable Map<String, String> envVars) {
+  public void execute(List<String> args, @Nullable String input) {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.getAbsolutePath());
-      //TODO possibility to pass custom vm args
-      ProcessBuilder builder = new ProcessBuilder(command);
-      if (envVars != null) {
-        builder.environment().putAll(envVars);
+      Process process = new ProcessBuilder(command).start();
+      if (input != null) {
+        try (OutputStream stdin = process.getOutputStream();
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin, StandardCharsets.UTF_8))) {
+          writer.write(input);
+        }
       }
-      Process process = builder.start();
       new StreamGobbler(process.getInputStream(), this::tryParse).start();
       new StreamGobbler(process.getErrorStream(), stderr -> logger.error("[stderr] " + stderr)).start();
       if (process.waitFor() != 0) {

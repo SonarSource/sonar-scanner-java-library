@@ -19,24 +19,17 @@
  */
 package org.sonarsource.scanner.api.internal;
 
-import com.google.gson.stream.JsonWriter;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sonarsource.scanner.api.ScanProperties;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
 public class ScannerEngineLauncher {
 
-  private static final List<String> SENSITIVE_PROPERTIES = Arrays.asList(ScanProperties.TOKEN, ScanProperties.LOGIN);
-  private static final String ENV_VAR_SONAR_TOKEN = "SONAR_TOKEN";
+  private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
   private final File scannerEngineJar;
   private final Logger logger;
@@ -48,52 +41,22 @@ public class ScannerEngineLauncher {
   }
 
   public void execute(Map<String, String> properties) {
-    File propertyFile = buildPropertyFile(properties);
-    javaRunner.execute(buildCommand(propertyFile), buildEnvVars(properties));
-    try {
-      Files.delete(propertyFile.toPath());
-    } catch (IOException e) {
-      logger.error("Failed to delete property file", e);
-    }
+    logger.info("Starting scanner-engine");
+    javaRunner.execute(buildArgs(), buildJsonProperties(properties));
   }
 
-  private static File buildPropertyFile(Map<String, String> properties) {
-    try {
-      File propertyFile = File.createTempFile("sonar-scanner", ".json");
-      try (JsonWriter writer = new JsonWriter(new FileWriter(propertyFile, StandardCharsets.UTF_8))) {
-        writer.beginArray();
-        for (Map.Entry<String, String> prop : properties.entrySet()) {
-          if (!SENSITIVE_PROPERTIES.contains(prop.getKey())) {
-            writer.beginObject();
-            writer.name("key").value(prop.getKey());
-            writer.name("value").value(prop.getValue());
-            writer.endObject();
-          }
-        }
-        writer.endArray();
-      }
-      return propertyFile;
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to create property file", e);
-    }
+  private List<String> buildArgs() {
+    List<String> args = new ArrayList<>();
+    //TODO possibility to pass custom vm args
+    //args.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5007");
+    args.add("-jar");
+    args.add(scannerEngineJar.getAbsolutePath());
+    return args;
   }
 
-  private List<String> buildCommand(File propertyFile) {
-    List<String> command = new ArrayList<>();
-    //command.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5007");
-    command.add("-jar");
-    command.add(scannerEngineJar.getAbsolutePath());
-    command.add(propertyFile.getAbsolutePath());
-    return command;
-  }
-
-  private static Map<String, String> buildEnvVars(Map<String, String> properties) {
-    Map<String, String> envVars = new HashMap<>();
-    String token = properties.get(ScanProperties.TOKEN);
-    if (token == null) {
-      token = properties.get(ScanProperties.LOGIN);
-    }
-    envVars.put(ENV_VAR_SONAR_TOKEN, token);
-    return envVars;
+  private String buildJsonProperties(Map<String, String> properties) {
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, new Gson().toJsonTree(properties));
+    return new Gson().toJson(jsonObject);
   }
 }
