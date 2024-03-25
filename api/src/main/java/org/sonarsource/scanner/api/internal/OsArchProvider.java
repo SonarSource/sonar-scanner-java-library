@@ -57,12 +57,12 @@ public class OsArchProvider {
     String osName = system.getProperty("os.name");
     if (osName != null) {
       String osNameLowerCase = osName.toLowerCase(Locale.ENGLISH);
-      if (osNameLowerCase.contains("win")) {
+      if (osNameLowerCase.contains("mac") || osNameLowerCase.contains("darwin")) {
+        return OperatingSystem.MACOS;
+      } else if (osNameLowerCase.contains("win")) {
         return OperatingSystem.WINDOWS;
       } else if (osNameLowerCase.contains("linux")) {
         return isAlpine() ? OperatingSystem.ALPINE : OperatingSystem.LINUX;
-      } else if (osNameLowerCase.contains("mac") || osNameLowerCase.contains("darwin")) {
-        return OperatingSystem.MACOS;
       }
     }
     return null;
@@ -116,7 +116,7 @@ public class OsArchProvider {
 
     @Override
     public String toString() {
-      return "os[" + os + "], arch[" + arch + "]";
+      return "os[" + os.name().toLowerCase(Locale.ENGLISH) + "], arch[" + arch + "]";
     }
   }
 }

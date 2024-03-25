@@ -28,6 +28,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
+import java.util.Locale;
 import org.sonarsource.scanner.api.CompressionUtils;
 import org.sonarsource.scanner.api.internal.cache.FileCache;
 
@@ -47,8 +48,7 @@ public class JreDownloader {
 
   public File download(OsArchProvider.OsArch osArch) {
     var jreInfo = getJreInfo(serverConnection, osArch);
-    File cachedFile = fileCache.get(jreInfo.filename, jreInfo.checksum,
-      new JreArchiveDownloader(serverConnection));
+    File cachedFile = fileCache.get(jreInfo.filename, jreInfo.md5, new JreArchiveDownloader(serverConnection));
     File extractedDirectory = extractArchive(cachedFile);
     return new File(extractedDirectory, jreInfo.javaPath);
   }
@@ -56,7 +56,7 @@ public class JreDownloader {
   private static JreInfo getJreInfo(ServerConnection serverConnection, OsArchProvider.OsArch osArch) {
     try {
       String jreInfoResponse = serverConnection.downloadString(
-        String.format("/api/v2/scanner/jre/info?os=%s&arch=%s", osArch.getOs(), osArch.getArch()));
+        String.format("/api/v2/analysis/jres?os=%s&arch=%s", osArch.getOs().name().toLowerCase(Locale.ENGLISH), osArch.getArch()));
       return new Gson().fromJson(jreInfoResponse, JreInfo.class);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get JRE info", e);
@@ -64,16 +64,12 @@ public class JreDownloader {
   }
 
   private static class JreInfo {
-
     @SerializedName("filename")
     private String filename;
-
-    @SerializedName("checksum")
-    private String checksum;
-
+    @SerializedName("md5")
+    private String md5;
     @SerializedName("javaPath")
     private String javaPath;
-
   }
 
   private static File extractArchive(File cachedFile) {
@@ -143,7 +139,7 @@ public class JreDownloader {
 
     @Override
     public void download(String filename, File toFile) throws IOException {
-      connection.downloadFile(format("/api/v2/scanner/jre/download?filename=%s", filename), toFile.toPath());
+      connection.downloadFile(format("/api/v2/analysis/jres/%s", filename), toFile.toPath());
     }
   }
 }

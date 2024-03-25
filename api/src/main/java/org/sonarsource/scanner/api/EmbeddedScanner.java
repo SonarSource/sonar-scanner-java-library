@@ -222,7 +222,7 @@ public class EmbeddedScanner {
     return globalProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
   }
 
-  static boolean isSonarCloud(Map<String, String> props) {
+  private static boolean isSonarCloud(Map<String, String> props) {
     String hostUrl = props.get(ScannerProperties.HOST_URL);
     if (hostUrl != null) {
       return hostUrl.toLowerCase(Locale.ENGLISH).contains("sonarcloud");

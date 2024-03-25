@@ -54,7 +54,7 @@ public class ScannerEngineLauncher {
     return args;
   }
 
-  private String buildJsonProperties(Map<String, String> properties) {
+  private static String buildJsonProperties(Map<String, String> properties) {
     JsonObject jsonObject = new JsonObject();
     jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, new Gson().toJsonTree(properties));
     return new Gson().toJson(jsonObject);
