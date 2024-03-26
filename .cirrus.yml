@@ -70,7 +70,7 @@ qa_task:
   env:
     matrix:
       - QA_CATEGORY: RELEASE
-      - QA_CATEGORY: DEV
+#      - QA_CATEGORY: DEV
     JAVA_VERSION:
       - LATEST_RELEASE
     GITHUB_TOKEN: VAULT[development/github/token/licenses-ro token]

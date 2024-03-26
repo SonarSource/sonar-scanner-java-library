@@ -212,7 +212,7 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
 
     // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
-    String failedAnalysis = "(?s).*org\\.sonarsource\\.scanner\\.api\\.internal\\.ScannerException: Unable to execute SonarScanner analysis.*";
+    String failedAnalysis = "(?s).*java\\.lang\\.IllegalStateException: Failed to get server version.*";
     assertThat(buildResult.getLogs())
       .matches(p -> p.matches(failedAnalysis + "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*") ||
         p.matches(failedAnalysis + "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*") ||
