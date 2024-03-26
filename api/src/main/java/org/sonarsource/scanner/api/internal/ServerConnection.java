@@ -30,6 +30,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.sonarsource.scanner.api.ScannerProperties;
 import org.sonarsource.scanner.api.Utils;
 import org.sonarsource.scanner.api.internal.cache.Logger;
 
@@ -57,7 +58,7 @@ public class ServerConnection {
   }
 
   public static ServerConnection create(Map<String, String> props, Logger logger) {
-    String serverUrl = props.get("sonar.host.url");
+    String serverUrl = props.get(ScannerProperties.HOST_URL);
     String userAgent = format("%s/%s", props.get(SCANNER_APP), props.get(SCANNER_APP_VERSION));
     return new ServerConnection(serverUrl, userAgent, logger);
   }

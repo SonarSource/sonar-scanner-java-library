@@ -55,11 +55,11 @@ import static org.sonarsource.scanner.api.ScannerProperties.USER_HOME;
  * @since 2.2
  */
 public class EmbeddedScanner {
-  private static final String BITBUCKET_CLOUD_ENV_VAR = "BITBUCKET_BUILD_NUMBER";
   private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
-  private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
+  static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
+  private ServerConnection serverConnection;
   private ScannerEngineLauncher scannerEngineLauncher;
   private final LogOutput logOutput;
   private final Map<String, String> globalProperties = new HashMap<>();
@@ -140,8 +140,16 @@ public class EmbeddedScanner {
   }
 
   public String serverVersion() {
-    checkLauncherExists();
-    return launcher.getVersion();
+    if (isSimulation()) {
+      checkLauncherExists();
+      return launcher.getVersion();
+    } else {
+      if (serverConnection != null) {
+        return serverConnection.getServerVersion();
+      } else {
+        throw new IllegalStateException("Server connection not initialized");
+      }
+    }
   }
 
   public void execute(Map<String, String> taskProps) {
@@ -166,11 +174,9 @@ public class EmbeddedScanner {
     String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
     if (sonarHostUrl != null) {
       setGlobalDefaultValue(ScannerProperties.HOST_URL, sonarHostUrl);
-    } else if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
-      logger.info("Bitbucket Cloud Pipelines detected, no host variable set. Defaulting to sonarcloud.io.");
     } else {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
+      String sonarcloudUrl = globalProperties.getOrDefault(ScannerProperties.SONARCLOUD_URL, SONARCLOUD_HOST);
+      setGlobalDefaultValue(ScannerProperties.HOST_URL, sonarcloudUrl);
     }
   }
 
@@ -201,7 +207,7 @@ public class EmbeddedScanner {
   }
 
   protected void doStart() {
-    ServerConnection serverConnection = ServerConnection.create(globalProperties(), logger);
+    serverConnection = ServerConnection.create(globalProperties(), logger);
     FileCache fileCache = new FileCacheBuilder(logger)
       .setUserHome(globalProperties.get(USER_HOME))
       .build();
@@ -223,11 +229,14 @@ public class EmbeddedScanner {
   }
 
   private static boolean isSonarCloud(Map<String, String> props) {
+    if (props.containsKey(ScannerProperties.SONARCLOUD_URL)) {
+      return true;
+    }
     String hostUrl = props.get(ScannerProperties.HOST_URL);
     if (hostUrl != null) {
       return hostUrl.toLowerCase(Locale.ENGLISH).contains("sonarcloud");
     }
-    return false;
+    return true;
   }
 
   private JavaRunner setUpJre(ServerConnection serverConnection, FileCache fileCache, Logger logger) {

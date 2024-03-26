@@ -32,6 +32,11 @@ public interface ScannerProperties {
   String HOST_URL = "sonar.host.url";
 
   /**
+   * URL of the sonarcloud server. Used for testing purposes.
+   */
+  String SONARCLOUD_URL = "sonar.scanner.sonarcloud.url";
+
+  /**
    * Task to execute, "scan" by default
    */
   String TASK = "sonar.task";
