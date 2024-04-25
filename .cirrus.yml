@@ -20,10 +20,10 @@ env:
   ### Project variables
   DEPLOY_PULL_REQUEST: true
   ARTIFACTS: "\
-    org.sonarsource.scanner.commons:sonar-scanner-commons:jar,\
-    org.sonarsource.scanner.commons:sonar-scanner-commons-batch:jar,\
-    org.sonarsource.scanner.commons:sonar-scanner-commons-batch-interface:jar,\
-    org.sonarsource.scanner.commons:sonar-scanner-commons-parent:jar"
+    org.sonarsource.scanner.lib:sonar-scanner-java-library:jar,\
+    org.sonarsource.scanner.lib:sonar-scanner-java-library-batch:jar,\
+    org.sonarsource.scanner.lib:sonar-scanner-java-library-batch-interface:jar,\
+    org.sonarsource.scanner.lib:sonar-scanner-java-library-parent:jar"
 
 #
 # RE-USABLE CONFIGS

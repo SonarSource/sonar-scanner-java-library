@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.sonarsource.scanner.commons</groupId>
-    <artifactId>sonar-scanner-commons-parent</artifactId>
+    <groupId>org.sonarsource.scanner.lib</groupId>
+    <artifactId>sonar-scanner-java-library-parent</artifactId>
     <version>2.17-SNAPSHOT</version>
   </parent>
 
-  <artifactId>sonar-scanner-commons-batch</artifactId>
-  <name>SonarQube Scanner Commons - Batch</name>
+  <artifactId>sonar-scanner-java-library-batch</artifactId>
+  <name>SonarScanner Java Library - Batch</name>
 
   <properties>
     <sonarQubeVersion>6.6</sonarQubeVersion>
@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sonar-scanner-commons-batch-interface</artifactId>
+      <artifactId>sonar-scanner-java-library-batch-interface</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
