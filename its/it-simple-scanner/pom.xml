@@ -1,19 +1,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.sonarsource.scanner.commons</groupId>
+    <groupId>org.sonarsource.scanner.lib</groupId>
     <artifactId>it</artifactId>
     <version>2.17-SNAPSHOT</version>
   </parent>
   
-  <artifactId>it-scanner-commons-simple-scanner</artifactId>
+  <artifactId>it-scanner-java-library-simple-scanner</artifactId>
   <name>Simple Scanner for ITs</name>
   <description>Simple scanner for integration tests</description>
   
   <dependencies>
     <dependency>
-      <groupId>org.sonarsource.scanner.commons</groupId>
-      <artifactId>sonar-scanner-commons</artifactId>
+      <groupId>org.sonarsource.scanner.lib</groupId>
+      <artifactId>sonar-scanner-java-library</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>
@@ -37,7 +37,7 @@
             <appendAssemblyId>false</appendAssemblyId>
             <archive>
               <manifest>
-                <mainClass>com.sonar.scanner.api.it.Main</mainClass>
+                <mainClass>com.sonar.scanner.lib.it.Main</mainClass>
               </manifest>
             </archive>
           </configuration>

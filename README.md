@@ -1,8 +1,8 @@
-# SonarQube Scanner Commons
+# SonarScanner Java Library
 
 Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scanner for Gradle, SQ Scanner for Ant, ...).
 
-Used to programmatically run SQ analysis to help developers write [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonar-scanner-commons).
+Used to programmatically run SQ analysis to help developers write [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonar-scanner-java-library).
 
 ![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-api.svg)
 
