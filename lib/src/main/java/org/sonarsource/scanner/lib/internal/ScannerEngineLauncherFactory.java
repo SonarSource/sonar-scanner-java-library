@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
@@ -63,7 +64,7 @@ public class ScannerEngineLauncherFactory {
     try {
       var scannerEngineMetadata = getScannerEngineMetadata(serverConnection);
       return fileCache.get(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
-        new ScannerEngineDownloader(serverConnection, scannerEngineMetadata));
+        new ScannerEngineDownloader(serverConnection, scannerEngineMetadata), ScannerProperties.SCANNER_ENGINE_CACHE_HIT);
     } catch (HashMismatchException e) {
       if (retry) {
         // A new scanner-engine might have been published between the metadata fetch and the download

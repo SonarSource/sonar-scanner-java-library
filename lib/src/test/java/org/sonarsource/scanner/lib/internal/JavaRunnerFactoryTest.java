@@ -33,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -77,7 +78,8 @@ class JavaRunnerFactoryTest {
 
     when(serverConnection.callServerApi(matches(API_PATH_JRE + ".*"))).thenReturn(
       IOUtils.toString(requireNonNull(getClass().getResourceAsStream("createRunner_jreProvisioning.json")), StandardCharsets.UTF_8));
-    when(fileCache.get(eq("fake-jre.zip"), eq("123456"), eq("SHA-256"), any(JavaRunnerFactory.JreDownloader.class))).thenReturn(jre);
+    when(fileCache.get(eq("fake-jre.zip"), eq("123456"), eq("SHA-256"), any(JavaRunnerFactory.JreDownloader.class),
+      eq(ScannerProperties.JRE_CACHE_HIT))).thenReturn(jre);
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, new HashMap<>());
 

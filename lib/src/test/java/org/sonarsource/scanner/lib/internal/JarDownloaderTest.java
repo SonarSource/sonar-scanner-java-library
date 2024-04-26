@@ -44,6 +44,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ENGINE_CACHE_HIT;
 
 public class JarDownloaderTest {
   @Mock
@@ -84,8 +85,10 @@ public class JarDownloaderTest {
 
     assertThat(files).isNotNull();
     verify(bootstrapIndexDownloader).getIndex();
-    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class));
-    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class),
+      eq(SCANNER_ENGINE_CACHE_HIT));
+    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class),
+      eq(SCANNER_ENGINE_CACHE_HIT));
     verifyNoMoreInteractions(fileCache);
   }
 

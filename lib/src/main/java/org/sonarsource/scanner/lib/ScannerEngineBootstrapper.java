@@ -102,23 +102,22 @@ public class ScannerEngineBootstrapper {
     Set<String> unmaskRules = new HashSet<>();
     unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
-    var properties = Map.copyOf(bootstrapProperties);
-    var isSonarCloud = getSonarCloudUrl().equals(properties.get(ScannerProperties.HOST_URL));
-    var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
-    var sonarUserHome = resolveSonarUserHome(properties);
-    var fileCache = FileCache.create(sonarUserHome, logger);
-    serverConnection.init(properties, sonarUserHome);
-    var serverVersion = getServerVersion(serverConnection, isSonarCloud, isSimulation, properties);
+    var isSonarCloud = getSonarCloudUrl().equals(bootstrapProperties.get(ScannerProperties.HOST_URL));
+    var isSimulation = bootstrapProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
+    var sonarUserHome = resolveSonarUserHome(bootstrapProperties);
+    var fileCache = FileCache.create(sonarUserHome, logger, bootstrapProperties);
+    serverConnection.init(bootstrapProperties, sonarUserHome);
+    var serverVersion = getServerVersion(serverConnection, isSonarCloud, isSimulation, bootstrapProperties);
 
     if (isSimulation) {
       var launcher = launcherFactory.createSimulationLauncher();
-      return new OldScannerEngineFacade(properties, launcher, logOutput, isSonarCloud, serverVersion);
+      return new OldScannerEngineFacade(bootstrapProperties, launcher, logOutput, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeast(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
-      return new NewScannerEngineFacade(properties, launcher, logOutput, isSonarCloud, serverVersion);
+      var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, bootstrapProperties);
+      return new NewScannerEngineFacade(bootstrapProperties, launcher, logOutput, isSonarCloud, serverVersion);
     } else {
       var launcher = launcherFactory.createLauncher(rules, serverConnection, fileCache);
-      return new OldScannerEngineFacade(properties, launcher, logOutput, false, serverVersion);
+      return new OldScannerEngineFacade(bootstrapProperties, launcher, logOutput, false, serverVersion);
     }
   }
 

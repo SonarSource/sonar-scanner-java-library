@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -58,7 +59,7 @@ class JarDownloader {
   private List<File> getScannerEngineFiles() {
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
     return index.stream()
-      .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader))
+      .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader, ScannerProperties.SCANNER_ENGINE_CACHE_HIT))
       .collect(Collectors.toList());
   }
 

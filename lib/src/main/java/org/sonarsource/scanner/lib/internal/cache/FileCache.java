@@ -26,7 +26,9 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 
 /**
  * This class is responsible for managing Sonar batch file cache. You can put file into cache and
@@ -39,18 +41,20 @@ public class FileCache {
   private final Path tmpDir;
   private final FileHashes hashes;
   private final Logger logger;
+  private final Map<String, String> properties;
 
-  FileCache(Path dir, FileHashes fileHashes, Logger logger) {
+  FileCache(Path dir, FileHashes fileHashes, Logger logger, Map<String, String> properties) {
     this.hashes = fileHashes;
     this.logger = logger;
     this.dir = createDir(dir, "user cache: ");
-    logger.info(String.format("User cache: %s", dir.toString()));
+    this.properties = properties;
+    logger.info(String.format("User cache: %s", dir));
     this.tmpDir = createDir(dir.resolve("_tmp"), "temp dir");
   }
 
-  public static FileCache create(Path sonarUserHome, Logger logger) {
+  public static FileCache create(Path sonarUserHome, Logger logger, Map<String, String> properties) {
     var dir = sonarUserHome.resolve("cache");
-    return new FileCache(dir, new FileHashes(), logger);
+    return new FileCache(dir, new FileHashes(), logger, properties);
   }
 
   public File getDir() {
@@ -76,7 +80,7 @@ public class FileCache {
     void download(String filename, File toFile) throws IOException;
   }
 
-  public File get(String filename, String hash, String hashAlgorithm, Downloader downloader) {
+  public File get(String filename, String hash, String hashAlgorithm, Downloader downloader, @Nullable String cacheHitProperty) {
     // Does not fail if another process tries to create the directory at the same time.
     Path hashDir = hashDir(hash);
     Path targetFile = hashDir.resolve(filename);
@@ -90,6 +94,11 @@ public class FileCache {
       }
       mkdirQuietly(hashDir);
       renameQuietly(tempFile, targetFile);
+      if (cacheHitProperty != null) {
+        properties.put(cacheHitProperty, "false");
+      }
+    } else if (cacheHitProperty != null) {
+      properties.put(cacheHitProperty, "true");
     }
     return targetFile.toFile();
   }

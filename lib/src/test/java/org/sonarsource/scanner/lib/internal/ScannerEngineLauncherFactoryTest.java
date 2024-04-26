@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
@@ -61,7 +62,7 @@ class ScannerEngineLauncherFactoryTest {
     factory.createLauncher(serverConnection, fileCache, new HashMap<>());
 
     verify(fileCache).get(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"),
-      any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class));
+      any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class), eq(ScannerProperties.SCANNER_ENGINE_CACHE_HIT));
   }
 
   @Test

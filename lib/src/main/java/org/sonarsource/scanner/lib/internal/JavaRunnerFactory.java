@@ -36,6 +36,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
@@ -102,7 +103,7 @@ public class JavaRunnerFactory {
     try {
       var jreMetadata = getJreMetadata(serverConnection, os, arch);
       File cachedFile = fileCache.get(jreMetadata.getFilename(), jreMetadata.getSha256(), "SHA-256",
-        new JreDownloader(serverConnection, jreMetadata));
+        new JreDownloader(serverConnection, jreMetadata), ScannerProperties.JRE_CACHE_HIT);
       File extractedDirectory = extractArchive(cachedFile);
       return new File(extractedDirectory, jreMetadata.javaPath);
     } catch (HashMismatchException e) {

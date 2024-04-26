@@ -104,4 +104,14 @@ public final class ScannerProperties {
    * Java options to be used by the scanner-engine.
    */
   public static final String SCANNER_JAVA_OPTS = "sonar.scanner.javaOpts";
+
+  /**
+   * Set to true if the JRE was found in the scanner cache.
+   */
+  public static final String JRE_CACHE_HIT = "sonar.scanner.wasJreCacheHit";
+
+  /**
+   * Set to true if the Scanner Engine was found in the scanner cache.
+   */
+  public static final String SCANNER_ENGINE_CACHE_HIT = "sonar.scanner.wasEngineCacheHit";
 }
