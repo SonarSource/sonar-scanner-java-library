@@ -21,6 +21,7 @@ package org.sonarsource.scanner.lib;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -35,7 +36,7 @@ import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 /**
- * Entry point to run SonarQube analysis programmatically.
+ * Entry point to run a Sonar analysis programmatically.
  *
  * @since 2.2
  */
@@ -48,15 +49,12 @@ public class EmbeddedScanner {
   private final LogOutput logOutput;
   private final Map<String, String> globalProperties = new HashMap<>();
   private final Logger logger;
-  private final Set<String> classloaderMask = new HashSet<>();
-  private final Set<String> classloaderUnmask = new HashSet<>();
   private final System2 system;
 
   EmbeddedScanner(IsolatedLauncherFactory bl, Logger logger, LogOutput logOutput, System2 system) {
     this.logger = logger;
     this.launcherFactory = bl;
     this.logOutput = logOutput;
-    this.classloaderUnmask.add("org.sonarsource.scanner.lib.internal.batch.");
     this.system = system;
   }
 
@@ -75,20 +73,8 @@ public class EmbeddedScanner {
     return globalProperties;
   }
 
-  public EmbeddedScanner unmask(String fqcnPrefix) {
-    checkLauncherDoesntExist();
-    classloaderUnmask.add(fqcnPrefix);
-    return this;
-  }
-
-  public EmbeddedScanner mask(String fqcnPrefix) {
-    checkLauncherDoesntExist();
-    classloaderMask.add(fqcnPrefix);
-    return this;
-  }
-
   /**
-   * Declare SonarQube properties needed to download the scanner-engine from the server (sonar.host.url, credentials, proxy, ...).
+   * Declare technical properties needed to bootstrap (sonar.host.url, credentials, proxy, ...).
    */
   public EmbeddedScanner addGlobalProperties(Map<String, String> p) {
     globalProperties.putAll(p);
@@ -96,7 +82,7 @@ public class EmbeddedScanner {
   }
 
   /**
-   * Declare a SonarQube property needed to download the scanner-engine from the server (sonar.host.url, credentials, proxy, ...).
+   * Declare a technical property needed to bootstrap (sonar.host.url, credentials, proxy, ...).
    */
   public EmbeddedScanner setGlobalProperty(String key, String value) {
     globalProperties.put(key, value);
@@ -181,7 +167,9 @@ public class EmbeddedScanner {
 
   protected void doStart() {
     checkLauncherDoesntExist();
-    ClassloadRules rules = new ClassloadRules(classloaderMask, classloaderUnmask);
+    Set<String> unmaskRules = new HashSet<>();
+    unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
+    ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
     launcher = launcherFactory.createLauncher(globalProperties(), rules);
   }
 
