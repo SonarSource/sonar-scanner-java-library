@@ -4,7 +4,7 @@ Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scann
 
 Used to programmatically run SQ analysis to help developers write [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonar-scanner-java-library).
 
-![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-api.svg)
+[![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-java-library.svg?branch=master)](https://cirrus-ci.com/github/SonarSource/sonar-scanner-java-library) [![Quality Gate Status](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent&metric=alert_status&token=5402ff8aea6466f2c1de75ce30617a365a8d3f8e)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent)
 
 ## Have Questions or Feedback?
 
@@ -20,7 +20,7 @@ Please be aware that we are not actively looking for feature contributions. The 
 
 With that in mind, if you would like to submit a code contribution, please create a pull request for this repository. Please explain your motives to contribute this change: what problem you are trying to fix, what improvement you are trying to make.
 
-Make sure that you follow our [code style](https://github.com/SonarSource/sonar-developer-toolset#code-style) and all tests are passing (Travis build is executed for each pull request).
+Make sure that you follow our [code style](https://github.com/SonarSource/sonar-developer-toolset#code-style) and all tests are passing.
 
 ## License
 
