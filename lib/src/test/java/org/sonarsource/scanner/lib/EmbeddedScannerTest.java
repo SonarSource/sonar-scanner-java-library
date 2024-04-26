@@ -225,7 +225,6 @@ public class EmbeddedScannerTest {
   @Test
   public void should_set_default_platform_encoding() throws Exception {
     Map<String, String> p = new HashMap<>();
-    p.put("sonar.task", "scan");
     scanner.initSourceEncoding(p);
     assertThat(p.get("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
     verify(logger).info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)");
@@ -234,7 +233,6 @@ public class EmbeddedScannerTest {
   @Test
   public void should_set_default_platform_encoding_when_empty() throws Exception {
     Map<String, String> p = new HashMap<>();
-    p.put("sonar.task", "scan");
     p.put("sonar.sourceEncoding", "");
     scanner.initSourceEncoding(p);
     assertThat(p.get("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
@@ -253,18 +251,9 @@ public class EmbeddedScannerTest {
   @Test
   public void should_use_parameterized_encoding() throws Exception {
     Map<String, String> p = new HashMap<>();
-    p.put("sonar.task", "scan");
     p.put("sonar.sourceEncoding", "THE_ISO_1234");
     scanner.initSourceEncoding(p);
     assertThat(p.get("sonar.sourceEncoding")).isEqualTo("THE_ISO_1234");
-  }
-
-  @Test
-  public void should_not_init_encoding_if_not_project_task() throws Exception {
-    Map<String, String> p = new HashMap<>();
-    p.put("sonar.task", "views");
-    scanner.initSourceEncoding(p);
-    assertThat(p.get("sonar.sourceEncoding")).isNull();
   }
 
 }

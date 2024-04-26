@@ -32,11 +32,6 @@ public interface ScannerProperties {
   String HOST_URL = "sonar.host.url";
 
   /**
-   * Task to execute, "scan" by default
-   */
-  String TASK = "sonar.task";
-
-  /**
    * Working directory containing generated reports and temporary data.
    */
   String WORK_DIR = "sonar.working.directory";

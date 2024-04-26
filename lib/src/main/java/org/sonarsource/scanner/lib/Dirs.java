@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scanner.lib;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,15 +35,6 @@ class Dirs {
   }
 
   void init(Map<String, String> p) {
-    boolean onProject = Utils.taskRequiresProject(p);
-    if (onProject) {
-      initProjectDirs(p);
-    } else {
-      initTaskDirs(p);
-    }
-  }
-
-  private void initProjectDirs(Map<String, String> p) {
     String pathString = Optional.ofNullable(p.get(ScanProperties.PROJECT_BASEDIR)).orElse("");
     Path absoluteProjectPath = Paths.get(pathString).toAbsolutePath().normalize();
     if (!Files.isDirectory(absoluteProjectPath)) {
@@ -64,14 +54,5 @@ class Dirs {
     }
     p.put(ScannerProperties.WORK_DIR, workDirPath.normalize().toString());
     logger.debug("Work directory: " + workDirPath.normalize().toString());
-  }
-
-  /**
-   * Non-scan task
-   */
-  private static void initTaskDirs(Map<String, String> p) {
-    String path = Optional.ofNullable(p.get(ScannerProperties.WORK_DIR)).orElse(".");
-    File workDir = new File(path);
-    p.put(ScannerProperties.WORK_DIR, workDir.getAbsolutePath());
   }
 }
