@@ -38,30 +38,7 @@ public class DirsTest {
   public TemporaryFolder temp = new TemporaryFolder();
 
   @Test
-  public void should_init_default_task_work_dir() throws Exception {
-    p.put("sonar.task", "views");
-    new Dirs(mock(Logger.class)).init(p);
-
-    File workDir = new File(p.get(ScannerProperties.WORK_DIR));
-    assertThat(workDir).isNotNull().isDirectory();
-    assertThat(workDir.getCanonicalPath()).isEqualTo(new File(".").getCanonicalPath());
-  }
-
-  @Test
-  public void should_use_parameterized_task_work_dir() throws Exception {
-    p.put("sonar.task", "views");
-    p.put(ScannerProperties.WORK_DIR, "generated/reports");
-    new Dirs(mock(Logger.class)).init(p);
-
-    File workDir = new File(p.get(ScannerProperties.WORK_DIR));
-    assertThat(workDir).isNotNull();
-    // separators from windows to unix
-    assertThat(workDir.getCanonicalPath().replace("\\", "/")).contains("generated/reports");
-  }
-
-  @Test
   public void should_init_default_project_dirs() throws Exception {
-    p.put("sonar.task", "scan");
     new Dirs(mock(Logger.class)).init(p);
 
     File projectDir = new File(p.get(ScanProperties.PROJECT_BASEDIR));
@@ -78,7 +55,6 @@ public class DirsTest {
   @Test
   public void should_set_relative_path_to_project_work_dir() throws Exception {
     File initialProjectDir = temp.getRoot();
-    p.put("sonar.task", "scan");
     p.put(ScannerProperties.WORK_DIR, "relative/path");
     p.put(ScanProperties.PROJECT_BASEDIR, initialProjectDir.getAbsolutePath());
     new Dirs(mock(Logger.class)).init(p);

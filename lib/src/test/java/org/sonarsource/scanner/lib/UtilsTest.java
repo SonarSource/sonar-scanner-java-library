@@ -44,18 +44,9 @@ public class UtilsTest {
 
   @Test
   public void should_join_strings() {
-    assertThat(Utils.join(new String[] {}, ",")).isEqualTo("");
-    assertThat(Utils.join(new String[] {"foo"}, ",")).isEqualTo("foo");
-    assertThat(Utils.join(new String[] {"foo", "bar"}, ",")).isEqualTo("foo,bar");
-  }
-
-  @Test
-  public void task_should_require_project() {
-    Map<String, String> props = new HashMap<>();
-    assertThat(Utils.taskRequiresProject(props)).isTrue();
-
-    props.put("sonar.task", "scan");
-    assertThat(Utils.taskRequiresProject(props)).isTrue();
+    assertThat(Utils.join(new String[]{}, ",")).isEqualTo("");
+    assertThat(Utils.join(new String[]{"foo"}, ",")).isEqualTo("foo");
+    assertThat(Utils.join(new String[]{"foo", "bar"}, ",")).isEqualTo("foo,bar");
   }
 
   @Test
@@ -65,13 +56,6 @@ public class UtilsTest {
     p.put("key", "value");
     Utils.writeProperties(f, p);
     assertThat(Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)).contains("key=value");
-  }
-
-  @Test
-  public void task_should_not_require_project() {
-    Map<String, String> props = new HashMap<>();
-    props.put("sonar.task", "views");
-    assertThat(Utils.taskRequiresProject(props)).isFalse();
   }
 
   @Test

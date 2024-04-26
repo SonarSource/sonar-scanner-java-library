@@ -114,12 +114,12 @@ public class EmbeddedScanner {
     return launcher.getVersion();
   }
 
-  public void execute(Map<String, String> taskProps) {
+  public void execute(Map<String, String> analysisProps) {
     checkLauncherExists();
     try (IsolatedLauncherFactory launcherFactoryToBeClosed = launcherFactory) {
       Map<String, String> allProps = new HashMap<>();
       allProps.putAll(globalProperties);
-      allProps.putAll(taskProps);
+      allProps.putAll(analysisProps);
       initAnalysisProperties(allProps);
       doExecute(allProps);
     } catch (IOException e) {
@@ -145,18 +145,15 @@ public class EmbeddedScanner {
   }
 
   void initSourceEncoding(Map<String, String> p) {
-    boolean onProject = Utils.taskRequiresProject(p);
-    if (onProject) {
-      String sourceEncoding = Optional.ofNullable(p.get(ScanProperties.PROJECT_SOURCE_ENCODING)).orElse("");
-      boolean platformDependent = false;
-      if ("".equals(sourceEncoding)) {
-        sourceEncoding = Charset.defaultCharset().name();
-        platformDependent = true;
-        p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
-      }
-      logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
-        + (platformDependent ? " (analysis is platform dependent)" : ""));
+    String sourceEncoding = Optional.ofNullable(p.get(ScanProperties.PROJECT_SOURCE_ENCODING)).orElse("");
+    boolean platformDependent = false;
+    if ("".equals(sourceEncoding)) {
+      sourceEncoding = Charset.defaultCharset().name();
+      platformDependent = true;
+      p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
     }
+    logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
+      + (platformDependent ? " (analysis is platform dependent)" : ""));
   }
 
   private void setGlobalDefaultValue(String key, String value) {

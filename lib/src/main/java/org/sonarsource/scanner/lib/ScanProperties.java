@@ -28,13 +28,6 @@ package org.sonarsource.scanner.lib;
 public interface ScanProperties {
 
   /**
-   * Default task
-   *
-   * @see ScannerProperties#TASK
-   */
-  String SCAN_TASK = "scan";
-
-  /**
    * Required project key
    */
   String PROJECT_KEY = "sonar.projectKey";
