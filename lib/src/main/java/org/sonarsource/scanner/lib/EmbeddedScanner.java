@@ -47,7 +47,7 @@ public class EmbeddedScanner {
   private final IsolatedLauncherFactory launcherFactory;
   private IsolatedLauncher launcher;
   private final LogOutput logOutput;
-  private final Map<String, String> globalProperties = new HashMap<>();
+  private final Map<String, String> bootstrapProperties = new HashMap<>();
   private final Logger logger;
   private final System2 system;
 
@@ -61,51 +61,51 @@ public class EmbeddedScanner {
   public static EmbeddedScanner create(String app, String version, final LogOutput logOutput, System2 system2) {
     Logger logger = new LoggerAdapter(logOutput);
     return new EmbeddedScanner(new IsolatedLauncherFactory(logger), logger, logOutput, system2)
-      .setGlobalProperty(InternalProperties.SCANNER_APP, app)
-      .setGlobalProperty(InternalProperties.SCANNER_APP_VERSION, version);
+      .setBootstrapProperty(InternalProperties.SCANNER_APP, app)
+      .setBootstrapProperty(InternalProperties.SCANNER_APP_VERSION, version);
   }
 
   public static EmbeddedScanner create(String app, String version, final LogOutput logOutput) {
     return create(app, version, logOutput, new System2());
   }
 
-  public Map<String, String> globalProperties() {
-    return globalProperties;
+  public Map<String, String> getBootstrapProperties() {
+    return bootstrapProperties;
   }
 
   /**
    * Declare technical properties needed to bootstrap (sonar.host.url, credentials, proxy, ...).
    */
-  public EmbeddedScanner addGlobalProperties(Map<String, String> p) {
-    globalProperties.putAll(p);
+  public EmbeddedScanner addBootstrapProperties(Map<String, String> p) {
+    bootstrapProperties.putAll(p);
     return this;
   }
 
   /**
    * Declare a technical property needed to bootstrap (sonar.host.url, credentials, proxy, ...).
    */
-  public EmbeddedScanner setGlobalProperty(String key, String value) {
-    globalProperties.put(key, value);
+  public EmbeddedScanner setBootstrapProperty(String key, String value) {
+    bootstrapProperties.put(key, value);
     return this;
   }
 
-  public String globalProperty(String key, @Nullable String defaultValue) {
-    return Optional.ofNullable(globalProperties.get(key)).orElse(defaultValue);
+  public String getBootstrapProperty(String key, @Nullable String defaultValue) {
+    return bootstrapProperties.getOrDefault(key, defaultValue);
   }
 
   public String app() {
-    return globalProperty(InternalProperties.SCANNER_APP, null);
+    return getBootstrapProperty(InternalProperties.SCANNER_APP, null);
   }
 
   public String appVersion() {
-    return globalProperty(InternalProperties.SCANNER_APP_VERSION, null);
+    return getBootstrapProperty(InternalProperties.SCANNER_APP_VERSION, null);
   }
 
   /**
-   * Download scanner-engine JAR and start bootstrapping classloader. After that it is possible to call {@link #serverVersion()}
+   * Bootstrap the scanner-engine. After that it is possible to call {@link #serverVersion()}
    */
   public void start() {
-    initGlobalDefaultValues();
+    initBootstrapDefaultValues();
     doStart();
   }
 
@@ -118,7 +118,7 @@ public class EmbeddedScanner {
     checkLauncherExists();
     try (IsolatedLauncherFactory launcherFactoryToBeClosed = launcherFactory) {
       Map<String, String> allProps = new HashMap<>();
-      allProps.putAll(globalProperties);
+      allProps.putAll(bootstrapProperties);
       allProps.putAll(analysisProps);
       initAnalysisProperties(allProps);
       doExecute(allProps);
@@ -127,15 +127,15 @@ public class EmbeddedScanner {
     }
   }
 
-  private void initGlobalDefaultValues() {
+  private void initBootstrapDefaultValues() {
     String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
     if (sonarHostUrl != null) {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, sonarHostUrl);
+      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, sonarHostUrl);
     } else if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
+      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
       logger.info("Bitbucket Cloud Pipelines detected, no host variable set. Defaulting to sonarcloud.io.");
     } else {
-      setGlobalDefaultValue(ScannerProperties.HOST_URL, "http://localhost:9000");
+      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, "http://localhost:9000");
     }
   }
 
@@ -156,9 +156,9 @@ public class EmbeddedScanner {
       + (platformDependent ? " (analysis is platform dependent)" : ""));
   }
 
-  private void setGlobalDefaultValue(String key, String value) {
-    if (!globalProperties.containsKey(key)) {
-      setGlobalProperty(key, value);
+  private void setBootstrapPropertyIfNotAlreadySet(String key, String value) {
+    if (!bootstrapProperties.containsKey(key)) {
+      setBootstrapProperty(key, value);
     }
   }
 
@@ -167,7 +167,7 @@ public class EmbeddedScanner {
     Set<String> unmaskRules = new HashSet<>();
     unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
-    launcher = launcherFactory.createLauncher(globalProperties(), rules);
+    launcher = launcherFactory.createLauncher(getBootstrapProperties(), rules);
   }
 
   protected void doExecute(Map<String, String> properties) {
