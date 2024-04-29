@@ -40,6 +40,10 @@
       <artifactId>sonar-scanner-java-library-batch-interface</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
 
     <!-- unit tests -->
     <dependency>
@@ -65,11 +69,6 @@
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>mockwebserver</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

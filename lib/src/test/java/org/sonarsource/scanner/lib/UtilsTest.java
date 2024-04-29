@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,7 +31,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 public class UtilsTest {
   @Rule
@@ -41,13 +38,6 @@ public class UtilsTest {
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
-
-  @Test
-  public void should_join_strings() {
-    assertThat(Utils.join(new String[]{}, ",")).isEqualTo("");
-    assertThat(Utils.join(new String[]{"foo"}, ",")).isEqualTo("foo");
-    assertThat(Utils.join(new String[]{"foo", "bar"}, ",")).isEqualTo("foo,bar");
-  }
 
   @Test
   public void write_properties() throws IOException {
@@ -85,34 +75,4 @@ public class UtilsTest {
     assertThat(tmpDir.toFile()).doesNotExist();
   }
 
-  @Test
-  public void shouldHandleNullParams() {
-    assertThat(Utils.loadEnvironmentProperties(createSonarQubeScannerProps(null))).isEmpty();
-  }
-
-  @Test
-  public void shouldHandleParams() {
-    String props = "{\"sonar.login\" : \"admin\"}";
-    assertThat(Utils.loadEnvironmentProperties(createSonarQubeScannerProps(props))).containsExactly(entry("sonar.login", "admin"));
-  }
-
-  @Test
-  public void shouldHandleEmptyJsonInParams() {
-    String props = "{}";
-    assertThat(Utils.loadEnvironmentProperties(createSonarQubeScannerProps(props))).isEmpty();
-  }
-
-  @Test
-  public void shouldHandleJsonErrorsInParams() {
-    String props = "";
-    exception.expect(IllegalStateException.class);
-    exception.expectMessage("Failed to parse JSON");
-    assertThat(Utils.loadEnvironmentProperties(createSonarQubeScannerProps(props))).isEmpty();
-  }
-
-  private Map<String, String> createSonarQubeScannerProps(String params) {
-    Map<String, String> env = new HashMap<>();
-    env.put("SONARQUBE_SCANNER_PARAMS", params);
-    return env;
-  }
 }

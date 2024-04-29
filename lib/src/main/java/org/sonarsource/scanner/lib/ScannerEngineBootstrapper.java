@@ -27,40 +27,22 @@ import java.util.Set;
 import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
  */
 public class ScannerEngineBootstrapper {
-  private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
+
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private final IsolatedLauncherFactory launcherFactory;
   private final LogOutput logOutput;
   private final Map<String, String> bootstrapProperties = new HashMap<>();
-  private final System2 system;
 
   public ScannerEngineBootstrapper(String app, String version, final LogOutput logOutput) {
-    this(app, version, logOutput, new System2());
-  }
-
-  /**
-   * For testing.
-   */
-  public ScannerEngineBootstrapper(String app, String version, final LogOutput logOutput, System2 system2) {
-    this(new LoggerAdapter(logOutput), logOutput, system2);
+    this.logOutput = logOutput;
+    this.launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput));
     this.setBootstrapProperty(InternalProperties.SCANNER_APP, app)
       .setBootstrapProperty(InternalProperties.SCANNER_APP_VERSION, version);
-  }
-
-  private ScannerEngineBootstrapper(Logger logger, LogOutput logOutput, System2 system) {
-    this(logOutput, system, new IsolatedLauncherFactory(logger));
-  }
-
-  ScannerEngineBootstrapper(LogOutput logOutput, System2 system, IsolatedLauncherFactory launcherFactory) {
-    this.launcherFactory = launcherFactory;
-    this.logOutput = logOutput;
-    this.system = system;
   }
 
   /**
@@ -94,12 +76,7 @@ public class ScannerEngineBootstrapper {
   }
 
   private void initBootstrapDefaultValues() {
-    String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
-    if (sonarHostUrl != null) {
-      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, sonarHostUrl);
-    } else {
-      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    }
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
   }
 
   private String getSonarCloudUrl() {

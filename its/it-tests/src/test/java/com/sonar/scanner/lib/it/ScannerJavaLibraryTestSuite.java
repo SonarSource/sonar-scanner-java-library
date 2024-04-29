@@ -25,13 +25,10 @@ import com.sonar.orchestrator.locator.MavenLocation;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import org.apache.commons.lang.StringUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-
-import static org.assertj.core.api.Assertions.fail;
 
 @RunWith(Suite.class)
 @SuiteClasses({ProxyTest.class, SSLTest.class, PropertiesTest.class})
@@ -40,19 +37,11 @@ public class ScannerJavaLibraryTestSuite {
 
   @ClassRule
   public static final OrchestratorRule ORCHESTRATOR = OrchestratorRule.builderEnv()
-    .setSonarVersion(getSystemPropertyOrFail(SONAR_RUNTIME_VERSION))
+    .setSonarVersion(System.getProperty(SONAR_RUNTIME_VERSION, "LATEST_RELEASE"))
     .useDefaultAdminCredentialsForBuilds(true)
     // We need to use a plugin compatible with both SonarQube DEV & SonarQube version defined in .cirrus.yml (currently SQ 7.9)
     .addPlugin(MavenLocation.of("org.sonarsource.javascript", "sonar-javascript-plugin", "7.4.4.15624"))
     .build();
-
-  private static String getSystemPropertyOrFail(String orchestratorPropertiesSource) {
-    String propertyValue = System.getProperty(orchestratorPropertiesSource);
-    if (StringUtils.isEmpty(propertyValue)) {
-      fail(orchestratorPropertiesSource + " system property must be defined");
-    }
-    return propertyValue;
-  }
 
   public static void resetData(OrchestratorRule orchestrator) {
     Instant instant = Instant.now();

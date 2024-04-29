@@ -106,7 +106,7 @@ public class SSLTest {
 
     // Handler Structure
     HandlerCollection handlers = new HandlerCollection();
-    handlers.setHandlers(new Handler[] {proxyHandler(), new DefaultHandler()});
+    handlers.setHandlers(new Handler[]{proxyHandler(), new DefaultHandler()});
     server.setHandler(handlers);
 
     ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
@@ -184,7 +184,7 @@ public class SSLTest {
     params.put("javax.net.ssl.keyStore", clientKeystore.toString());
     params.put("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PASSWORD);
 
-    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
     assertThat(buildResult.getLastStatus()).isZero();
   }
 
@@ -208,7 +208,7 @@ public class SSLTest {
     params.put("javax.net.ssl.trustStorePassword", CLIENT_WITH_CA_KEYSTORE_PASSWORD);
     // Voluntary missing client keystore
 
-    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
 
     // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
@@ -251,7 +251,7 @@ public class SSLTest {
     params.put("javax.net.ssl.trustStore", clientTruststore.toString());
     params.put("javax.net.ssl.trustStorePassword", keyStorePassword);
 
-    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params);
+    buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
     assertThat(buildResult.getLastStatus()).isZero();
   }
 }

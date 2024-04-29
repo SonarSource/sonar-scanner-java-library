@@ -19,18 +19,16 @@
  */
 package com.sonar.scanner.lib.it.tools;
 
+import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.scanner.lib.it.ScannerJavaLibraryTestSuite;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import com.sonar.orchestrator.build.BuildResult;
 
 public class SimpleScanner {
   private static final Path JAR_PATH = Paths.get("..", "it-simple-scanner", "target", "simple-scanner.jar")
@@ -52,10 +50,10 @@ public class SimpleScanner {
   }
 
   public BuildResult executeSimpleProject(Path baseDir, String host) throws IOException {
-    return executeSimpleProject(baseDir, host, Collections.emptyMap());
+    return executeSimpleProject(baseDir, host, Map.of(), Map.of());
   }
 
-  public BuildResult executeSimpleProject(Path baseDir, String host, Map<String, String> extraProps) throws IOException {
+  public BuildResult executeSimpleProject(Path baseDir, String host, Map<String, String> extraProps, Map<String, String> env) throws IOException {
     List<String> params = new ArrayList<>();
     Map<String, String> props = getSimpleProjectProperties(baseDir, host, extraProps);
 
@@ -63,7 +61,7 @@ public class SimpleScanner {
     params.add("-jar");
     params.add(JAR_PATH.toString());
 
-    int status = exec.execute(params.toArray(new String[params.size()]));
+    int status = exec.execute(params.toArray(new String[params.size()]), env);
     BuildResult result = new BuildResult();
 
     result.addStatus(status);
