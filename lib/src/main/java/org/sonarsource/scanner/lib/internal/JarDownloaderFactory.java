@@ -37,7 +37,7 @@ class JarDownloaderFactory {
 
   JarDownloader create() {
     FileCache fileCache = new FileCacheBuilder(logger)
-      .setUserHome(userHome)
+      .setSonarUserHome(userHome)
       .build();
     BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(serverConnection, logger);
     JarDownloader.ScannerFileDownloader scannerFileDownloader = new JarDownloader.ScannerFileDownloader(serverConnection);

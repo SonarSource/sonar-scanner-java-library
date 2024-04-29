@@ -27,7 +27,7 @@ package org.sonarsource.scanner.lib;
  */
 public interface ScannerProperties {
   /**
-   * HTTP URL of Sonar server, "http://localhost:9000" by default
+   * URL of the Sonar server, default to SonarCloud
    */
   String HOST_URL = "sonar.host.url";
 
@@ -35,5 +35,10 @@ public interface ScannerProperties {
    * Working directory containing generated reports and temporary data.
    */
   String WORK_DIR = "sonar.working.directory";
-  
+
+  /**
+   * Base dir for various locations (cache, SSL, …). Default to ~/.sonar
+   */
+  String SONAR_USER_HOME = "sonar.userHome";
+
 }
