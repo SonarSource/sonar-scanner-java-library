@@ -99,29 +99,19 @@ public class EmbeddedScannerTest {
   }
 
   @Test
-  public void should_set_localhost_as_host_by_default() {
-    scanner.start();
-
-    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("http://localhost:9000");
-  }
-
-  @Test
-  public void should_set_sonarcloud_as_host_if_executed_from_bitbucket_cloud_and_no_host_env() {
-    when(system.getEnvironmentVariable("BITBUCKET_BUILD_NUMBER")).thenReturn("123");
-
+  public void should_set_sonarcloud_as_host_by_default() {
     scanner.start();
 
     assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("https://sonarcloud.io");
   }
 
   @Test
-  public void should_set_url_from_env_as_host_if_host_env_var_provided_even_on_bitbucket_cloud() {
-    when(system.getEnvironmentVariable("BITBUCKET_BUILD_NUMBER")).thenReturn("123");
-    when(system.getEnvironmentVariable("SONAR_HOST_URL")).thenReturn("http://from-env.org:9000");
+  public void should_use_sonarcloud_url_from_property() {
+    scanner
+      .setBootstrapProperty("sonar.scanner.sonarcloudUrl", "https://preprod.sonarcloud.io")
+      .start();
 
-    scanner.start();
-
-    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
+    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("https://preprod.sonarcloud.io");
   }
 
   @Test

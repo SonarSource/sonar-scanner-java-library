@@ -41,7 +41,6 @@ import org.sonarsource.scanner.lib.internal.cache.Logger;
  * @since 2.2
  */
 public class EmbeddedScanner {
-  private static final String BITBUCKET_CLOUD_ENV_VAR = "BITBUCKET_BUILD_NUMBER";
   private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private final IsolatedLauncherFactory launcherFactory;
@@ -131,12 +130,13 @@ public class EmbeddedScanner {
     String sonarHostUrl = system.getEnvironmentVariable(SONAR_HOST_URL_ENV_VAR);
     if (sonarHostUrl != null) {
       setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, sonarHostUrl);
-    } else if (system.getEnvironmentVariable(BITBUCKET_CLOUD_ENV_VAR) != null) {
-      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, SONARCLOUD_HOST);
-      logger.info("Bitbucket Cloud Pipelines detected, no host variable set. Defaulting to sonarcloud.io.");
     } else {
-      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, "http://localhost:9000");
+      setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
     }
+  }
+
+  private String getSonarCloudUrl() {
+    return bootstrapProperties.getOrDefault("sonar.scanner.sonarcloudUrl", SONARCLOUD_HOST);
   }
 
   private void initAnalysisProperties(Map<String, String> p) {
