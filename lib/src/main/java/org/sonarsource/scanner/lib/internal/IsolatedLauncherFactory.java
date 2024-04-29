@@ -21,8 +21,6 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.io.File;
 import java.net.URLClassLoader;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -70,20 +68,18 @@ public class IsolatedLauncherFactory {
   }
 
   IsolatedLauncherAndClassloader createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {
-    return AccessController.doPrivileged((PrivilegedAction<IsolatedLauncherAndClassloader>) () -> {
-      try {
-        List<File> jarFiles = jarDownloader.download();
-        logger.debug("Create isolated classloader...");
-        var cl = createClassLoader(jarFiles, rules);
-        IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
-        tempCleaning.clean();
+    try {
+      List<File> jarFiles = jarDownloader.download();
+      logger.debug("Create isolated classloader...");
+      var cl = createClassLoader(jarFiles, rules);
+      IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
+      tempCleaning.clean();
 
-        return new IsolatedLauncherAndClassloader(objProxy, cl);
-      } catch (Exception e) {
-        // Catch all other exceptions, which relates to reflection
-        throw new ScannerException("Unable to execute SonarScanner analysis", e);
-      }
-    });
+      return new IsolatedLauncherAndClassloader(objProxy, cl);
+    } catch (Exception e) {
+      // Catch all other exceptions, which relates to reflection
+      throw new ScannerException("Unable to execute SonarScanner analysis", e);
+    }
   }
 
   public static class IsolatedLauncherAndClassloader implements AutoCloseable {
