@@ -41,12 +41,23 @@ public class PropertiesTest {
   public void testRuntimeEnvironmentPassedAsUserAgent() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
     Map<String, String> params = new HashMap<>();
-    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params);
-    assertThat(buildResult.getLastStatus()).isEqualTo(0);
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
+    assertThat(buildResult.getLastStatus()).isZero();
+    assertThat(buildResult.getLogs()).contains("2 files indexed");
 
     Path accessLogs = ORCHESTRATOR.getServer().getAppLogs().toPath().resolveSibling("access.log");
     String accessLogsContent = new String(Files.readAllBytes(accessLogs));
     assertThat(accessLogsContent).contains("\"Simple Scanner/1.0\"");
+  }
+
+  @Test
+  public void passConfigurationUsingEnvVariables() throws IOException {
+    SimpleScanner scanner = new SimpleScanner();
+    Map<String, String> params = new HashMap<>();
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of("SONAR_SCANNER_JSON_PARAMS", "{\"sonar.exclusions\": \"**/Hello.js\"}"));
+    assertThat(buildResult.getLastStatus()).isZero();
+
+    assertThat(buildResult.getLogs()).contains("1 file indexed");
   }
 
   private static Path project(String projectName) {

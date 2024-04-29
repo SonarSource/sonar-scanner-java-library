@@ -19,63 +19,21 @@
  */
 package org.sonarsource.scanner.lib;
 
-import com.google.gson.stream.JsonReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Properties;
 
 public class Utils {
-  private static final String SONARQUBE_SCANNER_PARAMS = "SONARQUBE_SCANNER_PARAMS";
 
   private Utils() {
     // only util static methods
-  }
-
-  public static Properties loadEnvironmentProperties(Map<String, String> env) {
-    String scannerParams = env.get(SONARQUBE_SCANNER_PARAMS);
-    Properties props = new Properties();
-
-    if (scannerParams != null) {
-      try (JsonReader reader = new JsonReader(new StringReader(scannerParams))) {
-        reader.beginObject();
-        while (reader.hasNext()) {
-          String key = reader.nextName();
-          String value = reader.nextString();
-          props.put(key, value);
-        }
-        reader.endObject();
-      } catch (Exception e) {
-        throw new IllegalStateException("Failed to parse JSON in SONARQUBE_SCANNER_PARAMS environment variable", e);
-      }
-    }
-    return props;
-  }
-
-  /**
-   * Similar to org.apache.commons.lang.StringUtils#join()
-   */
-  static String join(String[] array, String delimiter) {
-    StringBuilder sb = new StringBuilder();
-    Iterator<String> it = Arrays.asList(array).iterator();
-    while (it.hasNext()) {
-      sb.append(it.next());
-      if (!it.hasNext()) {
-        break;
-      }
-      sb.append(delimiter);
-    }
-    return sb.toString();
   }
 
   static void writeProperties(File outputFile, Properties p) {

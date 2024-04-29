@@ -36,13 +36,11 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ScannerEngineBootstrapperTest {
 
   private ScannerEngineBootstrapper underTest;
   private LogOutput logger;
-  private System2 system;
   @TempDir
   private Path dumpToFolder;
   private Path dumpFile;
@@ -51,9 +49,8 @@ class ScannerEngineBootstrapperTest {
   public void setUp() {
     this.dumpFile = dumpToFolder.resolve("dump.properties");
     logger = mock(LogOutput.class);
-    system = mock(System2.class);
 
-    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", logger, system);
+    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", logger);
   }
 
   @Test
@@ -109,20 +106,6 @@ class ScannerEngineBootstrapperTest {
 
       assertThat(scannerEngine.isSonarCloud()).isTrue();
       assertThrows(UnsupportedOperationException.class, scannerEngine::getServerVersion);
-    }
-  }
-
-  @Test
-  void should_set_url_from_env_as_host_if_host_env_var_provided() throws Exception {
-    when(system.getEnvironmentVariable("SONAR_HOST_URL")).thenReturn("http://from-env.org:9000");
-
-    try (var scannerEngine = underTest
-      .setBootstrapProperty("sonar.scanner.dumpToFile", dumpFile.toString())
-      .bootstrap()) {
-      assertThat(scannerEngine.getBootstrapProperties()).contains(
-        entry("sonar.host.url", "http://from-env.org:9000"));
-
-      assertThat(scannerEngine.isSonarCloud()).isFalse();
     }
   }
 
