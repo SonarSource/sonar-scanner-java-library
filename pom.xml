@@ -80,9 +80,9 @@
         <version>${okhttp.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.eclipsesource.minimal-json</groupId>
-        <artifactId>minimal-json</artifactId>
-        <version>0.9.5</version>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>2.10.1</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
