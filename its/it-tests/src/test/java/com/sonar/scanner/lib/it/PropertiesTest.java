@@ -26,10 +26,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,11 +38,13 @@ public class PropertiesTest {
   @ClassRule
   public static final OrchestratorRule ORCHESTRATOR = ScannerJavaLibraryTestSuite.ORCHESTRATOR;
 
+  @Rule
+  public TemporaryFolder temp = new TemporaryFolder();
+
   @Test
   public void testRuntimeEnvironmentPassedAsUserAgent() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
-    Map<String, String> params = new HashMap<>();
-    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of());
     assertThat(buildResult.getLastStatus()).isZero();
     assertThat(buildResult.getLogs()).contains("2 files indexed");
 
@@ -53,11 +56,30 @@ public class PropertiesTest {
   @Test
   public void passConfigurationUsingEnvVariables() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
-    Map<String, String> params = new HashMap<>();
-    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of("SONAR_SCANNER_JSON_PARAMS", "{\"sonar.exclusions\": \"**/Hello.js\"}"));
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of("SONAR_SCANNER_JSON_PARAMS", "{\"sonar.exclusions\": \"**/Hello.js\"}"));
     assertThat(buildResult.getLastStatus()).isZero();
 
     assertThat(buildResult.getLogs()).contains("1 file indexed");
+  }
+
+  @Test
+  public void overrideHomeDirectoryWithEnv() throws IOException {
+    var userHome = temp.newFolder();
+    SimpleScanner scanner = new SimpleScanner();
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of("SONAR_USER_HOME", userHome.getAbsolutePath()));
+    assertThat(buildResult.getLastStatus()).isZero();
+
+    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
+  }
+
+  @Test
+  public void overrideHomeDirectoryWithProps() throws IOException {
+    var userHome = temp.newFolder();
+    SimpleScanner scanner = new SimpleScanner();
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of("sonar.userHome", userHome.getAbsolutePath()), Map.of());
+    assertThat(buildResult.getLastStatus()).isZero();
+
+    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
   }
 
   private static Path project(String projectName) {

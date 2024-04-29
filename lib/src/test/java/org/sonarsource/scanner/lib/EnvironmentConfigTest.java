@@ -37,10 +37,12 @@ class EnvironmentConfigTest {
   @Test
   void shouldProcessSpecificEnvVariables() {
     var inputProperties = EnvironmentConfig.load(
-      Map.of("SONAR_HOST_URL", "http://foo"), logOutput);
+      Map.of("SONAR_HOST_URL", "http://foo",
+        "SONAR_USER_HOME", "my/user/home"), logOutput);
 
     assertThat(inputProperties).containsOnly(
-      entry("sonar.host.url", "http://foo"));
+      entry("sonar.host.url", "http://foo"),
+      entry("sonar.userHome", "my/user/home"));
   }
 
   @Test

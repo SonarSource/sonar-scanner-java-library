@@ -38,7 +38,7 @@ public class FileCacheBuilderTest {
   @Test
   public void setUserHome() throws Exception {
     File userHome = temp.newFolder();
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setUserHome(userHome).build();
+    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome(userHome.getAbsolutePath()).build();
 
     assertThat(cache.getDir()).isDirectory().exists();
     assertThat(cache.getDir().getName()).isEqualTo("cache");
@@ -47,7 +47,7 @@ public class FileCacheBuilderTest {
 
   @Test
   public void user_home_property_can_be_null() {
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setUserHome((String) null).build();
+    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome((String) null).build();
 
     // does not fail. It uses default path or env variable
     assertThat(cache.getDir()).isDirectory().exists();
@@ -62,7 +62,7 @@ public class FileCacheBuilderTest {
     symlink.delete();
     Files.createSymbolicLink(symlink.toPath(), realSonarHome.toPath());
 
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setUserHome(symlink).build();
+    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome(symlink.getAbsolutePath()).build();
 
     assertThat(cache.getDir()).isDirectory().exists();
     assertThat(cache.getDir().getName()).isEqualTo("cache");
