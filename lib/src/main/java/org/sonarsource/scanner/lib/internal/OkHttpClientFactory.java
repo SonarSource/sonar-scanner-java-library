@@ -33,6 +33,7 @@ import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -42,8 +43,8 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
 import okhttp3.JavaNetCookieJar;
+import okhttp3.OkHttpClient;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static java.util.Arrays.asList;
@@ -57,7 +58,8 @@ public class OkHttpClientFactory {
   static final String P11KEYSTORE = "PKCS11";
   static final CookieManager COOKIE_MANAGER;
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
-  private static final JavaNetCookieJar COOKIE_JAR;  // use the same cookie jar for all instances
+  // use the same cookie jar for all instances
+  private static final JavaNetCookieJar COOKIE_JAR;
 
   private OkHttpClientFactory() {
     // only statics
@@ -84,7 +86,6 @@ public class OkHttpClientFactory {
     ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
       .allEnabledTlsVersions()
       .allEnabledCipherSuites()
-      .supportsTlsExtensions(true)
       .build();
     okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
 
@@ -183,7 +184,7 @@ public class OkHttpClientFactory {
     }
   }
 
-  private static KeyStore initKeyStore(Logger logger, final String defaultKeyStore, String defaultKeyStoreType, String defaultKeyStoreProvider, char[] passwd)
+  private static KeyStore initKeyStore(Logger logger, final String defaultKeyStore, String defaultKeyStoreType, String defaultKeyStoreProvider, @Nullable char[] passwd)
     throws KeyStoreException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException {
     KeyStore ks = null;
     if (!defaultKeyStoreType.isEmpty()) {
