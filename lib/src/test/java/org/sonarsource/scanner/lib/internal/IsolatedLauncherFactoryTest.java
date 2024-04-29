@@ -22,22 +22,22 @@ package org.sonarsource.scanner.lib.internal;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.batch.LogOutput;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-public class IsolatedLauncherFactoryTest {
+class IsolatedLauncherFactoryTest {
   IsolatedLauncherFactory factory;
   Properties props;
   TempCleaning tempCleaning;
   JarDownloader jarDownloader;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     tempCleaning = mock(TempCleaning.class);
     factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class));
@@ -46,13 +46,11 @@ public class IsolatedLauncherFactoryTest {
   }
 
   @Test
-  public void should_use_isolated_classloader() {
-    try {
-      factory.createLauncher(jarDownloader, new ClassloadRules(new HashSet<String>(), new HashSet<String>()));
-      fail();
-    } catch (ScannerException e) {
-      // success
-    }
+  void should_use_isolated_classloader() {
+    var rules = new ClassloadRules(new HashSet<String>(), new HashSet<String>());
+    assertThrows(ScannerException.class, () -> {
+      factory.createLauncher(jarDownloader, rules);
+    });
   }
 
   public static class FakeIsolatedLauncher implements IsolatedLauncher {

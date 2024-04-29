@@ -19,22 +19,21 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
+import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
-public class IsolatedLauncherFactory implements Closeable {
+public class IsolatedLauncherFactory {
   static final String ISOLATED_LAUNCHER_IMPL = "org.sonarsource.scanner.lib.internal.batch.BatchIsolatedLauncher";
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
-  private IsolatedClassloader cl;
 
   /**
    * For unit tests
@@ -56,13 +55,13 @@ public class IsolatedLauncherFactory implements Closeable {
     return classloader;
   }
 
-  public IsolatedLauncher createLauncher(Map<String, String> props, ClassloadRules rules) {
+  public IsolatedLauncherAndClassloader createLauncher(Map<String, String> props, ClassloadRules rules) {
     if (props.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE)) {
       String version = props.get(InternalProperties.SCANNER_VERSION_SIMULATION);
       if (version == null) {
         version = "5.6";
       }
-      return new SimulatedLauncher(version, logger);
+      return new IsolatedLauncherAndClassloader(new SimulatedLauncher(version, logger), null);
     }
     ServerConnection serverConnection = ServerConnection.create(props, logger);
     JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, props.get("sonar.userHome")).create();
@@ -70,16 +69,16 @@ public class IsolatedLauncherFactory implements Closeable {
     return createLauncher(jarDownloader, rules);
   }
 
-  IsolatedLauncher createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {
-    return AccessController.doPrivileged((PrivilegedAction<IsolatedLauncher>) () -> {
+  IsolatedLauncherAndClassloader createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {
+    return AccessController.doPrivileged((PrivilegedAction<IsolatedLauncherAndClassloader>) () -> {
       try {
         List<File> jarFiles = jarDownloader.download();
         logger.debug("Create isolated classloader...");
-        cl = createClassLoader(jarFiles, rules);
+        var cl = createClassLoader(jarFiles, rules);
         IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
         tempCleaning.clean();
 
-        return objProxy;
+        return new IsolatedLauncherAndClassloader(objProxy, cl);
       } catch (Exception e) {
         // Catch all other exceptions, which relates to reflection
         throw new ScannerException("Unable to execute SonarScanner analysis", e);
@@ -87,10 +86,25 @@ public class IsolatedLauncherFactory implements Closeable {
     });
   }
 
-  @Override
-  public void close() throws IOException {
-    if (cl != null) {
-      cl.close();
+  public static class IsolatedLauncherAndClassloader implements AutoCloseable {
+    private final IsolatedLauncher launcher;
+    private final URLClassLoader classloader;
+
+    public IsolatedLauncherAndClassloader(IsolatedLauncher launcher, @Nullable URLClassLoader classloader) {
+      this.launcher = launcher;
+      this.classloader = classloader;
+    }
+
+    public IsolatedLauncher getLauncher() {
+      return launcher;
+    }
+
+    @Override
+    public void close() throws Exception {
+      if (classloader != null) {
+        classloader.close();
+      }
     }
   }
+
 }

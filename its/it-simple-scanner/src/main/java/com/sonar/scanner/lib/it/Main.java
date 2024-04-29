@@ -21,8 +21,8 @@ package com.sonar.scanner.lib.it;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.sonarsource.scanner.lib.EmbeddedScanner;
 import org.sonarsource.scanner.lib.LogOutput;
+import org.sonarsource.scanner.lib.ScannerEngineBootstrapper;
 import org.sonarsource.scanner.lib.StdOutLogOutput;
 
 public class Main {
@@ -43,11 +43,12 @@ public class Main {
     System.exit(0);
   }
 
-  private static void runProject(Map<String, String> props) {
+  private static void runProject(Map<String, String> props) throws Exception {
     LogOutput logOutput = new StdOutLogOutput();
-    EmbeddedScanner scanner = EmbeddedScanner.create("Simple Scanner", "1.0", logOutput);
-    scanner.addGlobalProperties(props);
-    scanner.start();
-    scanner.execute(props);
+    try (var scannerEngine = new ScannerEngineBootstrapper("Simple Scanner", "1.0", logOutput)
+      .addBootstrapProperties(props)
+      .bootstrap()) {
+      scannerEngine.analyze(props);
+    }
   }
 }
