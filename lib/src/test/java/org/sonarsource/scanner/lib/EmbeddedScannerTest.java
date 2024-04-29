@@ -102,7 +102,7 @@ public class EmbeddedScannerTest {
   public void should_set_localhost_as_host_by_default() {
     scanner.start();
 
-    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://localhost:9000");
+    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("http://localhost:9000");
   }
 
   @Test
@@ -111,7 +111,7 @@ public class EmbeddedScannerTest {
 
     scanner.start();
 
-    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("https://sonarcloud.io");
+    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("https://sonarcloud.io");
   }
 
   @Test
@@ -121,7 +121,7 @@ public class EmbeddedScannerTest {
 
     scanner.start();
 
-    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
+    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
   }
 
   @Test
@@ -130,29 +130,29 @@ public class EmbeddedScannerTest {
 
     scanner.start();
 
-    assertThat(scanner.globalProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
+    assertThat(scanner.getBootstrapProperty("sonar.host.url", null)).isEqualTo("http://from-env.org:9000");
   }
 
   @Test
   public void should_set_properties() {
     EmbeddedScanner scanner = EmbeddedScanner.create("test", "1.0", mock(LogOutput.class));
-    scanner.setGlobalProperty("sonar.projectKey", "foo");
-    scanner.addGlobalProperties(new HashMap<String, String>() {
+    scanner.setBootstrapProperty("sonar.projectKey", "foo");
+    scanner.addBootstrapProperties(new HashMap<String, String>() {
       {
         put("sonar.login", "admin");
         put("sonar.password", "gniark");
       }
     });
 
-    assertThat(scanner.globalProperty("sonar.projectKey", null)).isEqualTo("foo");
-    assertThat(scanner.globalProperty("sonar.login", null)).isEqualTo("admin");
-    assertThat(scanner.globalProperty("sonar.password", null)).isEqualTo("gniark");
-    assertThat(scanner.globalProperty("not.set", "this_is_default")).isEqualTo("this_is_default");
+    assertThat(scanner.getBootstrapProperty("sonar.projectKey", null)).isEqualTo("foo");
+    assertThat(scanner.getBootstrapProperty("sonar.login", null)).isEqualTo("admin");
+    assertThat(scanner.getBootstrapProperty("sonar.password", null)).isEqualTo("gniark");
+    assertThat(scanner.getBootstrapProperty("not.set", "this_is_default")).isEqualTo("this_is_default");
   }
 
   @Test
   public void should_launch_scanner() {
-    scanner.setGlobalProperty("sonar.projectKey", "foo");
+    scanner.setBootstrapProperty("sonar.projectKey", "foo");
     scanner.start();
     scanner.execute(new HashMap<>());
 
@@ -181,7 +181,7 @@ public class EmbeddedScannerTest {
 
   @Test
   public void should_launch_scanner_analysisProperties() {
-    scanner.setGlobalProperty("sonar.projectKey", "foo");
+    scanner.setBootstrapProperty("sonar.projectKey", "foo");
     scanner.start();
 
     Map<String, String> analysisProperties = new HashMap<>();
@@ -212,7 +212,7 @@ public class EmbeddedScannerTest {
     Map<String, String> p = new HashMap<>();
 
     p.put("sonar.projectKey", "foo");
-    scanner.setGlobalProperty("sonar.scanner.dumpToFile", dump.getAbsolutePath());
+    scanner.setBootstrapProperty("sonar.scanner.dumpToFile", dump.getAbsolutePath());
     scanner.start();
     scanner.execute(p);
 
