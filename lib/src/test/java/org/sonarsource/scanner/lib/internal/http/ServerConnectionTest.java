@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.http;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -49,8 +50,10 @@ class ServerConnectionTest {
     .options(wireMockConfig().dynamicPort())
     .build();
 
-  private Logger logger = mock(Logger.class);
+  @TempDir
+  private Path sonarUserHome;
 
+  private Logger logger = mock(Logger.class);
 
   @Test
   void download_success() throws Exception {
@@ -108,7 +111,7 @@ class ServerConnectionTest {
   void should_support_server_url_without_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", ""));
-    ServerConnection connection = ServerConnection.create(props, logger);
+    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -119,7 +122,7 @@ class ServerConnectionTest {
   void should_support_server_url_with_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
-    ServerConnection connection = ServerConnection.create(props, logger);
+    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -127,7 +130,7 @@ class ServerConnectionTest {
   }
 
   private ServerConnection create(boolean enableCache, boolean preferCache) {
-    return new ServerConnection(sonarqube.baseUrl(), "user-agent", logger);
+    return new ServerConnection(sonarqube.baseUrl(), "user-agent", null, logger, Map.of(), new SonarUserHome(sonarUserHome));
   }
 
   private void answer(String msg) {

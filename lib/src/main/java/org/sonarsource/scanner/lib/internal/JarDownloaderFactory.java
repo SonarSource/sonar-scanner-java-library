@@ -19,25 +19,24 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.FileCacheBuilder;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 class JarDownloaderFactory {
   private final ServerConnection serverConnection;
   private final Logger logger;
-  private final String userHome;
+  private final SonarUserHome sonarUserHome;
 
-  JarDownloaderFactory(ServerConnection conn, Logger logger, @Nullable String userHome) {
+  JarDownloaderFactory(ServerConnection conn, Logger logger, SonarUserHome sonarUserHome) {
     this.serverConnection = conn;
     this.logger = logger;
-    this.userHome = userHome;
+    this.sonarUserHome = sonarUserHome;
   }
 
   JarDownloader create() {
-    FileCache fileCache = new FileCacheBuilder(logger)
-      .setSonarUserHome(userHome)
+    FileCache fileCache = new FileCacheBuilder(logger, sonarUserHome)
       .build();
     BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(serverConnection, logger);
     JarDownloader.ScannerFileDownloader scannerFileDownloader = new JarDownloader.ScannerFileDownloader(serverConnection);

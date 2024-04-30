@@ -36,6 +36,7 @@ public class EnvironmentConfig {
   private static final String GENERIC_ENV_PREFIX = "SONAR_SCANNER_";
   private static final String SONAR_HOST_URL_ENV_VAR = "SONAR_HOST_URL";
   private static final String SONAR_USER_HOME_ENV_VAR = "SONAR_USER_HOME";
+  private static final String TOKEN_ENV_VARIABLE = "SONAR_TOKEN";
 
   private EnvironmentConfig() {
     // only static methods
@@ -49,6 +50,7 @@ public class EnvironmentConfig {
     var loadedProps = new HashMap<String, String>();
     Optional.ofNullable(env.get(SONAR_HOST_URL_ENV_VAR)).ifPresent(url -> loadedProps.put(ScannerProperties.HOST_URL, url));
     Optional.ofNullable(env.get(SONAR_USER_HOME_ENV_VAR)).ifPresent(path -> loadedProps.put(ScannerProperties.SONAR_USER_HOME, path));
+    Optional.ofNullable(env.get(TOKEN_ENV_VARIABLE)).ifPresent(path -> loadedProps.put(ScannerProperties.SONAR_TOKEN, path));
     env.forEach((key, value) -> {
       if (!key.equals(SONAR_SCANNER_JSON_PARAMS) && key.startsWith(GENERIC_ENV_PREFIX)) {
         processEnvVariable(key, value, loadedProps, logger);

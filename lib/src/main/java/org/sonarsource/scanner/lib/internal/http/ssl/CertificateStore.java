@@ -17,22 +17,32 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.http.ssl;
 
 import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+public class CertificateStore {
+  public static final String DEFAULT_PASSWORD = "sonar";
+  public static final String DEFAULT_STORE_TYPE = "PKCS12";
+  private final Path path;
+  private final String keyStorePassword;
+  private final String keyStoreType;
 
-class JarDownloaderFactoryTest {
-  @Test
-  void should_create(@TempDir Path sonarUserHome) {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    assertThat(new JarDownloaderFactory(conn, logger, new SonarUserHome(sonarUserHome)).create()).isNotNull();
+  public CertificateStore(Path path, String keyStorePassword) {
+    this.path = path;
+    this.keyStorePassword = keyStorePassword;
+    this.keyStoreType = DEFAULT_STORE_TYPE;
+  }
+
+  public Path getPath() {
+    return path;
+  }
+
+  public String getKeyStorePassword() {
+    return keyStorePassword;
+  }
+
+  public String getKeyStoreType() {
+    return keyStoreType;
   }
 }

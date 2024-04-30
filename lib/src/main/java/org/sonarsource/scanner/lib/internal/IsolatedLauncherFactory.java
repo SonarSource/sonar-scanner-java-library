@@ -26,24 +26,27 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 public class IsolatedLauncherFactory {
   static final String ISOLATED_LAUNCHER_IMPL = "org.sonarsource.scanner.lib.internal.batch.BatchIsolatedLauncher";
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
+  private final SonarUserHome sonarUserHome;
 
   /**
    * For unit tests
    */
-  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger) {
+  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger, SonarUserHome sonarUserHome) {
     this.tempCleaning = tempCleaning;
     this.launcherImplClassName = isolatedLauncherClassName;
     this.logger = logger;
+    this.sonarUserHome = sonarUserHome;
   }
 
-  public IsolatedLauncherFactory(Logger logger) {
-    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
+  public IsolatedLauncherFactory(Logger logger, SonarUserHome sonarUserHome) {
+    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger, sonarUserHome);
   }
 
   private IsolatedClassloader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
@@ -61,8 +64,8 @@ public class IsolatedLauncherFactory {
       }
       return new IsolatedLauncherAndClassloader(new SimulatedLauncher(version, logger), null);
     }
-    ServerConnection serverConnection = ServerConnection.create(props, logger);
-    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, props.get("sonar.userHome")).create();
+    ServerConnection serverConnection = ServerConnection.create(props, logger, sonarUserHome);
+    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, sonarUserHome).create();
 
     return createLauncher(jarDownloader, rules);
   }

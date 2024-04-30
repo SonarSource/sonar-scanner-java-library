@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static java.lang.String.format;
 
