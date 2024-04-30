@@ -19,48 +19,41 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-public class ServerConnectionTest {
+class ServerConnectionTest {
 
   public static final String HELLO_WORLD = "hello, world!";
 
-  @Rule
-  public MockWebServer server = new MockWebServer();
+  @RegisterExtension
+  static WireMockExtension sonarqube = WireMockExtension.newInstance()
+    .options(wireMockConfig().dynamicPort())
+    .build();
 
-  String serverUrl;
+  private Logger logger = mock(Logger.class);
 
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
-
-  private Logger logger;
-
-  @Before
-  public void setUp() throws Exception {
-    serverUrl = server.url("").url().toString();
-
-    logger = mock(Logger.class);
-  }
 
   @Test
-  public void download_success() throws Exception {
+  void download_success() throws Exception {
     ServerConnection connection = create(false, false);
     answer(HELLO_WORLD);
 
@@ -70,7 +63,7 @@ public class ServerConnectionTest {
   }
 
   @Test
-  public void downloadString_fails_on_url_validation() {
+  void downloadString_fails_on_url_validation() {
     ServerConnection connection = create(false, false);
     answer(HELLO_WORLD);
 
@@ -80,8 +73,8 @@ public class ServerConnectionTest {
   }
 
   @Test
-  public void test_downloadFile() throws Exception {
-    Path toFile = temp.newFile().toPath();
+  void test_downloadFile(@TempDir Path tmpFolder) throws Exception {
+    var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD);
 
     ServerConnection underTest = create(false, false);
@@ -91,7 +84,7 @@ public class ServerConnectionTest {
   }
 
   @Test
-  public void downloadFile_fails_on_url_validation() {
+  void downloadFile_fails_on_url_validation() {
     ServerConnection connection = create(false, false);
     answer(HELLO_WORLD);
 
@@ -101,20 +94,20 @@ public class ServerConnectionTest {
   }
 
   @Test
-  public void should_throw_ISE_if_response_not_successful() throws Exception {
-    Path toFile = temp.newFile().toPath();
+  void should_throw_ISE_if_response_not_successful(@TempDir Path tmpFolder) throws Exception {
+    var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD, 400);
 
     ServerConnection underTest = create(false, false);
     assertThatThrownBy(() -> underTest.downloadFile("/batch/index.txt", toFile))
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage(format("Status returned by url [http://%s:%d/batch/index.txt] is not valid: [400]", server.getHostName(), server.getPort()));
+      .hasMessage(format("Status returned by url [http://%s:%d/batch/index.txt] is not valid: [400]", "localhost", sonarqube.getPort()));
   }
 
   @Test
-  public void should_support_server_url_without_trailing_slash() throws Exception {
+  void should_support_server_url_without_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", serverUrl.replaceAll("(/)+$", ""));
+    props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", ""));
     ServerConnection connection = ServerConnection.create(props, logger);
 
     answer(HELLO_WORLD);
@@ -123,9 +116,9 @@ public class ServerConnectionTest {
   }
 
   @Test
-  public void should_support_server_url_with_trailing_slash() throws Exception {
+  void should_support_server_url_with_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
-    props.put("sonar.host.url", serverUrl.replaceAll("(/)+$", "") + "/");
+    props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
     ServerConnection connection = ServerConnection.create(props, logger);
 
     answer(HELLO_WORLD);
@@ -134,7 +127,7 @@ public class ServerConnectionTest {
   }
 
   private ServerConnection create(boolean enableCache, boolean preferCache) {
-    return new ServerConnection(serverUrl, "user-agent", logger);
+    return new ServerConnection(sonarqube.baseUrl(), "user-agent", logger);
   }
 
   private void answer(String msg) {
@@ -142,7 +135,7 @@ public class ServerConnectionTest {
   }
 
   private void answer(String msg, int responseCode) {
-    MockResponse response = new MockResponse().setBody(msg).setResponseCode(responseCode);
-    server.enqueue(response);
+    sonarqube.stubFor(get(anyUrl())
+      .willReturn(aResponse().withBody(msg).withStatus(responseCode)));
   }
 }

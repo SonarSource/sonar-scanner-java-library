@@ -19,38 +19,35 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.FileInputStream;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.TrustManagerFactory;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.mockwebserver.Dispatcher;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.theories.Theory;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
-import static java.lang.String.format;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-public class OkHttpClientFactoryTest {
+class OkHttpClientFactoryTest {
 
   private static final String KEYSTORE_CLIENT_WITH_CA = "/client-with-ca.p12";
   private static final String CLIENT_WITH_CA_KEYSTORE_PASSWORD = "pwdClientCAP12";
@@ -64,56 +61,76 @@ public class OkHttpClientFactoryTest {
   private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
   private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
+  @RegisterExtension
+  static WireMockExtension sonarqubeMock = WireMockExtension.newInstance()
+    .options(wireMockConfig().dynamicHttpsPort().httpDisabled(true).globalTemplating(true)
+      .keystoreType("pkcs12")
+      .keystorePath(toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource(SERVER_KEYSTORE_FILE))).toString())
+      .keystorePassword(SERVER_KEYSTORE_PASSWORD)
+      .keyManagerPassword(SERVER_KEYSTORE_PASSWORD))
+    .build();
 
-  @After
+  @BeforeEach
+  void mockServerResponses() {
+    sonarqubeMock.stubFor(get(anyUrl()).withHeader("Cookie", matching(".*")).atPriority(1)
+      .willReturn(ok("OK\n{{request.headers.Cookie}}")));
+    sonarqubeMock.stubFor(get(anyUrl()).atPriority(2)
+      .willReturn(ok("OK").withHeader("Set-Cookie", COOKIE)));
+  }
+
+  @AfterEach
   public void cleanSystemProperty() {
     System.clearProperty(SONAR_WS_TIMEOUT);
   }
 
   @Test
-  public void support_custom_timeouts() {
+  void support_custom_timeouts() {
     int readTimeoutSec = 2000;
     System.setProperty(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec));
 
-    Logger logger = mock(Logger.class);
     OkHttpClient underTest = OkHttpClientFactory.create(logger);
 
     assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeoutSec * 1000);
   }
 
   @Test
-  public void support_custom_timeouts_throws_exception_on_non_number() {
+  void support_custom_timeouts_throws_exception_on_non_number() {
     System.setProperty(SONAR_WS_TIMEOUT, "fail");
 
-    Logger logger = mock(Logger.class);
     assertThatThrownBy(() -> OkHttpClientFactory.create(logger)).isInstanceOf(NumberFormatException.class);
   }
 
   @Test
-  public void test_with_external_http_server() throws IOException {
+  void test_with_external_http_server() throws IOException {
     Response response = call("http://www.google.com");
     assertThat(response.code()).isEqualTo(200);
     assertThat(response.body().string()).contains("doctype html");
   }
 
   @Test
-  public void test_with_external_https_server_with_correct_certificate() throws IOException {
+  void test_with_external_https_server_with_correct_certificate() throws IOException {
     Response response = call("https://www.google.com");
     assertThat(response.code()).isEqualTo(200);
     assertThat(response.body().string()).contains("doctype html");
   }
 
-  @Theory
-  public void when_overriding_truststore_known_websites_are_failing(String clientKeyStore) throws IOException, URISyntaxException {
+  @Test
+  void when_overriding_truststore_using_ca_known_websites_are_failing() throws IOException, URISyntaxException {
+    when_overriding_truststore_known_websites_are_failing(KEYSTORE_CLIENT_WITH_CA, CLIENT_WITH_CA_KEYSTORE_PASSWORD);
+  }
+
+  @Test
+  void when_overriding_truststore_using_server_certificate_known_websites_are_failing() throws IOException, URISyntaxException {
+    when_overriding_truststore_known_websites_are_failing(KEYSTORE_CLIENT_WITH_CERTIFICATE, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD);
+  }
+
+  public void when_overriding_truststore_known_websites_are_failing(String clientKeyStore, String keyStorePassword) throws URISyntaxException {
     try {
       Path clientTruststore = Paths.get(getClass().getResource(clientKeyStore).toURI()).toAbsolutePath();
       System.setProperty("javax.net.ssl.trustStore", clientTruststore.toString());
-      System.setProperty("javax.net.ssl.trustStorePassword", SERVER_KEYSTORE_PASSWORD);
+      System.setProperty("javax.net.ssl.trustStorePassword", keyStorePassword);
 
-      expectedException.expect(SSLHandshakeException.class);
-      call("https://www.google.com");
+      assertThrows(SSLHandshakeException.class, () -> call("https://www.google.com"));
     } finally {
       // Ensure to not keeping this property for other tests
       System.clearProperty("javax.net.ssl.trustStore");
@@ -122,19 +139,19 @@ public class OkHttpClientFactoryTest {
   }
 
   @Test
-  public void test_with_custom_https_server_using_ca_in_truststore() throws Exception {
+  void test_with_custom_https_server_using_ca_in_truststore() throws Exception {
     test_with_custom_https_server(KEYSTORE_CLIENT_WITH_CA, CLIENT_WITH_CA_KEYSTORE_PASSWORD);
   }
 
   @Test
-  public void test_with_custom_https_server_using_server_certificate_in_truststore() throws Exception {
+  void test_with_custom_https_server_using_server_certificate_in_truststore() throws Exception {
     test_with_custom_https_server(KEYSTORE_CLIENT_WITH_CERTIFICATE, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD);
   }
 
   private void test_with_custom_https_server(String clientKeyStore, String keyStorePassword) throws Exception {
     System.setProperty("javax.net.debug", "ssl,handshake,record");
-    try (MockWebServer server = buildTLSServer()) {
-      String url = format("https://localhost:%d/", server.getPort());
+    try {
+      String url = sonarqubeMock.baseUrl();
 
       // First test without any truststore is expecting to fail
       try {
@@ -160,18 +177,18 @@ public class OkHttpClientFactoryTest {
   }
 
   @Test
-  public void test_with_cookie_using_ca_in_truststore() throws Exception {
+  void test_with_cookie_using_ca_in_truststore() throws Exception {
     test_with_cookie(KEYSTORE_CLIENT_WITH_CA, CLIENT_WITH_CA_KEYSTORE_PASSWORD);
   }
 
   @Test
-  public void test_with_cookie_using_server_certificate_in_truststore() throws Exception {
+  void test_with_cookie_using_server_certificate_in_truststore() throws Exception {
     test_with_cookie(KEYSTORE_CLIENT_WITH_CERTIFICATE, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD);
   }
 
   private void test_with_cookie(String clientKeyStore, String keyStorePassword) throws Exception {
-    try (MockWebServer server = buildTLSServer()) {
-      String url = format("https://localhost:%d/", server.getPort());
+    try {
+      String url = sonarqubeMock.baseUrl();
 
       // Add the truststore
       Path clientTruststore = Paths.get(getClass().getResource(clientKeyStore).toURI()).toAbsolutePath();
@@ -203,54 +220,12 @@ public class OkHttpClientFactoryTest {
       .execute();
   }
 
-  /**
-   * Build a MockWebServer with a dispatcher always sending 200 response with OK
-   * This webserver will use respond only to https protocol
-   */
-  private MockWebServer buildTLSServer() throws Exception {
-    MockWebServer server = new MockWebServer();
-    server.setDispatcher(new Dispatcher() {
-      @Override
-      public MockResponse dispatch(RecordedRequest request) {
-        String responseBody = "OK";
-        MockResponse response = new MockResponse().setResponseCode(200);
-        String cookie = request.getHeader("Cookie");
-        if (cookie == null || cookie.isEmpty()) {
-          // Only set the cookie if it is not already set
-          response.addHeader("Set-Cookie", COOKIE);
-        } else {
-          // dump the cookie into the response body to aid in test inspection
-          responseBody += "\nCookie: " + cookie;
-        }
-        response.setBody(responseBody);
-        return response;
-      }
-    });
-
-    // JKS file storing the private key and TLS certificate
-    Path serverCertificate = Paths.get(getClass().getResource(SERVER_KEYSTORE_FILE).toURI()).toAbsolutePath();
-
-    // Load the KeyStore
-    KeyStore serverKeyStore = KeyStore.getInstance("pkcs12");
-    FileInputStream stream = new FileInputStream(serverCertificate.toFile());
-    serverKeyStore.load(stream, SERVER_KEYSTORE_PASSWORD.toCharArray());
-
-    // Load the KeyManager from the KeyStore
-    String kmfAlgorithm = KeyManagerFactory.getDefaultAlgorithm();
-    KeyManagerFactory kmf = KeyManagerFactory.getInstance(kmfAlgorithm);
-    kmf.init(serverKeyStore, SERVER_KEYSTORE_PASSWORD.toCharArray());
-
-    // Add the "Keys" (ie. private key and TLS certificate to the TrustManager
-    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(kmfAlgorithm);
-    trustManagerFactory.init(serverKeyStore);
-
-    // Create the SocketFactory using the TrustManager so the private key and certificate
-    SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-    sslContext.init(kmf.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
-
-    // Let's use it for the WebServer
-    server.useHttps(sslContext.getSocketFactory(), false);
-
-    return server;
+  private static Path toPath(URL url) {
+    try {
+      return Paths.get(url.toURI());
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
   }
+
 }

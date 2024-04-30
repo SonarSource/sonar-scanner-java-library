@@ -77,11 +77,17 @@ public class IsolatedClassloaderTest {
   }
 
   @Test
-  public void error_add_jars() throws MalformedURLException {
+  public void error_add_jars() {
+    // Used to produce a MalformedURLException (see https://stackoverflow.com/a/42218175/534773)
+    URL.setURLStreamHandlerFactory(protocol -> {
+      if (protocol.equals("broken")) {
+        throw new UnsupportedOperationException();
+      }
+      return null;
+    });
+
     File f = mock(File.class);
-    URI uri = mock(URI.class);
-    when(f.toURI()).thenReturn(uri);
-    when(uri.toURL()).thenThrow(MalformedURLException.class);
+    when(f.toURI()).thenReturn(URI.create("broken://dummy"));
     File[] files = {f};
 
     thrown.expect(IllegalStateException.class);
