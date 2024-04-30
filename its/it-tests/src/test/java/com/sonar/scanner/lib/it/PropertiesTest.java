@@ -56,17 +56,28 @@ public class PropertiesTest {
   @Test
   public void passConfigurationUsingEnvVariables() throws IOException {
     SimpleScanner scanner = new SimpleScanner();
-    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of("SONAR_SCANNER_JSON_PARAMS", "{\"sonar.exclusions\": \"**/Hello.js\"}"));
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(),
+      Map.of("SONAR_SCANNER_JSON_PARAMS", "{\"sonar.exclusions\": \"**/Hello.js\"}"));
     assertThat(buildResult.getLastStatus()).isZero();
 
     assertThat(buildResult.getLogs()).contains("1 file indexed");
   }
 
   @Test
+  public void cacheIsInUserHomeByDefault() throws IOException {
+    SimpleScanner scanner = new SimpleScanner();
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of());
+    assertThat(buildResult.getLastStatus()).isZero();
+
+    assertThat(Paths.get(System.getProperty("user.home")).resolve(".sonar/cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
+  }
+
+  @Test
   public void overrideHomeDirectoryWithEnv() throws IOException {
     var userHome = temp.newFolder();
     SimpleScanner scanner = new SimpleScanner();
-    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of("SONAR_USER_HOME", userHome.getAbsolutePath()));
+    BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(),
+      Map.of("SONAR_USER_HOME", userHome.getAbsolutePath()));
     assertThat(buildResult.getLastStatus()).isZero();
 
     assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));

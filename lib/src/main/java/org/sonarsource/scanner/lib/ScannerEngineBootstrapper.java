@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
@@ -71,7 +72,13 @@ public class ScannerEngineBootstrapper {
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
     var properties = Map.copyOf(bootstrapProperties);
     var isSonarCloud = getSonarCloudUrl().equals(properties.get(ScannerProperties.HOST_URL));
-    var sonarUserHome = properties.getOrDefault(ScannerProperties.SONAR_USER_HOME, Paths.get("").resolve(".sonar").toString());
+    String sonarUserHome;
+    if (properties.containsKey(ScannerProperties.SONAR_USER_HOME)) {
+      sonarUserHome = properties.get(ScannerProperties.SONAR_USER_HOME);
+    } else {
+      var userHome = Objects.requireNonNull(System.getProperty("user.home"), "The system property 'user.home' is expected to be non null");
+      sonarUserHome = Paths.get(userHome, ".sonar").toAbsolutePath().toString();
+    }
     var launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput), new SonarUserHome(Paths.get(sonarUserHome)));
     var launcher = launcherFactory.createLauncher(properties, rules);
     return new ScannerEngineFacade(properties, launcher, logOutput, isSonarCloud);

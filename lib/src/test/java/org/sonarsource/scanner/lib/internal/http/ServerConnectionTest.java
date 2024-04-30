@@ -23,7 +23,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -87,11 +86,12 @@ class ServerConnectionTest {
   }
 
   @Test
-  void downloadFile_fails_on_url_validation() {
+  void downloadFile_fails_on_url_validation(@TempDir Path tmpFolder) {
+    var toFile = tmpFolder.resolve("index.txt");
     ServerConnection connection = create();
     answer(HELLO_WORLD);
 
-    assertThatThrownBy(() -> connection.downloadFile("should_fail", Paths.get("test-path")))
+    assertThatThrownBy(() -> connection.downloadFile("should_fail", toFile))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessage("URL path must start with slash: should_fail");
   }
