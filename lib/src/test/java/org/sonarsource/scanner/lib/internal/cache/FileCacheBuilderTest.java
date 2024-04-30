@@ -19,60 +19,23 @@
  */
 package org.sonarsource.scanner.lib.internal.cache;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.nio.file.Path;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assume.assumeFalse;
 import static org.mockito.Mockito.mock;
 
-public class FileCacheBuilderTest {
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+class FileCacheBuilderTest {
 
   @Test
-  public void setUserHome() throws Exception {
-    File userHome = temp.newFolder();
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome(userHome.getAbsolutePath()).build();
+  void create_cache_in_user_home(@TempDir Path sonarUserHome) {
+    FileCache cache = new FileCacheBuilder(mock(Logger.class), new SonarUserHome(sonarUserHome)).build();
 
     assertThat(cache.getDir()).isDirectory().exists();
-    assertThat(cache.getDir().getName()).isEqualTo("cache");
-    assertThat(cache.getDir().getParentFile()).isEqualTo(userHome);
+    assertThat(cache.getDir()).hasName("cache");
+    assertThat(cache.getDir()).hasParent(sonarUserHome.toFile());
   }
 
-  @Test
-  public void user_home_property_can_be_null() {
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome((String) null).build();
-
-    // does not fail. It uses default path or env variable
-    assertThat(cache.getDir()).isDirectory().exists();
-    assertThat(cache.getDir().getName()).isEqualTo("cache");
-  }
-
-  @Test
-  public void user_home_property_can_be_a_symlink() throws IOException {
-    assumeFalse(SystemUtils.IS_OS_WINDOWS);
-    File realSonarHome = temp.newFolder();
-    File symlink = temp.newFolder();
-    symlink.delete();
-    Files.createSymbolicLink(symlink.toPath(), realSonarHome.toPath());
-
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).setSonarUserHome(symlink.getAbsolutePath()).build();
-
-    assertThat(cache.getDir()).isDirectory().exists();
-    assertThat(cache.getDir().getName()).isEqualTo("cache");
-  }
-
-  @Test
-  public void use_default_path_or_env_variable() {
-    FileCache cache = new FileCacheBuilder(mock(Logger.class)).build();
-
-    assertThat(cache.getDir()).isDirectory().exists();
-    assertThat(cache.getDir().getName()).isEqualTo("cache");
-  }
 }

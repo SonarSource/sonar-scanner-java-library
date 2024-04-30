@@ -22,6 +22,7 @@ package org.sonarsource.scanner.lib.internal;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 class BootstrapIndexDownloader {
   private final ServerConnection conn;

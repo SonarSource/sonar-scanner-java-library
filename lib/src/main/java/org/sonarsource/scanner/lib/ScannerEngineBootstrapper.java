@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib;
 
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import java.util.Set;
 import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -34,13 +36,11 @@ import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 public class ScannerEngineBootstrapper {
 
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
-  private final IsolatedLauncherFactory launcherFactory;
   private final LogOutput logOutput;
   private final Map<String, String> bootstrapProperties = new HashMap<>();
 
   public ScannerEngineBootstrapper(String app, String version, final LogOutput logOutput) {
     this.logOutput = logOutput;
-    this.launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput));
     this.setBootstrapProperty(InternalProperties.SCANNER_APP, app)
       .setBootstrapProperty(InternalProperties.SCANNER_APP_VERSION, version);
   }
@@ -71,6 +71,8 @@ public class ScannerEngineBootstrapper {
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
     var properties = Map.copyOf(bootstrapProperties);
     var isSonarCloud = getSonarCloudUrl().equals(properties.get(ScannerProperties.HOST_URL));
+    var sonarUserHome = properties.getOrDefault(ScannerProperties.SONAR_USER_HOME, Paths.get("").resolve(".sonar").toString());
+    var launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput), new SonarUserHome(Paths.get(sonarUserHome)));
     var launcher = launcherFactory.createLauncher(properties, rules);
     return new ScannerEngineFacade(properties, launcher, logOutput, isSonarCloud);
   }

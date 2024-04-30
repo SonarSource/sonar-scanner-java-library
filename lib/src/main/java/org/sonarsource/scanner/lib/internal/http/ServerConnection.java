@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.http;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,38 +26,47 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Map;
+import javax.annotation.Nullable;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.Utils;
+import org.sonarsource.scanner.lib.internal.InternalProperties;
+import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-class ServerConnection {
+public class ServerConnection {
 
   private final String baseUrlWithoutTrailingSlash;
   private final String userAgent;
   private final OkHttpClient httpClient;
 
+  private final String token;
   private final Logger logger;
 
-  ServerConnection(String baseUrl, String userAgent, Logger logger) {
+  ServerConnection(String baseUrl, String userAgent, @Nullable String token, Logger logger, Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
+    this.token = token;
     this.logger = logger;
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
     this.userAgent = userAgent;
-    this.httpClient = OkHttpClientFactory.create(logger);
+    this.httpClient = OkHttpClientFactory.create(logger, bootstrapProperties, sonarUserHome);
   }
 
   private static String removeTrailingSlash(String url) {
     return url.replaceAll("(/)+$", "");
   }
 
-  public static ServerConnection create(Map<String, String> props, Logger logger) {
-    String serverUrl = props.get("sonar.host.url");
-    String userAgent = format("%s/%s", props.get(InternalProperties.SCANNER_APP), props.get(InternalProperties.SCANNER_APP_VERSION));
-    return new ServerConnection(serverUrl, userAgent, logger);
+  public static ServerConnection create(Map<String, String> bootstrapProperties, Logger logger, SonarUserHome sonarUserHome) {
+    String serverUrl = bootstrapProperties.get("sonar.host.url");
+    String userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
+    String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
+    return new ServerConnection(serverUrl, userAgent, token, logger, bootstrapProperties, sonarUserHome);
   }
 
   /**
@@ -76,7 +85,7 @@ class ServerConnection {
     logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath().toString()));
 
     try (ResponseBody responseBody = callUrl(url);
-         InputStream in = responseBody.byteStream()) {
+      InputStream in = responseBody.byteStream()) {
       Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
@@ -105,11 +114,14 @@ class ServerConnection {
    */
   private ResponseBody callUrl(String url) throws IOException {
     try {
-      Request request = new Request.Builder()
-        .url(url)
-        .addHeader("User-Agent", userAgent)
+      var requestBuilder = new Request.Builder()
         .get()
-        .build();
+        .url(url)
+        .addHeader("User-Agent", userAgent);
+      if (token != null) {
+        requestBuilder.header("Authorization", Credentials.basic(token, "", UTF_8));
+      }
+      Request request = requestBuilder.build();
       Response response = httpClient.newCall(request).execute();
       if (!response.isSuccessful()) {
         response.close();

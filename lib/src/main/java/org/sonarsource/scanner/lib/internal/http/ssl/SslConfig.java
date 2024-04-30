@@ -17,22 +17,27 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.http.ssl;
 
-import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+public class SslConfig {
+  private final CertificateStore keyStore;
+  private final CertificateStore trustStore;
 
-class JarDownloaderFactoryTest {
-  @Test
-  void should_create(@TempDir Path sonarUserHome) {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    assertThat(new JarDownloaderFactory(conn, logger, new SonarUserHome(sonarUserHome)).create()).isNotNull();
+  public SslConfig(@Nullable CertificateStore keyStore, @Nullable CertificateStore trustStore) {
+    this.keyStore = keyStore;
+    this.trustStore = trustStore;
+  }
+
+  @CheckForNull
+  public CertificateStore getKeyStore() {
+    return keyStore;
+  }
+
+  @CheckForNull
+  public CertificateStore getTrustStore() {
+    return trustStore;
   }
 }

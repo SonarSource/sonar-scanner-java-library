@@ -19,32 +19,20 @@
  */
 package org.sonarsource.scanner.lib.internal.cache;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import javax.annotation.Nullable;
+import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 public class FileCacheBuilder {
   private final Logger logger;
-  private Path sonarUserHome;
+  private final SonarUserHome sonarUserHome;
 
-  public FileCacheBuilder(Logger logger) {
+  public FileCacheBuilder(Logger logger, SonarUserHome sonarUserHome) {
     this.logger = logger;
-  }
-
-  public FileCacheBuilder setSonarUserHome(@Nullable String userHomeProperty) {
-    this.sonarUserHome = (userHomeProperty == null) ? null : Paths.get(userHomeProperty);
-    return this;
+    this.sonarUserHome = sonarUserHome;
   }
 
   public FileCache build() {
-    if (sonarUserHome == null) {
-      sonarUserHome = findDefaultHome();
-    }
-    var cacheDir = sonarUserHome.resolve("cache");
+    var cacheDir = sonarUserHome.getPath().resolve("cache");
     return FileCache.create(cacheDir, logger);
   }
 
-  private static Path findDefaultHome() {
-    return Paths.get("").resolve(".sonar");
-  }
 }

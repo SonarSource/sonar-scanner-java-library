@@ -20,19 +20,16 @@
 package org.sonarsource.scanner.lib.internal;
 
 import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+public class SonarUserHome {
 
-class JarDownloaderFactoryTest {
-  @Test
-  void should_create(@TempDir Path sonarUserHome) {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    assertThat(new JarDownloaderFactory(conn, logger, new SonarUserHome(sonarUserHome)).create()).isNotNull();
+  private final Path userHome;
+
+  public SonarUserHome(Path userHome) {
+    this.userHome = userHome;
+  }
+
+  public Path getPath() {
+    return userHome;
   }
 }
