@@ -19,37 +19,18 @@
  */
 package org.sonarsource.scanner.lib;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UtilsTest {
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
+class UtilsTest {
 
   @Test
-  public void write_properties() throws IOException {
-    File f = temp.newFile();
-    Properties p = new Properties();
-    p.put("key", "value");
-    Utils.writeProperties(f, p);
-    assertThat(Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)).contains("key=value");
-  }
-
-  @Test
-  public void delete_non_empty_directory() throws IOException {
+  void delete_non_empty_directory(@TempDir Path tmp) throws IOException {
     /*-
      * Create test structure:
      * tmp
@@ -58,7 +39,7 @@ public class UtilsTest {
      *        |- folder2
      *             |- file2
      */
-    Path tmpDir = Files.createTempDirectory("junit");
+    Path tmpDir = Files.createTempDirectory(tmp, "junit");
     Path folder1 = tmpDir.resolve("folder1");
     Files.createDirectories(folder1);
     Path file1 = folder1.resolve("file1");
