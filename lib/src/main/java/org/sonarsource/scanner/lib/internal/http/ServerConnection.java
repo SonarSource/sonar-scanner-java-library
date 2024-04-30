@@ -55,7 +55,7 @@ public class ServerConnection {
     this.logger = logger;
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
     this.userAgent = userAgent;
-    this.httpClient = OkHttpClientFactory.create(logger, bootstrapProperties, sonarUserHome);
+    this.httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
   }
 
   private static String removeTrailingSlash(String url) {

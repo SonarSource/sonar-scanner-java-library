@@ -57,7 +57,7 @@ class ServerConnectionTest {
 
   @Test
   void download_success() throws Exception {
-    ServerConnection connection = create(false, false);
+    ServerConnection connection = create();
     answer(HELLO_WORLD);
 
     String response = connection.downloadString("/batch/index.txt");
@@ -67,7 +67,7 @@ class ServerConnectionTest {
 
   @Test
   void downloadString_fails_on_url_validation() {
-    ServerConnection connection = create(false, false);
+    ServerConnection connection = create();
     answer(HELLO_WORLD);
 
     assertThatThrownBy(() -> connection.downloadString("should_fail"))
@@ -80,7 +80,7 @@ class ServerConnectionTest {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD);
 
-    ServerConnection underTest = create(false, false);
+    ServerConnection underTest = create();
     underTest.downloadFile("/batch/index.txt", toFile);
 
     assertThat(new String(Files.readAllBytes(toFile), StandardCharsets.UTF_8)).isEqualTo(HELLO_WORLD);
@@ -88,7 +88,7 @@ class ServerConnectionTest {
 
   @Test
   void downloadFile_fails_on_url_validation() {
-    ServerConnection connection = create(false, false);
+    ServerConnection connection = create();
     answer(HELLO_WORLD);
 
     assertThatThrownBy(() -> connection.downloadFile("should_fail", Paths.get("test-path")))
@@ -97,11 +97,11 @@ class ServerConnectionTest {
   }
 
   @Test
-  void should_throw_ISE_if_response_not_successful(@TempDir Path tmpFolder) throws Exception {
+  void should_throw_ISE_if_response_not_successful(@TempDir Path tmpFolder) {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD, 400);
 
-    ServerConnection underTest = create(false, false);
+    ServerConnection underTest = create();
     assertThatThrownBy(() -> underTest.downloadFile("/batch/index.txt", toFile))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage(format("Status returned by url [http://%s:%d/batch/index.txt] is not valid: [400]", "localhost", sonarqube.getPort()));
@@ -129,7 +129,7 @@ class ServerConnectionTest {
     assertThat(content).isEqualTo(HELLO_WORLD);
   }
 
-  private ServerConnection create(boolean enableCache, boolean preferCache) {
+  private ServerConnection create() {
     return new ServerConnection(sonarqube.baseUrl(), "user-agent", null, logger, Map.of(), new SonarUserHome(sonarUserHome));
   }
 

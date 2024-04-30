@@ -43,7 +43,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.sonarsource.scanner.lib.internal.SonarUserHome;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -60,14 +59,12 @@ import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.mock;
 
 class OkHttpClientFactoryTest {
 
   private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
   private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
-  private final Logger logger = mock(Logger.class);
   private final Map<String, String> bootstrapProperties = new HashMap<>();
 
   @TempDir
@@ -84,7 +81,7 @@ class OkHttpClientFactoryTest {
   void support_custom_timeouts() {
     int readTimeoutSec = 2000;
 
-    OkHttpClient underTest = OkHttpClientFactory.create(logger, Map.of(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec)), sonarUserHome);
+    OkHttpClient underTest = OkHttpClientFactory.create(Map.of(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec)), sonarUserHome);
 
     assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeoutSec * 1000);
   }
@@ -92,7 +89,7 @@ class OkHttpClientFactoryTest {
   @Test
   void support_custom_timeouts_throws_exception_on_non_number() {
     var props = Map.of(SONAR_WS_TIMEOUT, "fail");
-    assertThatThrownBy(() -> OkHttpClientFactory.create(logger, props, sonarUserHome))
+    assertThatThrownBy(() -> OkHttpClientFactory.create(props, sonarUserHome))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessage("sonar.scanner.socketTimeout is not a valid integer: fail");
   }
@@ -185,7 +182,7 @@ class OkHttpClientFactoryTest {
       bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
       bootstrapProperties.put("sonar.scanner.proxyPort", "not_a_number");
 
-      assertThrows(IllegalArgumentException.class, () -> OkHttpClientFactory.create(logger, bootstrapProperties, sonarUserHome));
+      assertThrows(IllegalArgumentException.class, () -> OkHttpClientFactory.create(bootstrapProperties, sonarUserHome));
     }
 
     @Nested
@@ -398,7 +395,7 @@ class OkHttpClientFactoryTest {
   }
 
   private Response call(String url) throws IOException {
-    return OkHttpClientFactory.create(logger, bootstrapProperties, sonarUserHome).newCall(
+    return OkHttpClientFactory.create(bootstrapProperties, sonarUserHome).newCall(
       new Request.Builder()
         .url(url)
         .get()

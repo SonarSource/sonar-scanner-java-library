@@ -37,7 +37,6 @@ import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.SonarUserHome;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
@@ -74,7 +73,7 @@ public class OkHttpClientFactory {
     COOKIE_JAR = new JavaNetCookieJar(COOKIE_MANAGER);
   }
 
-  static OkHttpClient create(Logger logger, Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
+  static OkHttpClient create(Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
 
     String oldSocketTimeout = defaultIfBlank(bootstrapProperties.get(READ_TIMEOUT_SEC_PROPERTY), valueOf(DEFAULT_READ_TIMEOUT_SEC));
     String socketTimeout = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SOCKET_TIMEOUT), oldSocketTimeout);
