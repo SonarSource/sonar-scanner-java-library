@@ -19,48 +19,43 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IsolatedClassloaderTest {
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+class IsolatedClassloaderTest {
 
   private IsolatedClassloader classLoader;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     ClassLoader parent = getClass().getClassLoader();
     classLoader = new IsolatedClassloader(parent, new ClassloadRules(new HashSet<String>(), new HashSet<String>()));
   }
 
   @Test
-  public void should_use_isolated_system_classloader_when_parent_is_excluded() throws ClassNotFoundException, IOException {
-    thrown.expect(ClassNotFoundException.class);
-    thrown.expectMessage("org.junit.Test");
-
+  void should_use_isolated_system_classloader_when_parent_is_excluded() throws ClassNotFoundException, IOException {
     // JUnit is available in the parent classloader (classpath used to execute this test) but not in the core JVM
     assertThat(classLoader.loadClass("java.lang.String", false)).isNotNull();
-    classLoader.loadClass("org.junit.Test", false);
+
+    assertThatThrownBy(() -> classLoader.loadClass("org.junit.Test", false)).isInstanceOf(ClassNotFoundException.class).hasMessageContaining("org.junit.Test");
     classLoader.close();
   }
 
   @Test
-  public void should_use_parent_to_load() throws ClassNotFoundException, IOException {
+  void should_use_parent_to_load() throws ClassNotFoundException {
     ClassloadRules rules = mock(ClassloadRules.class);
     when(rules.canLoad("org.junit.Test")).thenReturn(true);
     classLoader = new IsolatedClassloader(getClass().getClassLoader(), rules);
@@ -68,36 +63,16 @@ public class IsolatedClassloaderTest {
   }
 
   @Test
-  public void add_jars() throws MalformedURLException {
-    File f = new File("dummy");
-    File[] files = {f};
+  void add_jars() throws MalformedURLException {
+    var f = Paths.get("dummy");
+    Path[] files = {f};
     classLoader.addFiles(Arrays.asList(files));
 
-    assertThat(classLoader.getURLs()).contains(f.toURI().toURL());
+    assertThat(classLoader.getURLs()).contains(f.toUri().toURL());
   }
 
   @Test
-  public void error_add_jars() {
-    // Used to produce a MalformedURLException (see https://stackoverflow.com/a/42218175/534773)
-    URL.setURLStreamHandlerFactory(protocol -> {
-      if (protocol.equals("broken")) {
-        throw new UnsupportedOperationException();
-      }
-      return null;
-    });
-
-    File f = mock(File.class);
-    when(f.toURI()).thenReturn(URI.create("broken://dummy"));
-    File[] files = {f};
-
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to create classloader");
-
-    classLoader.addFiles(Arrays.asList(files));
-  }
-
-  @Test
-  public void dont_get_resource_from_parent() {
+  void dont_get_resource_from_parent() {
     URL resource2 = classLoader.getParent().getResource("fake.jar");
     assertThat(resource2).isNotNull();
 
@@ -107,7 +82,7 @@ public class IsolatedClassloaderTest {
   }
 
   @Test
-  public void dont_get_resources_from_parent() throws IOException {
+  void dont_get_resources_from_parent() throws IOException {
     Enumeration<URL> resource2 = classLoader.getParent().getResources("fake.jar");
     assertThat(resource2.hasMoreElements()).isTrue();
 

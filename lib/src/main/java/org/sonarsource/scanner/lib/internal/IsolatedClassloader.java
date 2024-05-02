@@ -19,11 +19,11 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -41,10 +41,10 @@ class IsolatedClassloader extends URLClassLoader {
     this.rules = rules;
   }
 
-  void addFiles(List<File> files) {
+  void addFiles(List<Path> files) {
     try {
-      for (File file : files) {
-        addURL(file.toURI().toURL());
+      for (var file : files) {
+        addURL(file.toUri().toURL());
       }
     } catch (MalformedURLException e) {
       throw new IllegalStateException("Fail to create classloader", e);

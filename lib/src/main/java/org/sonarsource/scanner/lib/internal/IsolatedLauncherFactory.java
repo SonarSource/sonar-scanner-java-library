@@ -19,11 +19,13 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
+import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
@@ -47,7 +49,7 @@ public class IsolatedLauncherFactory {
     this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
   }
 
-  private IsolatedClassloader createClassLoader(List<File> jarFiles, ClassloadRules maskRules) {
+  private IsolatedClassloader createClassLoader(List<Path> jarFiles, ClassloadRules maskRules) {
     IsolatedClassloader classloader = new IsolatedClassloader(getClass().getClassLoader(), maskRules);
     classloader.addFiles(jarFiles);
 
@@ -55,19 +57,19 @@ public class IsolatedLauncherFactory {
   }
 
   public IsolatedLauncherAndClassloader createLauncher(ClassloadRules rules, ServerConnection serverConnection, FileCache fileCache) {
-    JarDownloader jarDownloader = new JarDownloaderFactory(serverConnection, logger, fileCache).create();
-    return createLauncher(jarDownloader, rules);
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new JarDownloaderFactory(serverConnection, logger, fileCache).create();
+    return createLauncher(legacyScannerEngineDownloader, rules);
   }
 
-  IsolatedLauncherAndClassloader createLauncher(final JarDownloader jarDownloader, final ClassloadRules rules) {
+  IsolatedLauncherAndClassloader createLauncher(final LegacyScannerEngineDownloader legacyScannerEngineDownloader, final ClassloadRules rules) {
     try {
-      List<File> jarFiles = jarDownloader.download();
+      List<CachedFile> jarFiles = legacyScannerEngineDownloader.getOrDownload();
       logger.debug("Create isolated classloader...");
-      var cl = createClassLoader(jarFiles, rules);
+      var cl = createClassLoader(jarFiles.stream().map(CachedFile::getPathInCache).collect(Collectors.toList()), rules);
       IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
       tempCleaning.clean();
 
-      return new IsolatedLauncherAndClassloader(objProxy, cl);
+      return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::isCacheHit));
     } catch (Exception e) {
       // Catch all other exceptions, which relates to reflection
       throw new ScannerException("Unable to execute SonarScanner analysis", e);
@@ -77,10 +79,12 @@ public class IsolatedLauncherFactory {
   public static class IsolatedLauncherAndClassloader implements AutoCloseable {
     private final IsolatedLauncher launcher;
     private final URLClassLoader classloader;
+    private final boolean engineCacheHit;
 
-    public IsolatedLauncherAndClassloader(IsolatedLauncher launcher, @Nullable URLClassLoader classloader) {
+    public IsolatedLauncherAndClassloader(IsolatedLauncher launcher, @Nullable URLClassLoader classloader, boolean engineCacheHit) {
       this.launcher = launcher;
       this.classloader = classloader;
+      this.engineCacheHit = engineCacheHit;
     }
 
     public IsolatedLauncher getLauncher() {
@@ -92,6 +96,10 @@ public class IsolatedLauncherFactory {
       if (classloader != null) {
         classloader.close();
       }
+    }
+
+    public boolean wasEngineCacheHit() {
+      return this.engineCacheHit;
     }
   }
 

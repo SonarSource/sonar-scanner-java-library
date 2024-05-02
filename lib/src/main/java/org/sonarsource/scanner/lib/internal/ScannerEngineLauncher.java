@@ -21,21 +21,21 @@ package org.sonarsource.scanner.lib.internal;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.sonarsource.scanner.lib.ScannerProperties;
+import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public class ScannerEngineLauncher {
 
   private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
-  private final File scannerEngineJar;
+  private final CachedFile scannerEngineJar;
   private final Logger logger;
 
-  public ScannerEngineLauncher(JavaRunner javaRunner, File scannerEngineJar, Logger logger) {
+  public ScannerEngineLauncher(JavaRunner javaRunner, CachedFile scannerEngineJar, Logger logger) {
     this.javaRunner = javaRunner;
     this.scannerEngineJar = scannerEngineJar;
     this.logger = logger;
@@ -53,7 +53,7 @@ public class ScannerEngineLauncher {
       args.add(javaOpts);
     }
     args.add("-jar");
-    args.add(scannerEngineJar.getAbsolutePath());
+    args.add(scannerEngineJar.getPathInCache().toAbsolutePath().toString());
     return args;
   }
 
@@ -61,5 +61,13 @@ public class ScannerEngineLauncher {
     JsonObject jsonObject = new JsonObject();
     jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, new Gson().toJsonTree(properties));
     return new Gson().toJson(jsonObject);
+  }
+
+  public boolean isEngineCacheHit() {
+    return scannerEngineJar.isCacheHit();
+  }
+
+  public JreCacheHit getJreCacheHit() {
+    return javaRunner.getJreCacheHit();
   }
 }

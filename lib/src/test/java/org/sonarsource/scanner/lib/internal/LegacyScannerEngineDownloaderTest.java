@@ -19,19 +19,14 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
-import org.sonarsource.scanner.lib.internal.JarDownloader.ScannerFileDownloader;
+import org.sonarsource.scanner.lib.internal.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
@@ -45,31 +40,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class JarDownloaderTest {
-  @Mock
-  private BootstrapIndexDownloader bootstrapIndexDownloader;
-  @Mock
-  private ScannerFileDownloader scannerFileDownloader;
-  @Mock
-  private JarExtractor jarExtractor;
-  @Mock
-  private FileCache fileCache;
-
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
-  }
+class LegacyScannerEngineDownloaderTest {
+  private final BootstrapIndexDownloader bootstrapIndexDownloader = mock(BootstrapIndexDownloader.class);
+  private final ScannerFileDownloader scannerFileDownloader = mock(ScannerFileDownloader.class);
+  private final JarExtractor jarExtractor = mock(JarExtractor.class);
+  private final FileCache fileCache = mock(FileCache.class);
 
   @Test
-  public void should_download_jar_files() throws Exception {
-    File batchJar = temp.newFile("sonar-scanner-java-library-batch.jar");
-    when(jarExtractor.extractToTemp("sonar-scanner-java-library-batch")).thenReturn(batchJar.toPath());
+  void should_download_jar_files(@TempDir Path tmpDir) {
+    var batchJar = tmpDir.resolve("sonar-scanner-java-library-batch.jar");
+    when(jarExtractor.extractToTemp("sonar-scanner-java-library-batch")).thenReturn(batchJar);
 
     Collection<JarEntry> jars = new ArrayList<>();
     jars.add(new JarEntry("cpd.jar", "CA124VADFSDS"));
@@ -78,23 +58,23 @@ public class JarDownloaderTest {
     // index of the files to download
     when(bootstrapIndexDownloader.getIndex()).thenReturn(jars);
 
-    JarDownloader jarDownloader = new JarDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor,
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor,
       mock(Logger.class));
-    List<File> files = jarDownloader.download();
+    var files = legacyScannerEngineDownloader.getOrDownload();
 
     assertThat(files).isNotNull();
     verify(bootstrapIndexDownloader).getIndex();
-    verify(fileCache, times(1)).get(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class));
-    verify(fileCache, times(1)).get(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).getOrDownload(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class));
+    verify(fileCache, times(1)).getOrDownload(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class));
     verifyNoMoreInteractions(fileCache);
   }
 
   @Test
-  public void test_jar_downloader() throws Exception {
+  void test_jar_downloader(@TempDir Path tmpDir) throws Exception {
     ServerConnection connection = mock(ServerConnection.class);
-    JarDownloader.ScannerFileDownloader downloader = new JarDownloader.ScannerFileDownloader(connection);
-    File toFile = temp.newFile();
+    LegacyScannerEngineDownloader.ScannerFileDownloader downloader = new LegacyScannerEngineDownloader.ScannerFileDownloader(connection);
+    var toFile = Files.createTempFile(tmpDir, "squid", ".jar");
     downloader.download("squid.jar", toFile);
-    verify(connection).downloadFromWebApi("/batch/file?name=squid.jar", toFile.toPath());
+    verify(connection).downloadFromWebApi("/batch/file?name=squid.jar", toFile);
   }
 }

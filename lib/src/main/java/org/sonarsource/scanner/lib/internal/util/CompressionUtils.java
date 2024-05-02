@@ -20,8 +20,6 @@
 package org.sonarsource.scanner.lib.internal.util;
 
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,7 +47,7 @@ public final class CompressionUtils {
    *
    * @return the target directory
    */
-  public static File unzip(File zip, File toDir) throws IOException {
+  public static Path unzip(Path zip, Path toDir) throws IOException {
     return unzip(zip, toDir, ze -> true);
   }
 
@@ -62,21 +60,21 @@ public final class CompressionUtils {
    *               extracted to target directory.
    * @return the parameter {@code toDir}
    */
-  public static File unzip(File zip, File toDir, Predicate<ZipEntry> filter) throws IOException {
-    Path targetDirNormalizedPath = toDir.toPath().normalize();
-    try (ZipFile zipFile = new ZipFile(zip)) {
+  public static Path unzip(Path zip, Path toDir, Predicate<ZipEntry> filter) throws IOException {
+    Path targetDirNormalizedPath = toDir.normalize();
+    try (ZipFile zipFile = new ZipFile(zip.toFile())) {
       Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         if (filter.test(entry)) {
-          File target = new File(toDir, entry.getName());
+          var target = toDir.resolve(entry.getName());
 
-          verifyInsideTargetDirectory(entry, target.toPath(), targetDirNormalizedPath);
+          verifyInsideTargetDirectory(entry, target, targetDirNormalizedPath);
 
           if (entry.isDirectory()) {
             throwExceptionIfDirectoryIsNotCreatable(target);
           } else {
-            File parent = target.getParentFile();
+            var parent = target.getParent();
             throwExceptionIfDirectoryIsNotCreatable(parent);
             copy(zipFile, entry, target);
           }
@@ -93,40 +91,38 @@ public final class CompressionUtils {
     }
   }
 
-  private static void throwExceptionIfDirectoryIsNotCreatable(File to) throws IOException {
-    if (!to.exists() && !to.mkdirs()) {
-      throw new IOException(ERROR_CREATING_DIRECTORY + to);
+  private static void throwExceptionIfDirectoryIsNotCreatable(Path to) throws IOException {
+    try {
+      Files.createDirectories(to);
+    } catch (IOException e) {
+      throw new IOException(ERROR_CREATING_DIRECTORY + to, e);
     }
   }
 
-  private static void copy(ZipFile zipFile, ZipEntry entry, File to) throws IOException {
+  private static void copy(ZipFile zipFile, ZipEntry entry, Path to) throws IOException {
     try (InputStream input = zipFile.getInputStream(entry);
-         OutputStream fos = Files.newOutputStream(to.toPath())) {
+      OutputStream fos = Files.newOutputStream(to)) {
       IOUtils.copy(input, fos);
     }
   }
 
-  public static void extractTarGz(File compressedFile, File targetDir) throws IOException {
-    try (InputStream fis = new FileInputStream(compressedFile);
-         InputStream bis = new BufferedInputStream(fis);
-         InputStream gzis = new GzipCompressorInputStream(bis);
-         TarArchiveInputStream archive = new TarArchiveInputStream(gzis)) {
+  public static void extractTarGz(Path compressedFile, Path targetDir) throws IOException {
+    try (InputStream fis = Files.newInputStream(compressedFile);
+      InputStream bis = new BufferedInputStream(fis);
+      InputStream gzis = new GzipCompressorInputStream(bis);
+      TarArchiveInputStream archive = new TarArchiveInputStream(gzis)) {
       ArchiveEntry entry;
       while ((entry = archive.getNextEntry()) != null) {
         if (!archive.canReadEntryData(entry)) {
           continue;
         }
-        File f = new File(targetDir, entry.getName());
+        var f = targetDir.resolve(entry.getName());
         if (entry.isDirectory()) {
-          if (!f.isDirectory() && !f.mkdirs()) {
-            throw new IOException("failed to create directory " + f);
-          }
+          Files.createDirectories(f);
         } else {
-          File parent = f.getParentFile();
-          if (!parent.isDirectory() && !parent.mkdirs()) {
-            throw new IOException("failed to create directory " + parent);
-          }
-          try (OutputStream o = Files.newOutputStream(f.toPath())) {
+          var parent = f.getParent();
+          Files.createDirectories(parent);
+          try (OutputStream o = Files.newOutputStream(f)) {
             IOUtils.copy(archive, o);
           }
         }

@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import org.sonarsource.scanner.lib.internal.JreCacheHit;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public abstract class ScannerEngineFacade implements AutoCloseable {
@@ -33,13 +34,18 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
   private final Logger logger;
   private final boolean isSonarCloud;
   private final String serverVersion;
+  private final boolean wasEngineCacheHit;
+  private final JreCacheHit wasJreCacheHit;
 
-  ScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion) {
+  ScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion,
+    boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
     this.logger = new LoggerAdapter(logOutput);
     this.logOutput = logOutput;
     this.isSonarCloud = isSonarCloud;
     this.serverVersion = serverVersion;
+    this.wasEngineCacheHit = wasEngineCacheHit;
+    this.wasJreCacheHit = wasJreCacheHit;
   }
 
   public String getServerVersion() {
@@ -58,7 +64,15 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
     allProps.putAll(bootstrapProperties);
     allProps.putAll(analysisProps);
     initAnalysisProperties(allProps);
+    addStatsProperties(allProps);
     doAnalyze(allProps);
+  }
+
+  private void addStatsProperties(Map<String, String> allProps) {
+    if (wasJreCacheHit != null) {
+      allProps.put("sonar.scanner.wasJreCacheHit", wasJreCacheHit.name());
+    }
+    allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
   }
 
   abstract void doAnalyze(Map<String, String> allProps);
@@ -77,7 +91,7 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
       p.put(AnalysisProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
     }
     logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
-                + (platformDependent ? " (analysis is platform dependent)" : ""));
+      + (platformDependent ? " (analysis is platform dependent)" : ""));
   }
 
   public Map<String, String> getBootstrapProperties() {

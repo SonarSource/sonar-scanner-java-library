@@ -22,7 +22,6 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -30,6 +29,8 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.sonarsource.scanner.lib.System2;
+import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -65,46 +67,42 @@ public class JavaRunnerFactory {
   }
 
   public JavaRunner createRunner(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
-    File javaExecutable = resolveJre(serverConnection, fileCache, properties);
-    return new JavaRunner(javaExecutable, logger);
-  }
-
-  private File resolveJre(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
-    File javaExecutable = null;
-
-    String javaExecutablePath = properties.get(JAVA_EXECUTABLE_PATH);
-    if (javaExecutablePath != null) {
-      javaExecutable = new File(javaExecutablePath);
-      logger.info(format("JRE provisioning is disabled, the java executable '%s' will be used.", javaExecutable));
+    String javaExecutablePropValue = properties.get(JAVA_EXECUTABLE_PATH);
+    if (javaExecutablePropValue != null) {
+      logger.info(format("Using the configured java executable '%s'", javaExecutablePropValue));
+      return new JavaRunner(Paths.get(javaExecutablePropValue), logger, JreCacheHit.DISABLED);
+    }
+    boolean skipJreProvisioning = Boolean.parseBoolean(properties.get(SKIP_JRE_PROVISIONING));
+    if (skipJreProvisioning) {
+      logger.info("JRE provisioning is disabled");
     } else {
-      boolean skipJreProvisioning = Boolean.parseBoolean(properties.get(SKIP_JRE_PROVISIONING));
-      if (skipJreProvisioning) {
-        String javaHome = system.getEnvironmentVariable("JAVA_HOME");
-        if (javaHome != null) {
-          javaExecutable = new File(javaHome, "bin/java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : ""));
-          logger.info(format("JRE provisioning is disabled, the java executable '%s' will be used.", javaExecutable));
-        } else {
-          logger.info("JRE provisioning is disabled, the java executable in the PATH will be used.");
-        }
-      } else {
-        javaExecutable = getJreFromServer(serverConnection, fileCache, properties, true);
+      var cachedFile = getJreFromServer(serverConnection, fileCache, properties, true);
+      // TODO catch exception and fallback to system java
+      return new JavaRunner(cachedFile.getPathInCache(), logger, cachedFile.isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
+    }
+    String javaHome = system.getEnvironmentVariable("JAVA_HOME");
+    if (javaHome != null) {
+      var javaExecutable = Paths.get(javaHome, "bin", "java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : ""));
+      if (Files.exists(javaExecutable)) {
+        logger.info(format("Using the java executable '%s' from JAVA_HOME", javaExecutable));
+        return new JavaRunner(javaExecutable, logger, JreCacheHit.DISABLED);
       }
     }
-
-    return javaExecutable;
+    logger.info("The java executable in the PATH will be used");
+    return new JavaRunner(null, logger, JreCacheHit.DISABLED);
   }
 
-  private File getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
+  private CachedFile getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
     logger.info(format("JRE provisioning: os[%s], arch[%s]", os, arch));
 
     try {
       var jreMetadata = getJreMetadata(serverConnection, os, arch);
-      File cachedFile = fileCache.get(jreMetadata.getFilename(), jreMetadata.getSha256(), "SHA-256",
+      var cachedFile = fileCache.getOrDownload(jreMetadata.getFilename(), jreMetadata.getSha256(), "SHA-256",
         new JreDownloader(serverConnection, jreMetadata));
-      File extractedDirectory = extractArchive(cachedFile);
-      return new File(extractedDirectory, jreMetadata.javaPath);
+      var extractedDirectory = extractArchive(cachedFile.getPathInCache());
+      return new CachedFile(extractedDirectory.resolve(jreMetadata.javaPath), cachedFile.isCacheHit());
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download
@@ -143,19 +141,19 @@ public class JavaRunnerFactory {
     }
   }
 
-  private static File extractArchive(File cachedFile) {
-    String filename = cachedFile.getName();
-    File destDir = new File(cachedFile.getParentFile(), filename + "_unzip");
-    File lockFile = new File(cachedFile.getParentFile(), filename + "_unzip.lock");
-    if (!destDir.exists()) {
-      try (FileOutputStream out = new FileOutputStream(lockFile)) {
+  private static Path extractArchive(Path cachedFile) {
+    String filename = cachedFile.getFileName().toString();
+    var destDir = cachedFile.getParent().resolve(filename + "_unzip");
+    var lockFile = cachedFile.getParent().resolve(filename + "_unzip.lock");
+    if (!Files.exists(destDir)) {
+      try (FileOutputStream out = new FileOutputStream(lockFile.toFile())) {
         FileLock lock = createLockWithRetries(out.getChannel());
         try {
           // Recheck in case of concurrent processes
-          if (!destDir.exists()) {
-            File tempDir = Files.createTempDirectory(cachedFile.getParentFile().toPath(), "jre").toFile();
+          if (!Files.exists(destDir)) {
+            var tempDir = Files.createTempDirectory(cachedFile.getParent(), "jre");
             extract(cachedFile, tempDir);
-            Files.move(tempDir.toPath(), destDir.toPath());
+            Files.move(tempDir, destDir);
           }
         } finally {
           lock.release();
@@ -163,7 +161,7 @@ public class JavaRunnerFactory {
       } catch (IOException e) {
         throw new IllegalStateException("Failed to extract archive", e);
       } finally {
-        deleteQuietly(lockFile.toPath());
+        deleteQuietly(lockFile);
       }
     }
     return destDir;
@@ -187,8 +185,9 @@ public class JavaRunnerFactory {
     throw new IOException("Unable to get lock after " + tryCount + " tries");
   }
 
-  private static void extract(File compressedFile, File targetDir) throws IOException {
-    String extension = compressedFile.getName().substring(compressedFile.getName().lastIndexOf('.') + 1);
+  private static void extract(Path compressedFile, Path targetDir) throws IOException {
+    var filename = compressedFile.getFileName().toString();
+    String extension = filename.substring(filename.lastIndexOf('.') + 1);
     switch (extension) {
       case EXTENSION_ZIP:
         CompressionUtils.unzip(compressedFile, targetDir);
@@ -211,11 +210,11 @@ public class JavaRunnerFactory {
     }
 
     @Override
-    public void download(String filename, File toFile) throws IOException {
+    public void download(String filename, Path toFile) throws IOException {
       if (StringUtils.isNotBlank(jreMetadata.getDownloadUrl())) {
-        connection.downloadFromExternalUrl(jreMetadata.getDownloadUrl(), toFile.toPath());
+        connection.downloadFromExternalUrl(jreMetadata.getDownloadUrl(), toFile);
       } else {
-        connection.downloadFromRestApi(API_PATH_JRE + "/" + jreMetadata.id, toFile.toPath());
+        connection.downloadFromRestApi(API_PATH_JRE + "/" + jreMetadata.id, toFile);
       }
     }
   }

@@ -19,25 +19,22 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
+import java.nio.file.Path;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-class JarDownloaderFactory {
-  private final ServerConnection serverConnection;
-  private final Logger logger;
-  private final FileCache fileCache;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
-  JarDownloaderFactory(ServerConnection conn, Logger logger, FileCache fileCache) {
-    this.serverConnection = conn;
-    this.logger = logger;
-    this.fileCache = fileCache;
-  }
-
-  LegacyScannerEngineDownloader create() {
-    BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(serverConnection, logger);
-    LegacyScannerEngineDownloader.ScannerFileDownloader scannerFileDownloader = new LegacyScannerEngineDownloader.ScannerFileDownloader(serverConnection);
-    JarExtractor jarExtractor = new JarExtractor();
-    return new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor, logger);
+class LegacyScannerEngineDownloaderFactoryTest {
+  @Test
+  void should_create(@TempDir Path sonarUserHome) {
+    ServerConnection conn = mock(ServerConnection.class);
+    Logger logger = mock(Logger.class);
+    FileCache cache = mock(FileCache.class);
+    assertThat(new JarDownloaderFactory(conn, logger, cache).create()).isNotNull();
   }
 }

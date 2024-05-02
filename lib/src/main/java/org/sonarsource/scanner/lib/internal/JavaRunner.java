@@ -23,13 +23,13 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,12 +38,18 @@ import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public class JavaRunner {
 
-  private final File javaExecutable;
+  private final Path javaExecutable;
   private final Logger logger;
+  private final JreCacheHit jreCacheHit;
 
-  public JavaRunner(@Nullable File javaExecutable, Logger logger) {
+  public JavaRunner(@Nullable Path javaExecutable, Logger logger, JreCacheHit jreCacheHit) {
     this.javaExecutable = javaExecutable;
     this.logger = logger;
+    this.jreCacheHit = jreCacheHit;
+  }
+
+  public JreCacheHit getJreCacheHit() {
+    return jreCacheHit;
   }
 
   public void execute(List<String> args, @Nullable String input) {
@@ -53,7 +59,7 @@ public class JavaRunner {
       Process process = new ProcessBuilder(command).start();
       if (input != null) {
         try (OutputStream stdin = process.getOutputStream();
-             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin, StandardCharsets.UTF_8))) {
+          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin, StandardCharsets.UTF_8))) {
           writer.write(input);
         }
       }
@@ -70,7 +76,7 @@ public class JavaRunner {
 
   String getJavaExecutable() {
     if (javaExecutable != null) {
-      return javaExecutable.getAbsolutePath();
+      return javaExecutable.toAbsolutePath().toString();
     }
     // Will try to use the java executable in the PATH
     return "java";

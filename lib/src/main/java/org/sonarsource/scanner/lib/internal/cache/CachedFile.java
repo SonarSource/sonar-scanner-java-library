@@ -17,24 +17,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.cache;
 
 import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+public class CachedFile {
 
-class JarDownloaderFactoryTest {
-  @Test
-  void should_create(@TempDir Path sonarUserHome) {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    FileCache cache = mock(FileCache.class);
-    assertThat(new JarDownloaderFactory(conn, logger, cache).create()).isNotNull();
+  private final Path pathInCache;
+  private final boolean cacheHit;
+
+  public CachedFile(Path pathInCache, boolean cacheHit) {
+    this.pathInCache = pathInCache;
+    this.cacheHit = cacheHit;
+  }
+
+  public Path getPathInCache() {
+    return pathInCache;
+  }
+
+  public boolean isCacheHit() {
+    return cacheHit;
   }
 }

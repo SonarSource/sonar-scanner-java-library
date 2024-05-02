@@ -60,8 +60,8 @@ public class ScannerEngineBootstrapper {
   private final System2 system;
 
   ScannerEngineBootstrapper(String app, String version, LogOutput logOutput, System2 system,
-                            ServerConnection serverConnection, IsolatedLauncherFactory launcherFactory,
-                            ScannerEngineLauncherFactory scannerEngineLauncherFactory) {
+    ServerConnection serverConnection, IsolatedLauncherFactory launcherFactory,
+    ScannerEngineLauncherFactory scannerEngineLauncherFactory) {
     this.logOutput = logOutput;
     this.system = system;
     this.logger = new LoggerAdapter(logOutput);
@@ -154,8 +154,8 @@ public class ScannerEngineBootstrapper {
 
   private void initBootstrapDefaultValues() {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API :
-      (bootstrapProperties.get(ScannerProperties.HOST_URL) + "/api/v2"));
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
+      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (bootstrapProperties.get(ScannerProperties.HOST_URL) + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2(), logger).getOs().name().toLowerCase(Locale.ENGLISH));
     }

@@ -57,7 +57,7 @@ class FileCacheTest {
   @Test
   void found_in_cache() throws IOException {
     // populate the cache. Assume that hash is correct.
-    File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
+    Path cachedFile = cache.getDir().resolve("ABCDE/sonar-foo-plugin-1.5.jar");
     write(cachedFile, "body");
 
     assertThat(cache.get("sonar-foo-plugin-1.5.jar", "ABCDE")).isNotNull().exists().isEqualTo(cachedFile);
@@ -68,11 +68,11 @@ class FileCacheTest {
     when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
-      public void download(String filename, File toFile) throws IOException {
+      public void download(String filename, Path toFile) throws IOException {
         throw new IOException("fail");
       }
     };
-    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
+    assertThatThrownBy(() -> cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
       .isInstanceOf(IllegalStateException.class)
       .hasMessageContaining("Fail to download");
   }
@@ -81,7 +81,7 @@ class FileCacheTest {
   void fail_create_temp_file() throws IOException {
     when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
     Files.delete(temp.resolve("_tmp"));
-    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
+    assertThatThrownBy(() -> cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
       .isInstanceOf(IllegalStateException.class)
       .hasMessageContaining("Fail to create temp file");
   }
@@ -99,9 +99,9 @@ class FileCacheTest {
   void fail_to_create_hash_dir() throws IOException {
     when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
-    File hashDir = new File(cache.getDir(), "ABCDE");
-    hashDir.createNewFile();
-    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
+    var hashDir = cache.getDir().resolve("ABCDE");
+    Files.createFile(hashDir);
+    assertThatThrownBy(() -> cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, mock(FileCache.Downloader.class)))
       .isInstanceOf(IllegalStateException.class)
       .hasMessageContaining("Fail to create cache directory");
   }
@@ -113,7 +113,7 @@ class FileCacheTest {
     FileCache.Downloader downloader = new FileCache.Downloader() {
       boolean single = false;
 
-      public void download(String filename, File toFile) throws IOException {
+      public void download(String filename, Path toFile) throws IOException {
         if (single) {
           throw new IllegalStateException("Already called");
         }
@@ -121,17 +121,19 @@ class FileCacheTest {
         single = true;
       }
     };
-    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
-    assertThat(cachedFile).isNotNull().exists().isFile()
-      .hasName("sonar-foo-plugin-1.5.jar");
-    assertThat(cachedFile.getParentFile()).hasParent(cache.getDir());
-    assertThat(read(cachedFile)).isEqualTo("body");
+    var cachedFile = cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(cachedFile.getPathInCache()).isRegularFile()
+      .hasFileName("sonar-foo-plugin-1.5.jar");
+    assertThat(cachedFile.getPathInCache().getParent()).hasParent(cache.getDir());
+    assertThat(read(cachedFile.getPathInCache())).isEqualTo("body");
+    assertThat(cachedFile.isCacheHit()).isFalse();
 
-    File againFromCache = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
-    assertThat(againFromCache).isNotNull().exists().isFile()
-      .hasName("sonar-foo-plugin-1.5.jar");
-    assertThat(againFromCache.getParentFile()).hasParent(cache.getDir());
-    assertThat(read(againFromCache)).isEqualTo("body");
+    var againFromCache = cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(againFromCache.getPathInCache()).isRegularFile()
+      .hasFileName("sonar-foo-plugin-1.5.jar");
+    assertThat(againFromCache.getPathInCache().getParent()).hasParent(cache.getDir());
+    assertThat(read(againFromCache.getPathInCache())).isEqualTo("body");
+    assertThat(againFromCache.isCacheHit()).isTrue();
   }
 
   @Test
@@ -139,11 +141,11 @@ class FileCacheTest {
     when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("VWXYZ");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
-      public void download(String filename, File toFile) throws IOException {
+      public void download(String filename, Path toFile) throws IOException {
         write(toFile, "corrupted body");
       }
     };
-    assertThatThrownBy(() -> cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
+    assertThatThrownBy(() -> cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader))
       .isInstanceOf(HashMismatchException.class)
       .hasMessageContaining("INVALID HASH");
   }
@@ -153,9 +155,9 @@ class FileCacheTest {
     when(fileHashes.of(any(File.class), eq(HASH_ALGO))).thenReturn("ABCDE");
 
     FileCache.Downloader downloader = new FileCache.Downloader() {
-      public void download(String filename, File toFile) throws IOException {
+      public void download(String filename, Path toFile) throws IOException {
         // Emulate a concurrent download that adds file to cache before
-        File cachedFile = new File(new File(cache.getDir(), "ABCDE"), "sonar-foo-plugin-1.5.jar");
+        var cachedFile = cache.getDir().resolve("ABCDE/sonar-foo-plugin-1.5.jar");
         write(cachedFile, "downloaded by other");
 
         write(toFile, "downloaded by me");
@@ -163,19 +165,19 @@ class FileCacheTest {
     };
 
     // do not fail
-    File cachedFile = cache.get("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
-    assertThat(cachedFile).isNotNull().exists().isFile()
-      .hasName("sonar-foo-plugin-1.5.jar");
-    assertThat(cachedFile.getParentFile()).hasParent(cache.getDir());
-    assertThat(read(cachedFile)).contains("downloaded by");
+    var cachedFile = cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
+    assertThat(cachedFile.getPathInCache()).isRegularFile()
+      .hasFileName("sonar-foo-plugin-1.5.jar");
+    assertThat(cachedFile.getPathInCache().getParent()).hasParent(cache.getDir());
+    assertThat(read(cachedFile.getPathInCache())).contains("downloaded by");
   }
 
-  private static void write(File f, String txt) throws IOException {
-    Files.createDirectories(f.toPath().getParent());
-    Files.write(f.toPath(), txt.getBytes(StandardCharsets.UTF_8));
+  private static void write(Path f, String txt) throws IOException {
+    Files.createDirectories(f.getParent());
+    Files.write(f, txt.getBytes(StandardCharsets.UTF_8));
   }
 
-  private static String read(File f) throws IOException {
-    return Files.readString(f.toPath());
+  private static String read(Path f) throws IOException {
+    return Files.readString(f);
   }
 }

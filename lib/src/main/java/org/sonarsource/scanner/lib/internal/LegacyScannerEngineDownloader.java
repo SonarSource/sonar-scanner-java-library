@@ -19,27 +19,32 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
+import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static java.lang.String.format;
 
-class JarDownloader {
+/**
+ * The scanner engine used to be downloaded from /batch/index and /batch/file, and was even made of multiple files to be put on the classpath.
+ */
+class LegacyScannerEngineDownloader {
   private final FileCache fileCache;
   private final JarExtractor jarExtractor;
   private final Logger logger;
   private final ScannerFileDownloader scannerFileDownloader;
   private final BootstrapIndexDownloader bootstrapIndexDownloader;
 
-  JarDownloader(ScannerFileDownloader scannerFileDownloader, BootstrapIndexDownloader bootstrapIndexDownloader, FileCache fileCache, JarExtractor jarExtractor, Logger logger) {
+  LegacyScannerEngineDownloader(ScannerFileDownloader scannerFileDownloader, BootstrapIndexDownloader bootstrapIndexDownloader, FileCache fileCache,
+    JarExtractor jarExtractor, Logger logger) {
     this.scannerFileDownloader = scannerFileDownloader;
     this.bootstrapIndexDownloader = bootstrapIndexDownloader;
     this.logger = logger;
@@ -47,18 +52,18 @@ class JarDownloader {
     this.jarExtractor = jarExtractor;
   }
 
-  List<File> download() {
-    List<File> files = new ArrayList<>();
+  List<CachedFile> getOrDownload() {
+    List<CachedFile> files = new ArrayList<>();
     logger.debug("Extract sonar-scanner-java-library-batch in temp...");
-    files.add(jarExtractor.extractToTemp("sonar-scanner-java-library-batch").toFile());
-    files.addAll(getScannerEngineFiles());
+    files.add(new CachedFile(jarExtractor.extractToTemp("sonar-scanner-java-library-batch"), true));
+    files.addAll(getOrDownloadScannerEngineFiles());
     return files;
   }
 
-  private List<File> getScannerEngineFiles() {
+  private List<CachedFile> getOrDownloadScannerEngineFiles() {
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
     return index.stream()
-      .map(jar -> fileCache.get(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader))
+      .map(jar -> fileCache.getOrDownload(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader))
       .collect(Collectors.toList());
   }
 
@@ -70,8 +75,8 @@ class JarDownloader {
     }
 
     @Override
-    public void download(String filename, File toFile) throws IOException {
-      connection.downloadFromWebApi(format("/batch/file?name=%s", filename), toFile.toPath());
+    public void download(String filename, Path toFile) throws IOException {
+      connection.downloadFromWebApi(format("/batch/file?name=%s", filename), toFile);
     }
   }
 }
