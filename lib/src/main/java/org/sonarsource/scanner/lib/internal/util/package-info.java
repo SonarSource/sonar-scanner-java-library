@@ -17,22 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+@ParametersAreNonnullByDefault
+package org.sonarsource.scanner.lib.internal.util;
 
-import org.junit.jupiter.api.Test;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-class LegacyScannerEngineDownloaderFactoryTest {
-  @Test
-  void should_create() {
-    ServerConnection conn = mock(ServerConnection.class);
-    Logger logger = mock(Logger.class);
-    FileCache cache = mock(FileCache.class);
-    assertThat(new LegacyScannerEngineDownloaderFactory(conn, logger, cache).create()).isNotNull();
-  }
-}
+import javax.annotation.ParametersAreNonnullByDefault;

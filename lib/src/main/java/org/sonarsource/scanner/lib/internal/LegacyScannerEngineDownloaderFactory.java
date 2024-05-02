@@ -23,12 +23,12 @@ import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
-class JarDownloaderFactory {
+class LegacyScannerEngineDownloaderFactory {
   private final ServerConnection serverConnection;
   private final Logger logger;
   private final FileCache fileCache;
 
-  JarDownloaderFactory(ServerConnection conn, Logger logger, FileCache fileCache) {
+  LegacyScannerEngineDownloaderFactory(ServerConnection conn, Logger logger, FileCache fileCache) {
     this.serverConnection = conn;
     this.logger = logger;
     this.fileCache = fileCache;

@@ -19,13 +19,11 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.batch.LogOutput;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -40,7 +38,7 @@ class IsolatedLauncherFactoryTest {
   LegacyScannerEngineDownloader legacyScannerEngineDownloader;
 
   @BeforeEach
-  public void setUp(@TempDir Path sonarUserHome) {
+  public void setUp() {
     tempCleaning = mock(TempCleaning.class);
     factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class));
     props = new Properties();

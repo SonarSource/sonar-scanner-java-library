@@ -57,7 +57,7 @@ public class IsolatedLauncherFactory {
   }
 
   public IsolatedLauncherAndClassloader createLauncher(ClassloadRules rules, ServerConnection serverConnection, FileCache fileCache) {
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new JarDownloaderFactory(serverConnection, logger, fileCache).create();
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(serverConnection, logger, fileCache).create();
     return createLauncher(legacyScannerEngineDownloader, rules);
   }
 
