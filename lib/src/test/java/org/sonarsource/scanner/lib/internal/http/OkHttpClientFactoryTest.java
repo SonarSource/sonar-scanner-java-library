@@ -42,7 +42,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -69,11 +68,11 @@ class OkHttpClientFactoryTest {
 
   @TempDir
   private Path sonarUserHomeDir;
-  private SonarUserHome sonarUserHome;
+  private Path sonarUserHome;
 
   @BeforeEach
   void prepareMocks() {
-    this.sonarUserHome = new SonarUserHome(sonarUserHomeDir);
+    this.sonarUserHome = sonarUserHomeDir;
     bootstrapProperties.clear();
   }
 

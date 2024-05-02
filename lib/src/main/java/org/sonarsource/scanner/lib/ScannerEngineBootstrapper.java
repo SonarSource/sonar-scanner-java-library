@@ -29,7 +29,6 @@ import java.util.Set;
 import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -79,7 +78,7 @@ public class ScannerEngineBootstrapper {
       var userHome = Objects.requireNonNull(System.getProperty("user.home"), "The system property 'user.home' is expected to be non null");
       sonarUserHome = Paths.get(userHome, ".sonar").toAbsolutePath().toString();
     }
-    var launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput), new SonarUserHome(Paths.get(sonarUserHome)));
+    var launcherFactory = new IsolatedLauncherFactory(new LoggerAdapter(logOutput), Paths.get(sonarUserHome));
     var launcher = launcherFactory.createLauncher(properties, rules);
     return new ScannerEngineFacade(properties, launcher, logOutput, isSonarCloud);
   }

@@ -35,7 +35,6 @@ import okhttp3.ResponseBody;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.Utils;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static java.lang.String.format;
@@ -50,7 +49,7 @@ public class ServerConnection {
   private final String credentials;
   private final Logger logger;
 
-  ServerConnection(String baseUrl, String userAgent, @Nullable String credentials, Logger logger, Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
+  ServerConnection(String baseUrl, String userAgent, @Nullable String credentials, Logger logger, Map<String, String> bootstrapProperties, Path sonarUserHome) {
     this.credentials = credentials;
     this.logger = logger;
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
@@ -62,7 +61,7 @@ public class ServerConnection {
     return url.replaceAll("(/)+$", "");
   }
 
-  public static ServerConnection create(Map<String, String> bootstrapProperties, Logger logger, SonarUserHome sonarUserHome) {
+  public static ServerConnection create(Map<String, String> bootstrapProperties, Logger logger, Path sonarUserHome) {
     String serverUrl = bootstrapProperties.get("sonar.host.url");
     String userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
     String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);

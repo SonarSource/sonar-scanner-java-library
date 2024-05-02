@@ -42,7 +42,7 @@ class IsolatedLauncherFactoryTest {
   @BeforeEach
   public void setUp(@TempDir Path sonarUserHome) {
     tempCleaning = mock(TempCleaning.class);
-    factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class), new SonarUserHome(sonarUserHome));
+    factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class), sonarUserHome);
     props = new Properties();
     jarDownloader = mock(JarDownloader.class);
   }

@@ -19,19 +19,19 @@
  */
 package org.sonarsource.scanner.lib.internal.cache;
 
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
+import java.nio.file.Path;
 
 public class FileCacheBuilder {
   private final Logger logger;
-  private final SonarUserHome sonarUserHome;
+  private final Path sonarUserHome;
 
-  public FileCacheBuilder(Logger logger, SonarUserHome sonarUserHome) {
+  public FileCacheBuilder(Logger logger, Path sonarUserHome) {
     this.logger = logger;
     this.sonarUserHome = sonarUserHome;
   }
 
   public FileCache build() {
-    var cacheDir = sonarUserHome.getPath().resolve("cache");
+    var cacheDir = sonarUserHome.resolve("cache");
     return FileCache.create(cacheDir, logger);
   }
 

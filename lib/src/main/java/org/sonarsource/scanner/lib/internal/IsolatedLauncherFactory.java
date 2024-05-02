@@ -21,6 +21,7 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.io.File;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -33,19 +34,19 @@ public class IsolatedLauncherFactory {
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
   private final Logger logger;
-  private final SonarUserHome sonarUserHome;
+  private final Path sonarUserHome;
 
   /**
    * For unit tests
    */
-  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger, SonarUserHome sonarUserHome) {
+  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger, Path sonarUserHome) {
     this.tempCleaning = tempCleaning;
     this.launcherImplClassName = isolatedLauncherClassName;
     this.logger = logger;
     this.sonarUserHome = sonarUserHome;
   }
 
-  public IsolatedLauncherFactory(Logger logger, SonarUserHome sonarUserHome) {
+  public IsolatedLauncherFactory(Logger logger, Path sonarUserHome) {
     this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger, sonarUserHome);
   }
 

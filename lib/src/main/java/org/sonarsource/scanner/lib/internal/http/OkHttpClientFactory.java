@@ -36,7 +36,6 @@ import okhttp3.Credentials;
 import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import org.sonarsource.scanner.lib.ScannerProperties;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
@@ -73,7 +72,7 @@ public class OkHttpClientFactory {
     COOKIE_JAR = new JavaNetCookieJar(COOKIE_MANAGER);
   }
 
-  static OkHttpClient create(Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
+  static OkHttpClient create(Map<String, String> bootstrapProperties, Path sonarUserHome) {
 
     String oldSocketTimeout = defaultIfBlank(bootstrapProperties.get(READ_TIMEOUT_SEC_PROPERTY), valueOf(DEFAULT_READ_TIMEOUT_SEC));
     String socketTimeout = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SOCKET_TIMEOUT), oldSocketTimeout);
@@ -144,10 +143,10 @@ public class OkHttpClientFactory {
     }
   }
 
-  private static SslConfig parseSslConfig(Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
-    var keyStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.keystorePath"), sonarUserHome.getPath().resolve("ssl/keystore.p12").toString());
+  private static SslConfig parseSslConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+    var keyStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.keystorePath"), sonarUserHome.resolve("ssl/keystore.p12").toString());
     var keyStorePassword = defaultIfBlank(bootstrapProperties.get("sonar.scanner.keystorePassword"), CertificateStore.DEFAULT_PASSWORD);
-    var trustStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.truststorePath"), sonarUserHome.getPath().resolve("ssl/truststore.p12").toString());
+    var trustStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.truststorePath"), sonarUserHome.resolve("ssl/truststore.p12").toString());
     var trustStorePassword = defaultIfBlank(bootstrapProperties.get("sonar.scanner.truststorePassword"), CertificateStore.DEFAULT_PASSWORD);
     var keyStore = new CertificateStore(Path.of(keyStorePath), keyStorePassword);
     var trustStore = new CertificateStore(Path.of(trustStorePath), trustStorePassword);
