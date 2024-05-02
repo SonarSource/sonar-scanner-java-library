@@ -46,4 +46,14 @@ public interface ScannerProperties {
    */
   String SONAR_TOKEN = "sonar.token";
 
+  /**
+   * Authentication username for connecting to the Sonar server.
+   */
+  String SONAR_LOGIN = "sonar.login";
+
+  /**
+   * Authentication password for connecting to the Sonar server.
+   */
+  String SONAR_PASSWORD = "sonar.password";
+
 }

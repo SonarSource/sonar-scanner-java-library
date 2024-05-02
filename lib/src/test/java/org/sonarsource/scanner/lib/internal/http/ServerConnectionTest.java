@@ -23,6 +23,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,9 @@ import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,6 +130,37 @@ class ServerConnectionTest {
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
     assertThat(content).isEqualTo(HELLO_WORLD);
+  }
+
+  @Test
+  void should_authenticate_with_token() throws Exception {
+    Map<String, String> props = new HashMap<>();
+    props.put("sonar.host.url", sonarqube.baseUrl());
+    props.put("sonar.token", "some_token");
+    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+
+    answer(HELLO_WORLD);
+    String content = connection.downloadString("/batch/index.txt");
+    assertThat(content).isEqualTo(HELLO_WORLD);
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("some_token:".getBytes(StandardCharsets.UTF_8)))));
+  }
+
+  @Test
+  void should_authenticate_with_username_password() throws Exception {
+    Map<String, String> props = new HashMap<>();
+    props.put("sonar.host.url", sonarqube.baseUrl());
+    props.put("sonar.login", "some_username");
+    props.put("sonar.password", "some_password");
+    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+
+    answer(HELLO_WORLD);
+    String content = connection.downloadString("/batch/index.txt");
+    assertThat(content).isEqualTo(HELLO_WORLD);
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
   }
 
   private ServerConnection create() {
