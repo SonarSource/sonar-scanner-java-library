@@ -35,12 +35,12 @@ class Dirs {
   }
 
   void init(Map<String, String> p) {
-    String pathString = Optional.ofNullable(p.get(ScanProperties.PROJECT_BASEDIR)).orElse("");
+    String pathString = Optional.ofNullable(p.get(AnalysisProperties.PROJECT_BASEDIR)).orElse("");
     Path absoluteProjectPath = Paths.get(pathString).toAbsolutePath().normalize();
     if (!Files.isDirectory(absoluteProjectPath)) {
       throw new IllegalStateException("Project home must be an existing directory: " + pathString);
     }
-    p.put(ScanProperties.PROJECT_BASEDIR, absoluteProjectPath.toString());
+    p.put(AnalysisProperties.PROJECT_BASEDIR, absoluteProjectPath.toString());
 
     Path workDirPath;
     pathString = Optional.ofNullable(p.get(ScannerProperties.WORK_DIR)).orElse("");

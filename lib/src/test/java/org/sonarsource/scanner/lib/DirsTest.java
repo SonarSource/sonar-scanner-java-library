@@ -41,7 +41,7 @@ public class DirsTest {
   public void should_init_default_project_dirs() throws Exception {
     new Dirs(mock(Logger.class)).init(p);
 
-    File projectDir = new File(p.get(ScanProperties.PROJECT_BASEDIR));
+    File projectDir = new File(p.get(AnalysisProperties.PROJECT_BASEDIR));
     File workDir = new File(p.get(ScannerProperties.WORK_DIR));
 
     assertThat(projectDir).isNotNull().isDirectory();
@@ -56,10 +56,10 @@ public class DirsTest {
   public void should_set_relative_path_to_project_work_dir() throws Exception {
     File initialProjectDir = temp.getRoot();
     p.put(ScannerProperties.WORK_DIR, "relative/path");
-    p.put(ScanProperties.PROJECT_BASEDIR, initialProjectDir.getAbsolutePath());
+    p.put(AnalysisProperties.PROJECT_BASEDIR, initialProjectDir.getAbsolutePath());
     new Dirs(mock(Logger.class)).init(p);
 
-    File projectDir = new File(p.get(ScanProperties.PROJECT_BASEDIR));
+    File projectDir = new File(p.get(AnalysisProperties.PROJECT_BASEDIR));
     File workDir = new File(p.get(ScannerProperties.WORK_DIR));
 
     assertThat(projectDir).isNotNull().isDirectory();

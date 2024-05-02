@@ -68,12 +68,12 @@ public class ScannerEngineFacade implements AutoCloseable {
   }
 
   private void initSourceEncoding(Map<String, String> p) {
-    String sourceEncoding = Optional.ofNullable(p.get(ScanProperties.PROJECT_SOURCE_ENCODING)).orElse("");
+    String sourceEncoding = Optional.ofNullable(p.get(AnalysisProperties.PROJECT_SOURCE_ENCODING)).orElse("");
     boolean platformDependent = false;
     if ("".equals(sourceEncoding)) {
       sourceEncoding = Charset.defaultCharset().name();
       platformDependent = true;
-      p.put(ScanProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
+      p.put(AnalysisProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
     }
     logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
       + (platformDependent ? " (analysis is platform dependent)" : ""));
