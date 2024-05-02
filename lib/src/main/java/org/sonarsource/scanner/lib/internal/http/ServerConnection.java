@@ -39,7 +39,6 @@ import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ServerConnection {
 
@@ -47,11 +46,12 @@ public class ServerConnection {
   private final String userAgent;
   private final OkHttpClient httpClient;
 
-  private final String token;
+  @Nullable
+  private final String credentials;
   private final Logger logger;
 
-  ServerConnection(String baseUrl, String userAgent, @Nullable String token, Logger logger, Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
-    this.token = token;
+  ServerConnection(String baseUrl, String userAgent, @Nullable String credentials, Logger logger, Map<String, String> bootstrapProperties, SonarUserHome sonarUserHome) {
+    this.credentials = credentials;
     this.logger = logger;
     this.baseUrlWithoutTrailingSlash = removeTrailingSlash(baseUrl);
     this.userAgent = userAgent;
@@ -66,7 +66,12 @@ public class ServerConnection {
     String serverUrl = bootstrapProperties.get("sonar.host.url");
     String userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
     String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
-    return new ServerConnection(serverUrl, userAgent, token, logger, bootstrapProperties, sonarUserHome);
+    String login = bootstrapProperties.getOrDefault(ScannerProperties.SONAR_LOGIN, token);
+    String credentials = null;
+    if (login != null) {
+      credentials = Credentials.basic(login, bootstrapProperties.getOrDefault(ScannerProperties.SONAR_PASSWORD, ""));
+    }
+    return new ServerConnection(serverUrl, userAgent, credentials, logger, bootstrapProperties, sonarUserHome);
   }
 
   /**
@@ -118,8 +123,8 @@ public class ServerConnection {
         .get()
         .url(url)
         .addHeader("User-Agent", userAgent);
-      if (token != null) {
-        requestBuilder.header("Authorization", Credentials.basic(token, "", UTF_8));
+      if (credentials != null) {
+        requestBuilder.header("Authorization", credentials);
       }
       Request request = requestBuilder.build();
       Response response = httpClient.newCall(request).execute();
