@@ -37,21 +37,21 @@ class IsolatedLauncherFactoryTest {
   IsolatedLauncherFactory factory;
   Properties props;
   TempCleaning tempCleaning;
-  JarDownloader jarDownloader;
+  LegacyScannerEngineDownloader legacyScannerEngineDownloader;
 
   @BeforeEach
   public void setUp(@TempDir Path sonarUserHome) {
     tempCleaning = mock(TempCleaning.class);
     factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class));
     props = new Properties();
-    jarDownloader = mock(JarDownloader.class);
+    legacyScannerEngineDownloader = mock(LegacyScannerEngineDownloader.class);
   }
 
   @Test
   void should_use_isolated_classloader() {
     var rules = new ClassloadRules(new HashSet<String>(), new HashSet<String>());
     assertThrows(ScannerException.class, () -> {
-      factory.createLauncher(jarDownloader, rules);
+      factory.createLauncher(legacyScannerEngineDownloader, rules);
     });
   }
 

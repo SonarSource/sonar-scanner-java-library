@@ -29,14 +29,12 @@ import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -53,17 +51,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scanner.lib.ScannerEngineBootstrapper.SQ_VERSION_NEW_BOOTSTRAPPING;
 
-@ExtendWith(MockitoExtension.class)
 class ScannerEngineBootstrapperTest {
 
-  @Mock
-  private LogOutput logOutput;
-  @Mock
-  private ServerConnection serverConnection;
-  @Mock
-  private ScannerEngineLauncherFactory scannerEngineLauncherFactory;
-  @Mock
-  private System2 system;
+  private final LogOutput logOutput = mock(LogOutput.class);
+  private final ServerConnection serverConnection = mock(ServerConnection.class);
+  private final ScannerEngineLauncherFactory scannerEngineLauncherFactory = mock(ScannerEngineLauncherFactory.class);
+  private final System2 system = mock(System2.class);
 
   private ScannerEngineBootstrapper underTest;
   @TempDir
@@ -76,6 +69,10 @@ class ScannerEngineBootstrapperTest {
 
     when(system.getProperty("os.name")).thenReturn("linux_ubuntu");
     when(system.getProperty("os.arch")).thenReturn("x64");
+
+    var launcher = mock(ScannerEngineLauncher.class);
+    when(scannerEngineLauncherFactory.createLauncher(any(ServerConnection.class), any(FileCache.class), anyMap()))
+      .thenReturn(launcher);
 
     underTest = new ScannerEngineBootstrapper("Gradle", "3.1", logOutput, system, serverConnection,
       new IsolatedLauncherFactory(mock(Logger.class)), scannerEngineLauncherFactory);
@@ -211,7 +208,8 @@ class ScannerEngineBootstrapperTest {
 
       assertThat(readDumpedProps().getProperty("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
     }
-    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)", LogOutput.Level.INFO);
+    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)",
+      LogOutput.Level.INFO);
   }
 
   @Test
@@ -224,7 +222,8 @@ class ScannerEngineBootstrapperTest {
 
       assertThat(readDumpedProps().getProperty("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
     }
-    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)", LogOutput.Level.INFO);
+    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)",
+      LogOutput.Level.INFO);
   }
 
   @Test

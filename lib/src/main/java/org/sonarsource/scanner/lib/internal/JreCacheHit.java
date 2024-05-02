@@ -17,28 +17,10 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal;
 
-import java.util.Map;
-import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
-
-public class NewScannerEngineFacade extends ScannerEngineFacade {
-  private final ScannerEngineLauncher launcher;
-
-  NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher, LogOutput logOutput,
-    boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion, launcher.isEngineCacheHit(), launcher.getJreCacheHit());
-    this.launcher = launcher;
-  }
-
-  @Override
-  void doAnalyze(Map<String, String> allProps) {
-    launcher.execute(allProps);
-  }
-
-  @Override
-  public void close() throws Exception {
-    // nothing to do
-  }
+public enum JreCacheHit {
+  MISS,
+  HIT,
+  DISABLED
 }

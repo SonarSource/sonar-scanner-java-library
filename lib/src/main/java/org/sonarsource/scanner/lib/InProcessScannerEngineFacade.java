@@ -27,8 +27,8 @@ public class InProcessScannerEngineFacade extends ScannerEngineFacade {
   private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
 
   InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,
-                               LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion);
+    LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion) {
+    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion, launcherAndCl.wasEngineCacheHit(), null);
     this.launcherAndCl = launcherAndCl;
   }
 

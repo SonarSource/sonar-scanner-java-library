@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scanner.lib.internal.cache;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
@@ -53,8 +52,8 @@ public class FileCache {
     return new FileCache(dir, new FileHashes(), logger);
   }
 
-  public File getDir() {
-    return dir.toFile();
+  public Path getDir() {
+    return dir;
   }
 
   /**
@@ -62,10 +61,10 @@ public class FileCache {
    * present then return null.
    */
   @CheckForNull
-  public File get(String filename, String hash) {
+  public Path get(String filename, String hash) {
     Path cachedFile = dir.resolve(hash).resolve(filename);
     if (Files.exists(cachedFile)) {
-      return cachedFile.toFile();
+      return cachedFile;
     }
     logger.debug(String.format("No file found in the cache with name %s and hash %s", filename, hash));
     return null;
@@ -73,30 +72,31 @@ public class FileCache {
 
   @FunctionalInterface
   public interface Downloader {
-    void download(String filename, File toFile) throws IOException;
+    void download(String filename, Path toFile) throws IOException;
   }
 
-  public File get(String filename, String hash, String hashAlgorithm, Downloader downloader) {
+  public CachedFile getOrDownload(String filename, String hash, String hashAlgorithm, Downloader downloader) {
     // Does not fail if another process tries to create the directory at the same time.
     Path hashDir = hashDir(hash);
     Path targetFile = hashDir.resolve(filename);
-    if (!Files.exists(targetFile)) {
-      Path tempFile = newTempFile();
-      download(downloader, filename, tempFile);
-      String downloadedHash = hashes.of(tempFile.toFile(), hashAlgorithm);
-      if (!hash.equals(downloadedHash)) {
-        throw new HashMismatchException("INVALID HASH: File " + tempFile.toAbsolutePath() + " was expected to have hash " + hash
-                                        + " but was downloaded with hash " + downloadedHash);
-      }
-      mkdirQuietly(hashDir);
-      renameQuietly(tempFile, targetFile);
+    if (Files.exists(targetFile)) {
+      return new CachedFile(targetFile, true);
     }
-    return targetFile.toFile();
+    Path tempFile = newTempFile();
+    download(downloader, filename, tempFile);
+    String downloadedHash = hashes.of(tempFile.toFile(), hashAlgorithm);
+    if (!hash.equals(downloadedHash)) {
+      throw new HashMismatchException("INVALID HASH: File " + tempFile.toAbsolutePath() + " was expected to have hash " + hash
+        + " but was downloaded with hash " + downloadedHash);
+    }
+    mkdirQuietly(hashDir);
+    renameQuietly(tempFile, targetFile);
+    return new CachedFile(targetFile, false);
   }
 
   private static void download(Downloader downloader, String filename, Path tempFile) {
     try {
-      downloader.download(filename, tempFile.toFile());
+      downloader.download(filename, tempFile);
     } catch (IOException e) {
       throw new IllegalStateException("Fail to download " + filename + " to " + tempFile, e);
     }

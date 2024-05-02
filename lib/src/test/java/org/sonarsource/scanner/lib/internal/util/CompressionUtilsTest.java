@@ -19,8 +19,9 @@
  */
 package org.sonarsource.scanner.lib.internal.util;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,42 +31,42 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CompressionUtilsTest {
 
   @TempDir
-  private File temp;
+  private Path temp;
 
   @Test
   void unzipping_creates_target_directory_if_it_does_not_exist() throws IOException {
-    File zip = new File("src/test/resources/archive.zip");
-    File tempDir = new File(temp, "dir");
+    var zip = Paths.get("src/test/resources/archive.zip");
+    var tempDir = temp.resolve("dir");
 
-    File subDir = new File(tempDir, "subDir");
+    var subDir = tempDir.resolve("subDir");
     CompressionUtils.unzip(zip, subDir);
-    assertThat(subDir.list()).hasSize(3);
+    assertThat(subDir.toFile().list()).hasSize(3);
   }
 
   @Test
   void unzip_file() throws IOException {
-    File zip = new File("src/test/resources/archive.zip");
-    File toDir = new File(temp, "dir");
+    var zip = Paths.get("src/test/resources/archive.zip");
+    var toDir = temp.resolve("dir");
     CompressionUtils.unzip(zip, toDir);
-    assertThat(toDir.list()).hasSize(3);
+    assertThat(toDir.toFile().list()).hasSize(3);
   }
 
   @Test
   void fail_if_unzipping_file_outside_target_directory() {
-    File zip = new File("src/test/resources/zip-slip.zip");
-    File toDir = new File(temp, "dir");
+    var zip = Paths.get("src/test/resources/zip-slip.zip");
+    var toDir = temp.resolve("dir");
 
     assertThatThrownBy(() -> CompressionUtils.unzip(zip, toDir))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage("Unzipping an entry outside the target directory is not allowed: ../../../../../../../../../../../../../../../../" +
-                  "../../../../../../../../../../../../../../../../../../../../../../../../tmp/evil.txt");
+        "../../../../../../../../../../../../../../../../../../../../../../../../tmp/evil.txt");
   }
 
   @Test
   void extract_tar_gz() throws IOException {
-    File tar = new File("src/test/resources/archive.tar.gz");
-    File toDir = new File(temp, "dir");
+    var tar = Paths.get("src/test/resources/archive.tar.gz");
+    var toDir = temp.resolve("dir");
     CompressionUtils.extractTarGz(tar, toDir);
-    assertThat(toDir.list()).hasSize(3);
+    assertThat(toDir.toFile().list()).hasSize(3);
   }
 }

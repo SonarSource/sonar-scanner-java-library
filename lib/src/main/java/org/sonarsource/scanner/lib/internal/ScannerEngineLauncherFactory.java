@@ -22,11 +22,13 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.sonarsource.scanner.lib.System2;
+import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -51,7 +53,7 @@ public class ScannerEngineLauncherFactory {
   public ScannerEngineLauncher createLauncher(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
     JavaRunner javaRunner = javaRunnerFactory.createRunner(serverConnection, fileCache, properties);
     jreSanityCheck(javaRunner);
-    File scannerEngine = getScannerEngine(serverConnection, fileCache, true);
+    var scannerEngine = getScannerEngine(serverConnection, fileCache, true);
     return new ScannerEngineLauncher(javaRunner, scannerEngine, logger);
   }
 
@@ -59,10 +61,10 @@ public class ScannerEngineLauncherFactory {
     javaRunner.execute(Collections.singletonList("--version"), null);
   }
 
-  private File getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {
+  private CachedFile getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {
     try {
       var scannerEngineMetadata = getScannerEngineMetadata(serverConnection);
-      return fileCache.get(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
+      return fileCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
         new ScannerEngineDownloader(serverConnection, scannerEngineMetadata));
     } catch (HashMismatchException e) {
       if (retry) {
@@ -99,11 +101,11 @@ public class ScannerEngineLauncherFactory {
     }
 
     @Override
-    public void download(String filename, File toFile) throws IOException {
+    public void download(String filename, Path toFile) throws IOException {
       if (StringUtils.isNotBlank(scannerEngineMetadata.getDownloadUrl())) {
-        connection.downloadFromExternalUrl(scannerEngineMetadata.getDownloadUrl(), toFile.toPath());
+        connection.downloadFromExternalUrl(scannerEngineMetadata.getDownloadUrl(), toFile);
       } else {
-        connection.downloadFromRestApi(API_PATH_ENGINE, toFile.toPath());
+        connection.downloadFromRestApi(API_PATH_ENGINE, toFile);
       }
     }
   }

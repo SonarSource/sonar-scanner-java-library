@@ -19,7 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import java.io.File;
+import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +41,7 @@ class JavaRunnerTest {
 
   @Test
   void execute_shouldLogProcessOutput() {
-    JavaRunner runner = new JavaRunner(null, logger);
+    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
 
     runner.execute(List.of("--version"), "test");
     verify(logger, after(1000).atLeastOnce()).info(anyString());
@@ -52,7 +52,7 @@ class JavaRunnerTest {
 
   @Test
   void execute_whenInvalidRunner_shouldFail() {
-    JavaRunner runner = new JavaRunner(new File("invalid-runner"), logger);
+    JavaRunner runner = new JavaRunner(Paths.get("invalid-runner"), logger, JreCacheHit.DISABLED);
     List<String> command = List.of("--version");
     assertThatThrownBy(() -> runner.execute(command, "test"))
       .isInstanceOf(IllegalStateException.class)
@@ -61,7 +61,7 @@ class JavaRunnerTest {
 
   @Test
   void execute_shouldFailWhenBadRunner() {
-    JavaRunner runner = new JavaRunner(null, logger);
+    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
     assertThatThrownBy(() -> runner.execute(command, "test"))
       .isInstanceOf(IllegalStateException.class)
@@ -70,13 +70,13 @@ class JavaRunnerTest {
 
   @Test
   void tryParse_shouldParseLogMessages() {
-    JavaRunner runner = new JavaRunner(null, logger);
+    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
 
     runner.tryParse("{\n" +
-                    "    \"level\": \"ERROR\",\n" +
-                    "    \"formattedMessage\": \"Some error message\",\n" +
-                    "    \"throwable\": \"exception\"\n" +
-                    "}");
+      "    \"level\": \"ERROR\",\n" +
+      "    \"formattedMessage\": \"Some error message\",\n" +
+      "    \"throwable\": \"exception\"\n" +
+      "}");
     runner.tryParse("{\"level\": \"WARN\", \"formattedMessage\": \"Some warn message\"}");
     runner.tryParse("{\"level\": \"DEBUG\", \"formattedMessage\": \"Some debug message\"}");
     runner.tryParse("{\"level\": \"TRACE\", \"formattedMessage\": \"Some trace message\"}");
@@ -92,7 +92,7 @@ class JavaRunnerTest {
 
   @Test
   void tryParse_whenCannotParse_shouldLogInfo() {
-    JavaRunner runner = new JavaRunner(null, logger);
+    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
     runner.tryParse("INFO: test");
     verify(logger).info("[stdout] INFO: test");
   }
