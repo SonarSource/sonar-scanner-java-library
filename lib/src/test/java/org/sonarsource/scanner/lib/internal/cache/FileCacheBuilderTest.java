@@ -22,7 +22,6 @@ package org.sonarsource.scanner.lib.internal.cache;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -31,7 +30,7 @@ class FileCacheBuilderTest {
 
   @Test
   void create_cache_in_user_home(@TempDir Path sonarUserHome) {
-    FileCache cache = new FileCacheBuilder(mock(Logger.class), new SonarUserHome(sonarUserHome)).build();
+    FileCache cache = new FileCacheBuilder(mock(Logger.class), sonarUserHome).build();
 
     assertThat(cache.getDir()).isDirectory().exists();
     assertThat(cache.getDir()).hasName("cache");

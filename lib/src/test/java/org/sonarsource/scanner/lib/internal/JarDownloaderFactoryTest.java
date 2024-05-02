@@ -33,6 +33,6 @@ class JarDownloaderFactoryTest {
   void should_create(@TempDir Path sonarUserHome) {
     ServerConnection conn = mock(ServerConnection.class);
     Logger logger = mock(Logger.class);
-    assertThat(new JarDownloaderFactory(conn, logger, new SonarUserHome(sonarUserHome)).create()).isNotNull();
+    assertThat(new JarDownloaderFactory(conn, logger, sonarUserHome).create()).isNotNull();
   }
 }

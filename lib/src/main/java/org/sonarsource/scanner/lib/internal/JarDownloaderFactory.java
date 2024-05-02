@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
+import java.nio.file.Path;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.FileCacheBuilder;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -27,9 +28,9 @@ import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 class JarDownloaderFactory {
   private final ServerConnection serverConnection;
   private final Logger logger;
-  private final SonarUserHome sonarUserHome;
+  private final Path sonarUserHome;
 
-  JarDownloaderFactory(ServerConnection conn, Logger logger, SonarUserHome sonarUserHome) {
+  JarDownloaderFactory(ServerConnection conn, Logger logger, Path sonarUserHome) {
     this.serverConnection = conn;
     this.logger = logger;
     this.sonarUserHome = sonarUserHome;

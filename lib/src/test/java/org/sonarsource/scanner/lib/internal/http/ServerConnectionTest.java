@@ -29,7 +29,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.SonarUserHome;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -114,7 +113,7 @@ class ServerConnectionTest {
   void should_support_server_url_without_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", ""));
-    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -125,7 +124,7 @@ class ServerConnectionTest {
   void should_support_server_url_with_trailing_slash() throws Exception {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
-    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -137,7 +136,7 @@ class ServerConnectionTest {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.host.url", sonarqube.baseUrl());
     props.put("sonar.token", "some_token");
-    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -153,7 +152,7 @@ class ServerConnectionTest {
     props.put("sonar.host.url", sonarqube.baseUrl());
     props.put("sonar.login", "some_username");
     props.put("sonar.password", "some_password");
-    ServerConnection connection = ServerConnection.create(props, logger, new SonarUserHome(sonarUserHome));
+    ServerConnection connection = ServerConnection.create(props, logger, sonarUserHome);
 
     answer(HELLO_WORLD);
     String content = connection.downloadString("/batch/index.txt");
@@ -164,7 +163,7 @@ class ServerConnectionTest {
   }
 
   private ServerConnection create() {
-    return new ServerConnection(sonarqube.baseUrl(), "user-agent", null, logger, Map.of(), new SonarUserHome(sonarUserHome));
+    return new ServerConnection(sonarqube.baseUrl(), "user-agent", null, logger, Map.of(), sonarUserHome);
   }
 
   private void answer(String msg) {
