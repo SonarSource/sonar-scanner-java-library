@@ -22,38 +22,61 @@ package org.sonarsource.scanner.lib;
 /**
  * Mostly used properties that can be passed to EmbeddedScanner#addGlobalProperties(java.util.Properties).
  * See <a href="https://docs.sonarqube.org/latest/analysis/analysis-parameters/">documentation</a> for more properties.
- *
- * @since 2.2
  */
-public interface ScannerProperties {
+public final class ScannerProperties {
+
+  private ScannerProperties() {
+    // only constants
+  }
+
   /**
    * URL of the Sonar server, default to SonarCloud
    */
-  String HOST_URL = "sonar.host.url";
+  public static final String HOST_URL = "sonar.host.url";
 
   /**
    * Working directory containing generated reports and temporary data.
    */
-  String WORK_DIR = "sonar.working.directory";
+  public static final String WORK_DIR = "sonar.working.directory";
 
   /**
    * Base dir for various locations (cache, SSL, …). Default to ~/.sonar
    */
-  String SONAR_USER_HOME = "sonar.userHome";
+  public static final String SONAR_USER_HOME = "sonar.userHome";
 
   /**
    * Authentication token for connecting to the Sonar server.
    */
-  String SONAR_TOKEN = "sonar.token";
+  public static final String SONAR_TOKEN = "sonar.token";
 
   /**
    * Authentication username for connecting to the Sonar server.
    */
-  String SONAR_LOGIN = "sonar.login";
+  public static final String SONAR_LOGIN = "sonar.login";
 
   /**
    * Authentication password for connecting to the Sonar server.
    */
-  String SONAR_PASSWORD = "sonar.password";
+  public static final String SONAR_PASSWORD = "sonar.password";
+
+  /**
+   * HTTP client properties
+   */
+  public static final String SONAR_SCANNER_PROXY_PORT = "sonar.scanner.proxyPort";
+  public static final String SONAR_SCANNER_CONNECT_TIMEOUT = "sonar.scanner.connectTimeout";
+  public static final String SONAR_SCANNER_SOCKET_TIMEOUT = "sonar.scanner.socketTimeout";
+  public static final String SONAR_SCANNER_RESPONSE_TIMEOUT = "sonar.scanner.responseTimeout";
+  public static final String SONAR_SCANNER_PROXY_HOST = "sonar.scanner.proxyHost";
+  public static final String SONAR_SCANNER_PROXY_USER = "sonar.scanner.proxyUser";
+  public static final String SONAR_SCANNER_PROXY_PASSWORD = "sonar.scanner.proxyPassword";
+  public static final String SONAR_SCANNER_KEYSTORE_PATH = "sonar.scanner.keystorePath";
+  public static final String SONAR_SCANNER_KEYSTORE_PASSWORD = "sonar.scanner.keystorePassword";
+  public static final String SONAR_SCANNER_TRUSTSTORE_PATH = "sonar.scanner.truststorePath";
+  public static final String SONAR_SCANNER_TRUSTSTORE_PASSWORD = "sonar.scanner.truststorePassword";
+
+  /**
+   * Skip analysis.
+   */
+  public static final String SKIP = "sonar.scanner.skip";
 
 }

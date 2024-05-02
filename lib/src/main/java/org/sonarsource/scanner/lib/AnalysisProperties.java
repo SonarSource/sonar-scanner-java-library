@@ -22,55 +22,52 @@ package org.sonarsource.scanner.lib;
 /**
  * Most commonly used properties for a SonarQube analysis. These properties are passed to EmbeddedScanner#runAnalysis(java.util.Properties).
  * See <a href="http://docs.sonarqube.org/display/SONAR/Analysis+Parameters">documentation</a> for more properties.
- *
- * @since 2.2
  */
-public interface ScanProperties {
+public final class AnalysisProperties {
+
+  private AnalysisProperties() {
+    // only constants
+  }
 
   /**
    * Required project key
    */
-  String PROJECT_KEY = "sonar.projectKey";
+  public static final String PROJECT_KEY = "sonar.projectKey";
 
   /**
    * Used to define the exact key of each module. 
    * If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be &lt;parent module key&gt;:&lt;PROJECT_KEY&gt;.
    * @since SonarQube 4.1
    */
-  String MODULE_KEY = "sonar.moduleKey";
+  public static final String MODULE_KEY = "sonar.moduleKey";
 
-  String PROJECT_NAME = "sonar.projectName";
+  public static final String PROJECT_NAME = "sonar.projectName";
 
-  String PROJECT_VERSION = "sonar.projectVersion";
+  public static final String PROJECT_VERSION = "sonar.projectVersion";
 
   /**
    * Optional description
    */
-  String PROJECT_DESCRIPTION = "sonar.projectDescription";
+  public static final String PROJECT_DESCRIPTION = "sonar.projectDescription";
 
   /**
    * Required paths to source directories, separated by commas, for example: "srcDir1,srcDir2"
    */
-  String PROJECT_SOURCE_DIRS = "sonar.sources";
+  public static final String PROJECT_SOURCE_DIRS = "sonar.sources";
 
   /**
    * Optional paths to test directories, separated by commas, for example: "testDir1,testDir2"
    */
-  String PROJECT_TEST_DIRS = "sonar.tests";
+  public static final String PROJECT_TEST_DIRS = "sonar.tests";
 
   /**
    * Property used to specify the base directory of the project to analyse. Default is ".".
    */
-  String PROJECT_BASEDIR = "sonar.projectBaseDir";
+  public static final String PROJECT_BASEDIR = "sonar.projectBaseDir";
 
   /**
-   * Encoding of source and test files. By default it's the platform encoding.
+   * Encoding of source and test files. By default, it's the platform encoding.
    */
-  String PROJECT_SOURCE_ENCODING = "sonar.sourceEncoding";
-
-  /**
-   * Skip analysis.
-   */
-  String SKIP = "sonar.scanner.skip";
+  public static final String PROJECT_SOURCE_ENCODING = "sonar.sourceEncoding";
 
 }

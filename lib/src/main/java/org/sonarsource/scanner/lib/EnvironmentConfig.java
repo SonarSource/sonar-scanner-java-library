@@ -46,7 +46,7 @@ public class EnvironmentConfig {
     return load(System.getenv(), logger);
   }
 
-  static Map<String, String> load(Map<String, String> env, LogOutput logger) {
+  public static Map<String, String> load(Map<String, String> env, LogOutput logger) {
     var loadedProps = new HashMap<String, String>();
     Optional.ofNullable(env.get(SONAR_HOST_URL_ENV_VAR)).ifPresent(url -> loadedProps.put(ScannerProperties.HOST_URL, url));
     Optional.ofNullable(env.get(SONAR_USER_HOME_ENV_VAR)).ifPresent(path -> loadedProps.put(ScannerProperties.SONAR_USER_HOME, path));

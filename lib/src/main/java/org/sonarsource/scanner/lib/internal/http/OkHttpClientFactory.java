@@ -45,6 +45,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_CONNECT_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_HOST;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PORT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_USER;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_RESPONSE_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
 
 public class OkHttpClientFactory {
 
@@ -57,10 +68,6 @@ public class OkHttpClientFactory {
   static final int DEFAULT_RESPONSE_TIMEOUT = 0;
   static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
   static final int DEFAULT_READ_TIMEOUT_SEC = 60;
-  public static final String SONAR_SCANNER_PROXY_PORT = "sonar.scanner.proxyPort";
-  public static final String SONAR_SCANNER_CONNECT_TIMEOUT = "sonar.scanner.connectTimeout";
-  public static final String SONAR_SCANNER_SOCKET_TIMEOUT = "sonar.scanner.socketTimeout";
-  public static final String SONAR_SCANNER_RESPONSE_TIMEOUT = "sonar.scanner.responseTimeout";
 
   private OkHttpClientFactory() {
     // only statics
@@ -94,7 +101,7 @@ public class OkHttpClientFactory {
     okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
 
     // OkHttp detects 'http.proxyHost' java property already, so just focus on sonar properties
-    String proxyHost = defaultIfBlank(bootstrapProperties.get("sonar.scanner.proxyHost"), null);
+    String proxyHost = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_HOST), null);
     if (proxyHost != null) {
       var defaultProxyPort = bootstrapProperties.get(ScannerProperties.HOST_URL).startsWith("https") ? "443" : "80";
       String proxyPortStr = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_PORT), defaultProxyPort);
@@ -102,10 +109,10 @@ public class OkHttpClientFactory {
       okHttpClientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
     }
 
-    var scannerProxyUser = bootstrapProperties.get("sonar.scanner.proxyUser");
+    var scannerProxyUser = bootstrapProperties.get(SONAR_SCANNER_PROXY_USER);
     String proxyUser = scannerProxyUser != null ? scannerProxyUser : System.getProperty("http.proxyUser", "");
     if (isNotBlank(proxyUser)) {
-      var scannerProxyPwd = bootstrapProperties.get("sonar.scanner.proxyPassword");
+      var scannerProxyPwd = bootstrapProperties.get(SONAR_SCANNER_PROXY_PASSWORD);
       String proxyPassword = scannerProxyPwd != null ? scannerProxyPwd : System.getProperty("http.proxyPassword", "");
       okHttpClientBuilder.proxyAuthenticator((route, response) -> {
         if (response.request().header(PROXY_AUTHORIZATION) != null) {
@@ -144,10 +151,10 @@ public class OkHttpClientFactory {
   }
 
   private static SslConfig parseSslConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
-    var keyStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.keystorePath"), sonarUserHome.resolve("ssl/keystore.p12").toString());
-    var keyStorePassword = defaultIfBlank(bootstrapProperties.get("sonar.scanner.keystorePassword"), CertificateStore.DEFAULT_PASSWORD);
-    var trustStorePath = defaultIfBlank(bootstrapProperties.get("sonar.scanner.truststorePath"), sonarUserHome.resolve("ssl/truststore.p12").toString());
-    var trustStorePassword = defaultIfBlank(bootstrapProperties.get("sonar.scanner.truststorePassword"), CertificateStore.DEFAULT_PASSWORD);
+    var keyStorePath = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PATH), sonarUserHome.resolve("ssl/keystore.p12").toString());
+    var keyStorePassword = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD), CertificateStore.DEFAULT_PASSWORD);
+    var trustStorePath = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PATH), sonarUserHome.resolve("ssl/truststore.p12").toString());
+    var trustStorePassword = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD), CertificateStore.DEFAULT_PASSWORD);
     var keyStore = new CertificateStore(Path.of(keyStorePath), keyStorePassword);
     var trustStore = new CertificateStore(Path.of(trustStorePath), trustStorePassword);
     return new SslConfig(keyStore, trustStore);
