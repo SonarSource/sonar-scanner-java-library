@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
@@ -39,7 +40,6 @@ import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
@@ -76,17 +76,18 @@ class JavaRunnerFactoryTest {
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, new HashMap<>());
 
     assertThat(runner.getJavaExecutable()).isNotNull();
-    assertThat(new File(runner.getJavaExecutable())).exists();
+    assertThat(runner.getJavaExecutable()).exists();
   }
 
   @Test
-  void createRunner_jreProvisioning_noMatch() throws IOException {
+  void createRunner_jreProvisioning_noMatch_fallback_to_local() throws IOException {
     when(serverConnection.callRestApi(matches(API_PATH_JRE + ".*"))).thenReturn("[]");
-
     Map<String, String> props = Map.of(SCANNER_OS, "linux", SCANNER_ARCH, "x64");
-    assertThatThrownBy(() -> underTest.createRunner(serverConnection, fileCache, props))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessage("No JRE metadata found for os[linux] and arch[x64]");
+
+    JavaRunner runner = underTest.createRunner(serverConnection, fileCache, props);
+
+    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"+ (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
+    assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
   @Test
@@ -96,7 +97,7 @@ class JavaRunnerFactoryTest {
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
 
-    assertThat(runner.getJavaExecutable()).isEqualTo(javaExe.toAbsolutePath().toString());
+    assertThat(runner.getJavaExecutable()).isEqualTo(javaExe);
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
@@ -112,7 +113,7 @@ class JavaRunnerFactoryTest {
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(
-      temp.resolve("bin/java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")).toAbsolutePath().toString());
+      temp.resolve("bin/java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
@@ -122,7 +123,7 @@ class JavaRunnerFactoryTest {
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
 
-    assertThat(runner.getJavaExecutable()).isEqualTo("java");
+    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
