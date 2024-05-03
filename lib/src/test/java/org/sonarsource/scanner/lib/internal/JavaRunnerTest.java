@@ -22,35 +22,37 @@ package org.sonarsource.scanner.lib.internal;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.event.Level;
+import testutils.LogTester;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.matches;
-import static org.mockito.Mockito.after;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.awaitility.Awaitility.await;
 
 class JavaRunnerTest {
 
-  @Mock
-  private Logger logger = mock(Logger.class);
+  @RegisterExtension
+  LogTester logTester = new LogTester().setLevel(Level.TRACE);
 
   @Test
   void execute_shouldLogProcessOutput() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
     runner.execute(List.of("--version"), "test");
-    verify(logger, after(1000).atLeastOnce()).info(anyString());
+    await().untilAsserted(() -> {
+      assertThat(logTester.logs(Level.INFO)).isNotEmpty().allMatch(s -> s.startsWith("[stdout] "));
+    });
 
     runner.execute(List.of("-version"), null);
-    verify(logger, after(1000).atLeastOnce()).error(matches("[stderr] .*"));
+    await().untilAsserted(() -> {
+      assertThat(logTester.logs(Level.ERROR)).isNotEmpty().allMatch(s -> s.startsWith("[stderr] "));
+    });
   }
 
   @Test
   void execute_whenInvalidRunner_shouldFail() {
-    JavaRunner runner = new JavaRunner(Paths.get("invalid-runner"), logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("invalid-runner"), JreCacheHit.DISABLED);
     List<String> command = List.of("--version");
     assertThatThrownBy(() -> runner.execute(command, "test"))
       .isInstanceOf(IllegalStateException.class)
@@ -59,7 +61,7 @@ class JavaRunnerTest {
 
   @Test
   void execute_shouldFailWhenBadRunner() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
     assertThatThrownBy(() -> runner.execute(command, "test"))
       .isInstanceOf(IllegalStateException.class)
@@ -68,7 +70,7 @@ class JavaRunnerTest {
 
   @Test
   void tryParse_shouldParseLogMessages() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
     runner.tryParse("{\n" +
       "    \"level\": \"ERROR\",\n" +
@@ -81,17 +83,17 @@ class JavaRunnerTest {
     runner.tryParse("{\"level\": \"INFO\", \"formattedMessage\": \"Some info message\"}");
     runner.tryParse("{\"level\": \"UNKNOWN-LEVEL\", \"formattedMessage\": \"Some unknown level message\"}");
 
-    verify(logger).error("Some error message\nexception");
-    verify(logger).warn("Some warn message");
-    verify(logger).debug("Some debug message");
-    verify(logger).trace("Some trace message");
-    verify(logger).info("Some unknown level message");
+    assertThat(logTester.logs(Level.ERROR)).containsOnly("Some error message\nexception");
+    assertThat(logTester.logs(Level.WARN)).containsOnly("Some warn message");
+    assertThat(logTester.logs(Level.DEBUG)).containsOnly("Some debug message");
+    assertThat(logTester.logs(Level.TRACE)).containsOnly("Some trace message");
+    assertThat(logTester.logs(Level.INFO)).containsOnly("Some info message", "Some unknown level message");
   }
 
   @Test
   void tryParse_whenCannotParse_shouldLogInfo() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     runner.tryParse("INFO: test");
-    verify(logger).info("[stdout] INFO: test");
+    assertThat(logTester.logs(Level.INFO)).containsOnly("[stdout] INFO: test");
   }
 }

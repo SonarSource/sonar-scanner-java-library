@@ -35,7 +35,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static java.util.Objects.requireNonNull;
@@ -57,10 +56,9 @@ class JavaRunnerFactoryTest {
   private final ServerConnection serverConnection = mock(ServerConnection.class);
   private final FileCache fileCache = mock(FileCache.class);
   private final System2 system = mock(System2.class);
-  private final Logger logger = mock(Logger.class);
   private final ProcessWrapperFactory processWrapperFactory = mock(ProcessWrapperFactory.class);
 
-  private final JavaRunnerFactory underTest = new JavaRunnerFactory(logger, system, processWrapperFactory);
+  private final JavaRunnerFactory underTest = new JavaRunnerFactory(system, processWrapperFactory);
 
   @TempDir
   private Path temp;

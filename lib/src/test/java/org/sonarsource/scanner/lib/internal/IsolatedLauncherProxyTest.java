@@ -19,20 +19,16 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.sonarsource.scanner.lib.internal.batch.BatchIsolatedLauncher;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.Callable;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class IsolatedLauncherProxyTest {
-  BatchIsolatedLauncher laucherProxy = null;
-  ClassLoader cl = null;
+  private ClassLoader cl = null;
 
   @Before
   public void setUp() {
@@ -40,21 +36,21 @@ public class IsolatedLauncherProxyTest {
   }
 
   @Test
-  public void delegate_proxied() throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public void delegate_proxied() {
     String str = "test";
-    CharSequence s = IsolatedLauncherProxy.create(cl, str, CharSequence.class, mock(Logger.class));
+    CharSequence s = IsolatedLauncherProxy.create(cl, str, CharSequence.class);
     assertThat(s).isEqualTo(str);
   }
 
   @Test(expected = IllegalStateException.class)
   public void exceptions_unwrapped() throws ReflectiveOperationException {
-    Runnable r = IsolatedLauncherProxy.create(cl, Runnable.class, ExceptionThrower.class.getName(), mock(Logger.class));
+    Runnable r = IsolatedLauncherProxy.create(cl, Runnable.class, ExceptionThrower.class.getName());
     r.run();
   }
 
   @Test
   public void create_proxied() throws Exception {
-    Callable<?> c = IsolatedLauncherProxy.create(cl, Callable.class, SimpleClass.class.getName(), mock(Logger.class));
+    Callable<?> c = IsolatedLauncherProxy.create(cl, Callable.class, SimpleClass.class.getName());
     assertThat(c.getClass().getClassLoader()).isEqualTo(cl);
     assertThat(c.getClass().getClassLoader()).isNotEqualTo(Thread.currentThread().getContextClassLoader());
     assertThat(c.call()).isEqualTo(URLClassLoader.class.getSimpleName());

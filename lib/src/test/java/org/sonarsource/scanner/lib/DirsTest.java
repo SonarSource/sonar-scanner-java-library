@@ -25,31 +25,28 @@ import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class DirsTest {
 
-  private Map<String, String> p = new HashMap<>();
+  private final Map<String, String> p = new HashMap<>();
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
 
   @Test
   public void should_init_default_project_dirs() throws Exception {
-    new Dirs(mock(Logger.class)).init(p);
+    new Dirs().init(p);
 
     File projectDir = new File(p.get(AnalysisProperties.PROJECT_BASEDIR));
     File workDir = new File(p.get(ScannerProperties.WORK_DIR));
 
     assertThat(projectDir).isNotNull().isDirectory();
-    assertThat(workDir).isNotNull();
-
     assertThat(projectDir.getCanonicalPath()).isEqualTo(new File(".").getCanonicalPath());
-    assertThat(workDir.getName()).isEqualTo(".scannerwork");
-    assertThat(workDir.getParentFile()).isEqualTo(projectDir);
+    assertThat(workDir)
+      .hasName(".scannerwork")
+      .hasParent(projectDir);
   }
 
   @Test
@@ -57,7 +54,7 @@ public class DirsTest {
     File initialProjectDir = temp.getRoot();
     p.put(ScannerProperties.WORK_DIR, "relative/path");
     p.put(AnalysisProperties.PROJECT_BASEDIR, initialProjectDir.getAbsolutePath());
-    new Dirs(mock(Logger.class)).init(p);
+    new Dirs().init(p);
 
     File projectDir = new File(p.get(AnalysisProperties.PROJECT_BASEDIR));
     File workDir = new File(p.get(ScannerProperties.WORK_DIR));

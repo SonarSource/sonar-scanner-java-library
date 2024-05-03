@@ -24,34 +24,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.Utils;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 /**
  * The file sonar-runner-batch.jar is locked by the classloader on Windows and can't be dropped at the end of the execution.
  * See {@link IsolatedLauncherFactory}
  */
 class TempCleaning {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TempCleaning.class);
+
   static final int ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
   final Path tempDir;
 
-  private final Logger logger;
-
-  TempCleaning(Logger logger) {
-    this(Paths.get(System.getProperty("java.io.tmpdir")), logger);
+  TempCleaning() {
+    this(Paths.get(System.getProperty("java.io.tmpdir")));
   }
 
   /**
    * For unit tests
    */
-  TempCleaning(Path tempDir, Logger logger) {
-    this.logger = logger;
+  TempCleaning(Path tempDir) {
     this.tempDir = tempDir;
   }
 
   void clean() {
-    logger.debug("Start temp cleaning...");
+    LOG.debug("Start temp cleaning...");
     long cutoff = System.currentTimeMillis() - ONE_DAY_IN_MILLISECONDS;
 
     try (Stream<Path> files = Files.list(tempDir)) {
@@ -59,9 +60,9 @@ class TempCleaning {
         .filter(p -> p.getFileName().toString().startsWith("sonar-scanner-java-library-batch"))
         .filter(p -> lastModifiedTime(p) < cutoff)
         .forEach(Utils::deleteQuietly);
-      logger.debug("Temp cleaning done");
+      LOG.debug("Temp cleaning done");
     } catch (IOException e) {
-      logger.warn("Failed to clean files in " + tempDir.toString() + ": " + e.getMessage());
+      LOG.warn("Failed to clean files in {}", tempDir, e);
     }
   }
 

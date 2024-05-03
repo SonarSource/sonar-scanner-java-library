@@ -20,17 +20,32 @@
 package org.sonarsource.scanner.lib.internal;
 
 import org.junit.jupiter.api.Test;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.event.Level;
+import org.sonarsource.scanner.lib.internal.batch.LogOutput;
+import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
-class LegacyScannerEngineDownloaderFactoryTest {
+class Slf4jLogOutputAdapterTest {
+
+  @RegisterExtension
+  LogTester logTester = new LogTester().setLevel(Level.TRACE);
+
   @Test
-  void should_create() {
-    ServerConnection conn = mock(ServerConnection.class);
-    FileCache cache = mock(FileCache.class);
-    assertThat(new LegacyScannerEngineDownloaderFactory(conn, cache).create()).isNotNull();
+  void make_coverage_happy() {
+    var underTest = new Slf4jLogOutputAdapter();
+    underTest.log("trace", LogOutput.Level.TRACE);
+    underTest.log("debug", LogOutput.Level.DEBUG);
+    underTest.log("info", LogOutput.Level.INFO);
+    underTest.log("warn", LogOutput.Level.WARN);
+    underTest.log("error", LogOutput.Level.ERROR);
+
+    assertThat(logTester.logs(Level.TRACE)).containsOnly("trace");
+    assertThat(logTester.logs(Level.DEBUG)).containsOnly("debug");
+    assertThat(logTester.logs(Level.INFO)).containsOnly("info");
+    assertThat(logTester.logs(Level.WARN)).containsOnly("warn");
+    assertThat(logTester.logs(Level.ERROR)).containsOnly("error");
   }
+
 }

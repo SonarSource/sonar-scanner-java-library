@@ -26,10 +26,8 @@ import java.nio.file.attribute.FileTime;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class TempCleaningTest {
 
@@ -38,7 +36,7 @@ public class TempCleaningTest {
 
   @Test
   public void should_clean_jvm_tmp_dir() {
-    TempCleaning cleaning = new TempCleaning(mock(Logger.class));
+    TempCleaning cleaning = new TempCleaning();
     assertThat(cleaning.tempDir).isDirectory().exists();
   }
 
@@ -49,7 +47,7 @@ public class TempCleaningTest {
     Files.write(oldBatch, "foo".getBytes(StandardCharsets.UTF_8));
     FileTime fTime = FileTime.fromMillis(System.currentTimeMillis() - 3 * TempCleaning.ONE_DAY_IN_MILLISECONDS);
     Files.setLastModifiedTime(oldBatch, fTime);
-    
+
     Path youngBatch = dir.resolve("sonar-scanner-java-library-batch123.jar");
     Files.write(youngBatch, "foo".getBytes(StandardCharsets.UTF_8));
 
@@ -59,7 +57,7 @@ public class TempCleaningTest {
     assertThat(oldBatch).exists();
     assertThat(youngBatch).exists();
     assertThat(doNotDelete).exists();
-    new TempCleaning(dir, mock(Logger.class)).clean();
+    new TempCleaning(dir).clean();
 
     assertThat(oldBatch).doesNotExist();
     assertThat(youngBatch).exists();

@@ -21,24 +21,24 @@ package org.sonarsource.scanner.lib;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.event.Level;
+import testutils.LogTester;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 class EnvironmentConfigTest {
 
-  private final LogOutput logOutput = mock(LogOutput.class);
+  @RegisterExtension
+  LogTester logTester = new LogTester();
 
   @Test
   void shouldProcessSpecificEnvVariables() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONAR_HOST_URL", "http://foo",
-        "SONAR_USER_HOME", "my/user/home"), logOutput);
+        "SONAR_USER_HOME", "my/user/home"));
 
     assertThat(inputProperties).containsOnly(
       entry("sonar.host.url", "http://foo"),
@@ -52,7 +52,7 @@ class EnvironmentConfigTest {
         "SONAR_SCANNER_", "ignored as well",
         "SONAR_SCANNER_FOO", "bar",
         "SONAR_SCANNER_FOO_BAZ", "bar",
-        "SONAR_SCANNER_fuZz_bAz", "env vars are case insensitive"), logOutput);
+        "SONAR_SCANNER_fuZz_bAz", "env vars are case insensitive"));
 
     assertThat(inputProperties).containsOnly(
       entry("sonar.scanner.foo", "bar"),
@@ -64,7 +64,7 @@ class EnvironmentConfigTest {
   void shouldProcessJsonEnvVariables() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONAR_SCANNER_JSON_PARAMS",
-        "{\"key1\":\"value1\", \"key2\":\"value2\"}"), logOutput);
+        "{\"key1\":\"value1\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("key1", "value1"),
@@ -74,7 +74,7 @@ class EnvironmentConfigTest {
   @Test
   void ignoreEmptyValueForJsonEnv() {
     var inputProperties = EnvironmentConfig.load(
-      Map.of("SONAR_SCANNER_JSON_PARAMS", ""), logOutput);
+      Map.of("SONAR_SCANNER_JSON_PARAMS", ""));
 
     assertThat(inputProperties).isEmpty();
   }
@@ -82,7 +82,7 @@ class EnvironmentConfigTest {
   @Test
   void throwIfInvalidFormat() {
     var env = Map.of("SONAR_SCANNER_JSON_PARAMS", "{garbage");
-    var thrown = assertThrows(IllegalArgumentException.class, () -> EnvironmentConfig.load(env, logOutput));
+    var thrown = assertThrows(IllegalArgumentException.class, () -> EnvironmentConfig.load(env));
 
     assertThat(thrown).hasMessage("Failed to parse JSON properties from environment variable 'SONAR_SCANNER_JSON_PARAMS'");
   }
@@ -92,33 +92,33 @@ class EnvironmentConfigTest {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONAR_HOST_URL", "http://foo",
         "SONAR_SCANNER_JSON_PARAMS",
-        "{\"sonar.host.url\":\"should not override\", \"key2\":\"value2\"}"), logOutput);
+        "{\"sonar.host.url\":\"should not override\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("sonar.host.url", "http://foo"),
       entry("key2", "value2"));
 
-    verify(logOutput, times(1)).log("Ignoring property 'sonar.host.url' from env variable 'SONAR_SCANNER_JSON_PARAMS' because it is already defined", LogOutput.Level.WARN);
+    assertThat(logTester.logs(Level.WARN)).containsOnly("Ignoring property 'sonar.host.url' from env variable 'SONAR_SCANNER_JSON_PARAMS' because it is already defined");
   }
 
   @Test
   void jsonEnvVariablesShouldNotOverrideGenericEnv() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONAR_SCANNER_FOO", "value1",
-        "SONAR_SCANNER_JSON_PARAMS", "{\"sonar.scanner.foo\":\"should not override\", \"key2\":\"value2\"}"), logOutput);
+        "SONAR_SCANNER_JSON_PARAMS", "{\"sonar.scanner.foo\":\"should not override\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("sonar.scanner.foo", "value1"),
       entry("key2", "value2"));
 
-    verify(logOutput, times(1)).log("Ignoring property 'sonar.scanner.foo' from env variable 'SONAR_SCANNER_JSON_PARAMS' because it is already defined", LogOutput.Level.WARN);
+    assertThat(logTester.logs(Level.WARN)).containsOnly("Ignoring property 'sonar.scanner.foo' from env variable 'SONAR_SCANNER_JSON_PARAMS' because it is already defined");
   }
 
   @Test
   void shouldProcessOldJsonEnvVariables() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONARQUBE_SCANNER_PARAMS",
-        "{\"key1\":\"value1\", \"key2\":\"value2\"}"), logOutput);
+        "{\"key1\":\"value1\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("key1", "value1"),
@@ -129,27 +129,26 @@ class EnvironmentConfigTest {
   void oldJsonEnvVariablesIsIgnoredIfNewIsDefinedAndLogAWarning() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONARQUBE_SCANNER_PARAMS", "{\"key1\":\"should not override\", \"key3\":\"value3\"}",
-        "SONAR_SCANNER_JSON_PARAMS", "{\"key1\":\"value1\", \"key2\":\"value2\"}"), logOutput);
+        "SONAR_SCANNER_JSON_PARAMS", "{\"key1\":\"value1\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("key1", "value1"),
       entry("key2", "value2"));
 
-    verify(logOutput, times(1)).log("Ignoring environment variable 'SONARQUBE_SCANNER_PARAMS' because 'SONAR_SCANNER_JSON_PARAMS' is set", LogOutput.Level.WARN);
+    assertThat(logTester.logs(Level.WARN)).containsOnly("Ignoring environment variable 'SONARQUBE_SCANNER_PARAMS' because 'SONAR_SCANNER_JSON_PARAMS' is set");
   }
 
   @Test
   void oldJsonEnvVariablesIsIgnoredIfNewIsDefinedButDontLogIfSameValue() {
     var inputProperties = EnvironmentConfig.load(
       Map.of("SONARQUBE_SCANNER_PARAMS", "{\"key1\":\"value1\", \"key2\":\"value2\"}",
-        "SONAR_SCANNER_JSON_PARAMS", "{\"key1\":\"value1\", \"key2\":\"value2\"}"), logOutput);
+        "SONAR_SCANNER_JSON_PARAMS", "{\"key1\":\"value1\", \"key2\":\"value2\"}"));
 
     assertThat(inputProperties).containsOnly(
       entry("key1", "value1"),
       entry("key2", "value2"));
 
-    verifyNoInteractions(logOutput);
+    assertThat(logTester.logs()).isEmpty();
   }
-
 
 }

@@ -17,13 +17,35 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal;
 
-public interface LogOutput {
-  
-  void log(String formattedMessage, Level level);
-  
-  enum Level {
-    ERROR, WARN, INFO, DEBUG, TRACE;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.internal.batch.LogOutput;
+
+public class Slf4jLogOutputAdapter implements LogOutput {
+  private static final Logger LOG = LoggerFactory.getLogger(Slf4jLogOutputAdapter.class);
+
+  @Override
+  public void log(String formattedMessage, Level level) {
+    switch (level) {
+      case TRACE:
+        LOG.trace(formattedMessage);
+        break;
+      case DEBUG:
+        LOG.debug(formattedMessage);
+        break;
+      case INFO:
+        LOG.info(formattedMessage);
+        break;
+      case WARN:
+        LOG.warn(formattedMessage);
+        break;
+      case ERROR:
+        LOG.error(formattedMessage);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported log level: " + level);
+    }
   }
 }

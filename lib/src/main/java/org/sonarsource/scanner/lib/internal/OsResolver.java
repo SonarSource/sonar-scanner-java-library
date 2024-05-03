@@ -23,21 +23,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.System2;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
 
 public class OsResolver {
 
+  private static final Logger LOG = LoggerFactory.getLogger(OsResolver.class);
+
   private final System2 system;
   private final Paths2 paths;
-  private final Logger logger;
 
-  public OsResolver(System2 system, Paths2 paths, Logger logger) {
+  public OsResolver(System2 system, Paths2 paths) {
     this.system = system;
     this.paths = paths;
-    this.logger = logger;
   }
 
   public OperatingSystem getOs() {
@@ -63,7 +64,8 @@ public class OsResolver {
       try {
         content = Files.readAllLines(paths.get("/usr/lib/os-release"));
       } catch (IOException e2) {
-        logger.debug("Failed to read the os-release file");
+        e2.addSuppressed(e);
+        LOG.debug("Failed to read the os-release file", e2);
         return false;
       }
     }

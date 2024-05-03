@@ -24,29 +24,31 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 public class IsolatedLauncherFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(IsolatedLauncherFactory.class);
+
   static final String ISOLATED_LAUNCHER_IMPL = "org.sonarsource.scanner.lib.internal.batch.BatchIsolatedLauncher";
   private final TempCleaning tempCleaning;
   private final String launcherImplClassName;
-  private final Logger logger;
 
   /**
    * For unit tests
    */
-  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning, Logger logger) {
+  IsolatedLauncherFactory(String isolatedLauncherClassName, TempCleaning tempCleaning) {
     this.tempCleaning = tempCleaning;
     this.launcherImplClassName = isolatedLauncherClassName;
-    this.logger = logger;
   }
 
-  public IsolatedLauncherFactory(Logger logger) {
-    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning(logger), logger);
+  public IsolatedLauncherFactory() {
+    this(ISOLATED_LAUNCHER_IMPL, new TempCleaning());
   }
 
   private IsolatedClassloader createClassLoader(List<Path> jarFiles, ClassloadRules maskRules) {
@@ -57,16 +59,16 @@ public class IsolatedLauncherFactory {
   }
 
   public IsolatedLauncherAndClassloader createLauncher(ClassloadRules rules, ServerConnection serverConnection, FileCache fileCache) {
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(serverConnection, logger, fileCache).create();
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(serverConnection, fileCache).create();
     return createLauncher(legacyScannerEngineDownloader, rules);
   }
 
   IsolatedLauncherAndClassloader createLauncher(final LegacyScannerEngineDownloader legacyScannerEngineDownloader, final ClassloadRules rules) {
     try {
       List<CachedFile> jarFiles = legacyScannerEngineDownloader.getOrDownload();
-      logger.debug("Create isolated classloader...");
+      LOG.debug("Create isolated classloader...");
       var cl = createClassLoader(jarFiles.stream().map(CachedFile::getPathInCache).collect(Collectors.toList()), rules);
-      IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName, logger);
+      IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName);
       tempCleaning.clean();
 
       return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::isCacheHit));

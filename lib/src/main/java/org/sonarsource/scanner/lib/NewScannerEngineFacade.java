@@ -26,9 +26,9 @@ import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 class NewScannerEngineFacade extends ScannerEngineFacade {
   private final ScannerEngineLauncher launcher;
 
-  NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher, LogOutput logOutput,
+  NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher,
     boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion, launcher.isEngineCacheHit(), launcher.getJreCacheHit());
+    super(bootstrapProperties, isSonarCloud, serverVersion, launcher.isEngineCacheHit(), launcher.getJreCacheHit());
     this.launcher = launcher;
   }
 

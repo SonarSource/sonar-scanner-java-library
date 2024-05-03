@@ -25,11 +25,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to load configuration from environment variables.
  */
 public class EnvironmentConfig {
+
+  private static final Logger LOG = LoggerFactory.getLogger(EnvironmentConfig.class);
 
   private static final String SONAR_SCANNER_JSON_PARAMS = "SONAR_SCANNER_JSON_PARAMS";
   private static final String SONARQUBE_SCANNER_PARAMS = "SONARQUBE_SCANNER_PARAMS";
@@ -42,41 +46,41 @@ public class EnvironmentConfig {
     // only static methods
   }
 
-  public static Map<String, String> load(LogOutput logger) {
-    return load(System.getenv(), logger);
+  public static Map<String, String> load() {
+    return load(System.getenv());
   }
 
-  public static Map<String, String> load(Map<String, String> env, LogOutput logger) {
+  public static Map<String, String> load(Map<String, String> env) {
     var loadedProps = new HashMap<String, String>();
     Optional.ofNullable(env.get(SONAR_HOST_URL_ENV_VAR)).ifPresent(url -> loadedProps.put(ScannerProperties.HOST_URL, url));
     Optional.ofNullable(env.get(SONAR_USER_HOME_ENV_VAR)).ifPresent(path -> loadedProps.put(ScannerProperties.SONAR_USER_HOME, path));
     Optional.ofNullable(env.get(TOKEN_ENV_VARIABLE)).ifPresent(path -> loadedProps.put(ScannerProperties.SONAR_TOKEN, path));
     env.forEach((key, value) -> {
       if (!key.equals(SONAR_SCANNER_JSON_PARAMS) && key.startsWith(GENERIC_ENV_PREFIX)) {
-        processEnvVariable(key, value, loadedProps, logger);
+        processEnvVariable(key, value, loadedProps);
       }
     });
     var jsonParams = env.get(SONAR_SCANNER_JSON_PARAMS);
     var oldJsonParams = env.get(SONARQUBE_SCANNER_PARAMS);
     if (jsonParams != null) {
       if (oldJsonParams != null && !oldJsonParams.equals(jsonParams)) {
-        logger.log("Ignoring environment variable '" + SONARQUBE_SCANNER_PARAMS + "' because '" + SONAR_SCANNER_JSON_PARAMS + "' is set", LogOutput.Level.WARN);
+        LOG.warn("Ignoring environment variable '{}' because '{}' is set", SONARQUBE_SCANNER_PARAMS, SONAR_SCANNER_JSON_PARAMS);
       }
-      parseJsonPropertiesFromEnv(jsonParams, loadedProps, SONAR_SCANNER_JSON_PARAMS, logger);
+      parseJsonPropertiesFromEnv(jsonParams, loadedProps, SONAR_SCANNER_JSON_PARAMS);
     } else if (oldJsonParams != null) {
-      parseJsonPropertiesFromEnv(oldJsonParams, loadedProps, SONARQUBE_SCANNER_PARAMS, logger);
+      parseJsonPropertiesFromEnv(oldJsonParams, loadedProps, SONARQUBE_SCANNER_PARAMS);
     }
     return loadedProps;
   }
 
-  private static void parseJsonPropertiesFromEnv(String jsonParams, Map<String, String> inputProperties, String envVariableName, LogOutput logger) {
+  private static void parseJsonPropertiesFromEnv(String jsonParams, Map<String, String> inputProperties, String envVariableName) {
     try {
       var jsonProperties = new Gson().<Map<String, String>>fromJson(jsonParams, Map.class);
       if (jsonProperties != null) {
         jsonProperties.forEach((key, value) -> {
           if (inputProperties.containsKey(key)) {
             if (!inputProperties.get(key).equals(value)) {
-              logger.log("Ignoring property '" + key + "' from env variable '" + envVariableName + "' because it is already defined", LogOutput.Level.WARN);
+              LOG.warn("Ignoring property '{}' from env variable '{}' because it is already defined", key, envVariableName);
             }
           } else {
             inputProperties.put(key, value);
@@ -88,7 +92,7 @@ public class EnvironmentConfig {
     }
   }
 
-  private static void processEnvVariable(String key, String value, Map<String, String> inputProperties, LogOutput logger) {
+  private static void processEnvVariable(String key, String value, Map<String, String> inputProperties) {
     var suffix = key.substring(GENERIC_ENV_PREFIX.length());
     if (suffix.isEmpty()) {
       return;
@@ -99,7 +103,7 @@ public class EnvironmentConfig {
     var propKey = "sonar.scanner." + toCamelCase;
     if (inputProperties.containsKey(propKey)) {
       if (!inputProperties.get(propKey).equals(value)) {
-        logger.log("Ignoring environment variable '" + key + "' because it is already defined in the properties", LogOutput.Level.WARN);
+        LOG.warn("Ignoring environment variable '{}' because it is already defined in the properties", key);
       }
     } else {
       inputProperties.put(propKey, value);

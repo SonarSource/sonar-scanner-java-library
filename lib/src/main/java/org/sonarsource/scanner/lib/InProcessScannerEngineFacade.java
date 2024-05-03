@@ -22,20 +22,21 @@ package org.sonarsource.scanner.lib;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
+import org.sonarsource.scanner.lib.internal.Slf4jLogOutputAdapter;
 
 class InProcessScannerEngineFacade extends ScannerEngineFacade {
+
   private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
 
   InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,
-    LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion, launcherAndCl.wasEngineCacheHit(), null);
+    boolean isSonarCloud, @Nullable String serverVersion) {
+    super(bootstrapProperties, isSonarCloud, serverVersion, launcherAndCl.wasEngineCacheHit(), null);
     this.launcherAndCl = launcherAndCl;
   }
 
   @Override
   void doAnalyze(Map<String, String> allProps) {
-    launcherAndCl.getLauncher().execute(allProps, (formattedMessage, level) -> logOutput.log(formattedMessage,
-      LogOutput.Level.valueOf(level.name())));
+    launcherAndCl.getLauncher().execute(allProps, new Slf4jLogOutputAdapter());
   }
 
   @Override

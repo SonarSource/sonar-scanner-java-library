@@ -24,30 +24,32 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IsolatedLauncherProxy implements InvocationHandler {
+
+  private static final Logger LOG = LoggerFactory.getLogger(IsolatedLauncherProxy.class);
+
   private final Object proxied;
   private final ClassLoader cl;
-  private final Logger logger;
 
-  private IsolatedLauncherProxy(ClassLoader cl, Object proxied, Logger logger) {
+  private IsolatedLauncherProxy(ClassLoader cl, Object proxied) {
     this.cl = cl;
     this.proxied = proxied;
-    this.logger = logger;
   }
 
-  public static <T> T create(ClassLoader cl, Class<T> interfaceClass, String proxiedClassName, Logger logger) throws ReflectiveOperationException {
+  public static <T> T create(ClassLoader cl, Class<T> interfaceClass, String proxiedClassName) throws ReflectiveOperationException {
     Object proxied = createProxiedObject(cl, proxiedClassName);
     // interfaceClass needs to be loaded with a parent ClassLoader (common to both ClassLoaders)
     // In addition, Proxy.newProxyInstance checks if the target ClassLoader sees the same class as the one given
     Class<?> loadedInterfaceClass = cl.loadClass(interfaceClass.getName());
-    return (T) create(cl, proxied, loadedInterfaceClass, logger);
+    return (T) create(cl, proxied, loadedInterfaceClass);
   }
 
-  public static <T> T create(ClassLoader cl, Object proxied, Class<T> interfaceClass, Logger logger) {
+  public static <T> T create(ClassLoader cl, Object proxied, Class<T> interfaceClass) {
     Class<?>[] c = {interfaceClass};
-    return (T) Proxy.newProxyInstance(cl, c, new IsolatedLauncherProxy(cl, proxied, logger));
+    return (T) Proxy.newProxyInstance(cl, c, new IsolatedLauncherProxy(cl, proxied));
   }
 
   @Override
@@ -56,7 +58,7 @@ public class IsolatedLauncherProxy implements InvocationHandler {
 
     try {
       Thread.currentThread().setContextClassLoader(cl);
-      logger.debug("Execution " + method.getName());
+      LOG.debug("Execution {}", method.getName());
       return method.invoke(proxied, args);
     } catch (UndeclaredThrowableException | InvocationTargetException e) {
       throw unwrapException(e);

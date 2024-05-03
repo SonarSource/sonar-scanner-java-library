@@ -24,25 +24,26 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public class ScannerEngineLauncher {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncher.class);
 
   private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
   private final CachedFile scannerEngineJar;
-  private final Logger logger;
 
-  public ScannerEngineLauncher(JavaRunner javaRunner, CachedFile scannerEngineJar, Logger logger) {
+  public ScannerEngineLauncher(JavaRunner javaRunner, CachedFile scannerEngineJar) {
     this.javaRunner = javaRunner;
     this.scannerEngineJar = scannerEngineJar;
-    this.logger = logger;
   }
 
   public void execute(Map<String, String> properties) {
-    logger.info("Starting scanner-engine");
+    LOG.info("Starting scanner-engine");
     javaRunner.execute(buildArgs(properties), buildJsonProperties(properties));
   }
 

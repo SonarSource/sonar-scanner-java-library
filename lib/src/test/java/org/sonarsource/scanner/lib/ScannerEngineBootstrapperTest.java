@@ -35,7 +35,6 @@ import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +50,6 @@ import static org.sonarsource.scanner.lib.ScannerEngineBootstrapper.SQ_VERSION_N
 
 class ScannerEngineBootstrapperTest {
 
-  private final LogOutput logOutput = mock(LogOutput.class);
   private final ServerConnection serverConnection = mock(ServerConnection.class);
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory = mock(ScannerEngineLauncherFactory.class);
   private final System2 system = mock(System2.class);
@@ -72,8 +70,8 @@ class ScannerEngineBootstrapperTest {
     when(scannerEngineLauncherFactory.createLauncher(any(ServerConnection.class), any(FileCache.class), anyMap()))
       .thenReturn(launcher);
 
-    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", logOutput, system, serverConnection,
-      new IsolatedLauncherFactory(mock(Logger.class)), scannerEngineLauncherFactory);
+    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
+      new IsolatedLauncherFactory(), scannerEngineLauncherFactory);
   }
 
   @Test
@@ -108,7 +106,7 @@ class ScannerEngineBootstrapperTest {
     when(launcherFactory.createLauncher(any(ClassloadRules.class), eq(serverConnection), any(FileCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
-    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", logOutput, system, serverConnection,
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
       launcherFactory, scannerEngineLauncherFactory);
     when(serverConnection.callRestApi("/analysis/version")).thenReturn("10.5");
 
