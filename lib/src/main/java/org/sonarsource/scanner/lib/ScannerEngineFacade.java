@@ -19,11 +19,8 @@
  */
 package org.sonarsource.scanner.lib;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.JreCacheHit;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
@@ -78,20 +75,7 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
   abstract void doAnalyze(Map<String, String> allProps);
 
   private void initAnalysisProperties(Map<String, String> p) {
-    initSourceEncoding(p);
     new Dirs(logger).init(p);
-  }
-
-  private void initSourceEncoding(Map<String, String> p) {
-    String sourceEncoding = Optional.ofNullable(p.get(AnalysisProperties.PROJECT_SOURCE_ENCODING)).orElse("");
-    boolean platformDependent = false;
-    if ("".equals(sourceEncoding)) {
-      sourceEncoding = Charset.defaultCharset().name();
-      platformDependent = true;
-      p.put(AnalysisProperties.PROJECT_SOURCE_ENCODING, sourceEncoding);
-    }
-    logger.info("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + sourceEncoding + "\""
-      + (platformDependent ? " (analysis is platform dependent)" : ""));
   }
 
   public Map<String, String> getBootstrapProperties() {

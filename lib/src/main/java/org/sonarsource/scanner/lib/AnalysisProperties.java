@@ -20,8 +20,9 @@
 package org.sonarsource.scanner.lib;
 
 /**
- * Most commonly used properties for a SonarQube analysis. These properties are passed to EmbeddedScanner#runAnalysis(java.util.Properties).
- * See <a href="http://docs.sonarqube.org/display/SONAR/Analysis+Parameters">documentation</a> for more properties.
+ * Most commonly used properties for an analysis.
+ * See <a href="https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/analysis-parameters/">documentation</a>
+ * for more details.
  */
 public final class AnalysisProperties {
 
@@ -35,7 +36,7 @@ public final class AnalysisProperties {
   public static final String PROJECT_KEY = "sonar.projectKey";
 
   /**
-   * Used to define the exact key of each module. 
+   * Used to define the exact key of each module.
    * If {@link #PROJECT_KEY} is used instead on a module, then final key of the module will be &lt;parent module key&gt;:&lt;PROJECT_KEY&gt;.
    * @since SonarQube 4.1
    */
@@ -69,5 +70,4 @@ public final class AnalysisProperties {
    * Encoding of source and test files. By default, it's the platform encoding.
    */
   public static final String PROJECT_SOURCE_ENCODING = "sonar.sourceEncoding";
-
 }

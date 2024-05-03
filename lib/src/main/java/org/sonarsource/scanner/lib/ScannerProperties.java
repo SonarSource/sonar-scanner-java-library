@@ -20,8 +20,9 @@
 package org.sonarsource.scanner.lib;
 
 /**
- * Mostly used properties that can be passed to EmbeddedScanner#addGlobalProperties(java.util.Properties).
- * See <a href="https://docs.sonarqube.org/latest/analysis/analysis-parameters/">documentation</a> for more properties.
+ * Properties used by the scanner bootstrapper.
+ * See <a href="https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/analysis-parameters/">documentation</a>
+ * for more details.
  */
 public final class ScannerProperties {
 
