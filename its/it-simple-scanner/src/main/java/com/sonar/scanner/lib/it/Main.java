@@ -22,17 +22,13 @@ package com.sonar.scanner.lib.it;
 import java.util.HashMap;
 import java.util.Map;
 import org.sonarsource.scanner.lib.EnvironmentConfig;
-import org.sonarsource.scanner.lib.LogOutput;
 import org.sonarsource.scanner.lib.ScannerEngineBootstrapper;
-import org.sonarsource.scanner.lib.StdOutLogOutput;
 
 public class Main {
   public static void main(String[] args) {
-    LogOutput logOutput = new StdOutLogOutput();
     try {
-      Map<String, String> props = new HashMap<>();
 
-      props.putAll(EnvironmentConfig.load(logOutput));
+      Map<String, String> props = new HashMap<>(EnvironmentConfig.load());
 
       for (String k : System.getProperties().stringPropertyNames()) {
         if (k.startsWith("sonar.")) {
@@ -40,7 +36,7 @@ public class Main {
         }
       }
 
-      runProject(props, logOutput);
+      runProject(props);
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(1);
@@ -48,9 +44,9 @@ public class Main {
     System.exit(0);
   }
 
-  private static void runProject(Map<String, String> props, LogOutput logOutput) throws Exception {
+  private static void runProject(Map<String, String> props) throws Exception {
 
-    try (var scannerEngine = ScannerEngineBootstrapper.create("Simple Scanner", "1.0", logOutput)
+    try (var scannerEngine = ScannerEngineBootstrapper.create("Simple Scanner", "1.0")
       .addBootstrapProperties(props)
       .bootstrap()) {
       scannerEngine.analyze(props);

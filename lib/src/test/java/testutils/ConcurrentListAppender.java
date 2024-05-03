@@ -17,23 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package testutils;
 
-import org.junit.Test;
-import org.sonarsource.scanner.lib.LogOutput.Level;
-import java.io.PrintStream;
+import ch.qos.logback.core.AppenderBase;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static org.mockito.Mockito.verify;
+public class ConcurrentListAppender<E> extends AppenderBase<E> {
+  public final Queue<E> list = new ConcurrentLinkedQueue<E>();
 
-import static org.mockito.Mockito.mock;
-
-public class StdOutLogOutputTest {
-  private PrintStream stdOut = mock(PrintStream.class);
-  private StdOutLogOutput logOutput = new StdOutLogOutput(stdOut);
-
-  @Test
-  public void test() {
-    logOutput.log("msg", Level.INFO);
-    verify(stdOut).println("INFO: msg");
+  protected void append(E e) {
+    list.add(e);
   }
 }

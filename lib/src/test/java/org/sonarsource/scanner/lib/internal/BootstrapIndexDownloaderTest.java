@@ -27,7 +27,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +45,7 @@ public class BootstrapIndexDownloaderTest {
   @Before
   public void setUp() {
     connection = mock(ServerConnection.class);
-    bootstrapIndexDownloader = new BootstrapIndexDownloader(connection, mock(Logger.class));
+    bootstrapIndexDownloader = new BootstrapIndexDownloader(connection);
   }
 
   @Test

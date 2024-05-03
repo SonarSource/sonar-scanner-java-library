@@ -36,7 +36,6 @@ import org.sonarsource.scanner.lib.internal.OsResolver;
 import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
@@ -54,18 +53,14 @@ public class ScannerEngineBootstrapper {
 
   private final IsolatedLauncherFactory launcherFactory;
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory;
-  private final LogOutput logOutput;
   private final Map<String, String> bootstrapProperties = new HashMap<>();
-  private final Logger logger;
   private final ServerConnection serverConnection;
   private final System2 system;
 
-  ScannerEngineBootstrapper(String app, String version, LogOutput logOutput, System2 system,
+  ScannerEngineBootstrapper(String app, String version, System2 system,
     ServerConnection serverConnection, IsolatedLauncherFactory launcherFactory,
     ScannerEngineLauncherFactory scannerEngineLauncherFactory) {
-    this.logOutput = logOutput;
     this.system = system;
-    this.logger = new LoggerAdapter(logOutput);
     this.serverConnection = serverConnection;
     this.launcherFactory = launcherFactory;
     this.scannerEngineLauncherFactory = scannerEngineLauncherFactory;
@@ -73,11 +68,10 @@ public class ScannerEngineBootstrapper {
       .setBootstrapProperty(InternalProperties.SCANNER_APP_VERSION, version);
   }
 
-  public static ScannerEngineBootstrapper create(String app, String version, LogOutput logOutput) {
+  public static ScannerEngineBootstrapper create(String app, String version) {
     System2 system = new System2();
-    LoggerAdapter logger = new LoggerAdapter(logOutput);
-    return new ScannerEngineBootstrapper(app, version, logOutput, system, new ServerConnection(logger),
-      new IsolatedLauncherFactory(logger), new ScannerEngineLauncherFactory(logger, system));
+    return new ScannerEngineBootstrapper(app, version, system, new ServerConnection(),
+      new IsolatedLauncherFactory(), new ScannerEngineLauncherFactory(system));
   }
 
   /**
@@ -108,7 +102,7 @@ public class ScannerEngineBootstrapper {
     var isSonarCloud = isSonarCloud(properties);
     var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var sonarUserHome = resolveSonarUserHome(properties);
-    var fileCache = FileCache.create(sonarUserHome, logger);
+    var fileCache = FileCache.create(sonarUserHome);
     serverConnection.init(properties, sonarUserHome);
     String serverVersion = null;
     if (!isSonarCloud) {
@@ -116,13 +110,13 @@ public class ScannerEngineBootstrapper {
     }
 
     if (isSimulation) {
-      return new SimulationScannerEngineFacade(properties, logOutput, isSonarCloud, serverVersion);
+      return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeast(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
       var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
-      return new NewScannerEngineFacade(properties, launcher, logOutput, isSonarCloud, serverVersion);
+      return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
       var launcher = launcherFactory.createLauncher(rules, serverConnection, fileCache);
-      return new InProcessScannerEngineFacade(properties, launcher, logOutput, false, serverVersion);
+      return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
     }
   }
 
@@ -158,7 +152,7 @@ public class ScannerEngineBootstrapper {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
       isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (bootstrapProperties.get(ScannerProperties.HOST_URL) + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
-      setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2(), logger).getOs().name().toLowerCase(Locale.ENGLISH));
+      setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
     setBootstrapPropertyIfNotAlreadySet(SCANNER_ARCH, system.getProperty("os.arch"));
   }

@@ -40,11 +40,12 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 import org.sonarsource.scanner.lib.internal.util.CompressionUtils;
 
@@ -57,16 +58,16 @@ import static org.sonarsource.scanner.lib.Utils.deleteQuietly;
 
 public class JavaRunnerFactory {
 
+  private static final Logger LOG = LoggerFactory.getLogger(JavaRunnerFactory.class);
+
   static final String API_PATH_JRE = "/analysis/jres";
   private static final String EXTENSION_ZIP = "zip";
   private static final String EXTENSION_GZ = "gz";
 
-  private final Logger logger;
   private final System2 system;
   private final ProcessWrapperFactory processWrapperFactory;
 
-  public JavaRunnerFactory(Logger logger, System2 system, ProcessWrapperFactory processWrapperFactory) {
-    this.logger = logger;
+  public JavaRunnerFactory(System2 system, ProcessWrapperFactory processWrapperFactory) {
     this.system = system;
     this.processWrapperFactory = processWrapperFactory;
   }
@@ -74,16 +75,16 @@ public class JavaRunnerFactory {
   public JavaRunner createRunner(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
     String javaExecutablePropValue = properties.get(JAVA_EXECUTABLE_PATH);
     if (javaExecutablePropValue != null) {
-      logger.info(format("Using the configured java executable '%s'", javaExecutablePropValue));
-      return new JavaRunner(Paths.get(javaExecutablePropValue), logger, JreCacheHit.DISABLED);
+      LOG.info("Using the configured java executable '{}'", javaExecutablePropValue);
+      return new JavaRunner(Paths.get(javaExecutablePropValue), JreCacheHit.DISABLED);
     }
     boolean skipJreProvisioning = Boolean.parseBoolean(properties.get(SKIP_JRE_PROVISIONING));
     if (skipJreProvisioning) {
-      logger.info("JRE provisioning is disabled");
+      LOG.info("JRE provisioning is disabled");
     } else {
       var cachedFile = getJreFromServer(serverConnection, fileCache, properties, true);
       if (cachedFile.isPresent()) {
-        return new JavaRunner(cachedFile.get().getPathInCache(), logger, cachedFile.get().isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
+        return new JavaRunner(cachedFile.get().getPathInCache(), cachedFile.get().isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
       }
     }
     String javaHome = system.getEnvironmentVariable("JAVA_HOME");
@@ -91,12 +92,12 @@ public class JavaRunnerFactory {
     if (javaHome != null) {
       var javaExecutable = Paths.get(javaHome, "bin", javaExe);
       if (Files.exists(javaExecutable)) {
-        logger.info(format("Using the java executable '%s' from JAVA_HOME", javaExecutable));
-        return new JavaRunner(javaExecutable, logger, JreCacheHit.DISABLED);
+        LOG.info("Using the java executable '{}' from JAVA_HOME", javaExecutable);
+        return new JavaRunner(javaExecutable, JreCacheHit.DISABLED);
       }
     }
-    logger.info("The java executable in the PATH will be used");
-    return new JavaRunner(isOsWindows() ? findJavaInPath(javaExe) : Paths.get(javaExe), logger, JreCacheHit.DISABLED);
+    LOG.info("The java executable in the PATH will be used");
+    return new JavaRunner(isOsWindows() ? findJavaInPath(javaExe) : Paths.get(javaExe), JreCacheHit.DISABLED);
   }
 
   private boolean isOsWindows() {
@@ -113,7 +114,7 @@ public class JavaRunnerFactory {
       Path javaExecutable;
       try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
         javaExecutable = Paths.get(reader.lines().findFirst().orElseThrow());
-        logger.debug(format("Found java executable in PATH at '%s'", javaExecutable.toAbsolutePath()));
+        LOG.debug("Found java executable in PATH at '{}'", javaExecutable.toAbsolutePath());
       }
 
       int exit = process.waitFor();
@@ -131,12 +132,12 @@ public class JavaRunnerFactory {
   private Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
-    logger.info(format("JRE provisioning: os[%s], arch[%s]", os, arch));
+    LOG.info("JRE provisioning: os[{}], arch[{}]", os, arch);
 
     try {
       var jreMetadata = getJreMetadata(serverConnection, os, arch);
       if (jreMetadata.isEmpty()) {
-        logger.info("No JRE found for this OS/architecture");
+        LOG.info("No JRE found for this OS/architecture");
         return Optional.empty();
       }
       var cachedFile = fileCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
@@ -146,7 +147,7 @@ public class JavaRunnerFactory {
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download
-        logger.warn("Failed to get the JRE, retrying...");
+        LOG.warn("Failed to get the JRE, retrying...");
         return getJreFromServer(serverConnection, fileCache, properties, false);
       }
       throw e;

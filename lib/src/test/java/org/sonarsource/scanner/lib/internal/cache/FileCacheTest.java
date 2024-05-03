@@ -46,7 +46,7 @@ class FileCacheTest {
   @BeforeEach
   public void setUp() {
     fileHashes = mock(FileHashes.class);
-    cache = new FileCache(temp, fileHashes, mock(Logger.class));
+    cache = new FileCache(temp, fileHashes);
   }
 
   @Test
@@ -90,7 +90,7 @@ class FileCacheTest {
   void fail_create_hash_dir() throws IOException {
     Path file = temp.resolve("some-file");
     Files.createFile(file);
-    assertThatThrownBy(() -> new FileCache(file, fileHashes, mock(Logger.class)))
+    assertThatThrownBy(() -> new FileCache(file, fileHashes))
       .isInstanceOf(IllegalStateException.class)
       .hasMessageContaining("Unable to create user cache");
   }

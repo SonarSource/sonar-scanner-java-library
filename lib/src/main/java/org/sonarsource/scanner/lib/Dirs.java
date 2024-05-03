@@ -24,15 +24,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class Dirs {
 
-  private final Logger logger;
-
-  Dirs(Logger logger) {
-    this.logger = logger;
-  }
+  private static final Logger LOG = LoggerFactory.getLogger(Dirs.class);
 
   void init(Map<String, String> p) {
     String pathString = Optional.ofNullable(p.get(AnalysisProperties.PROJECT_BASEDIR)).orElse("");
@@ -44,7 +41,7 @@ class Dirs {
 
     Path workDirPath;
     pathString = Optional.ofNullable(p.get(ScannerProperties.WORK_DIR)).orElse("");
-    if ("".equals(pathString.trim())) {
+    if (pathString.trim().isEmpty()) {
       workDirPath = absoluteProjectPath.resolve(".scannerwork");
     } else {
       workDirPath = Paths.get(pathString);
@@ -52,7 +49,8 @@ class Dirs {
         workDirPath = absoluteProjectPath.resolve(pathString);
       }
     }
-    p.put(ScannerProperties.WORK_DIR, workDirPath.normalize().toString());
-    logger.debug("Work directory: " + workDirPath.normalize().toString());
+    var normalized = workDirPath.normalize().toString();
+    p.put(ScannerProperties.WORK_DIR, normalized);
+    LOG.debug("Work directory: {}", normalized);
   }
 }

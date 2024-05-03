@@ -31,14 +31,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.Utils;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static java.lang.String.format;
 
 public class ServerConnection {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ServerConnection.class);
 
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
@@ -48,11 +51,6 @@ public class ServerConnection {
   @Nullable
   private String credentials;
   private OkHttpClient httpClient;
-  private final Logger logger;
-
-  public ServerConnection(Logger logger) {
-    this.logger = logger;
-  }
 
   public void init(Map<String, String> bootstrapProperties, Path sonarUserHome) {
     webApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL));
@@ -104,10 +102,10 @@ public class ServerConnection {
     if (httpClient == null) {
       throw new IllegalStateException("ServerConnection must be initialized");
     }
-    logger.debug(format("Download %s to %s", url, toFile.toAbsolutePath()));
+    LOG.debug("Download {} to {}", url, toFile.toAbsolutePath());
 
     try (ResponseBody responseBody = callUrl(url, authentication, "application/octet-stream");
-         InputStream in = responseBody.byteStream()) {
+      InputStream in = responseBody.byteStream()) {
       Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
@@ -142,7 +140,7 @@ public class ServerConnection {
     if (httpClient == null) {
       throw new IllegalStateException("ServerConnection must be initialized");
     }
-    logger.debug(format("Call API: %s", url));
+    LOG.debug("Call API: {}}", url);
     try (ResponseBody responseBody = callUrl(url, true, null)) {
       return responseBody.string();
     }
@@ -177,7 +175,7 @@ public class ServerConnection {
       }
       return response.body();
     } catch (Exception e) {
-      logger.error(format("Call to URL [%s] failed", url));
+      LOG.error("Call to URL [{}] failed", url);
       throw e;
     }
   }

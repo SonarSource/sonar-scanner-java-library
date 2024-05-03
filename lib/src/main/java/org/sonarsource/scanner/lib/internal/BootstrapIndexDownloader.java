@@ -21,24 +21,26 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 class BootstrapIndexDownloader {
-  private final ServerConnection conn;
-  private final Logger logger;
 
-  BootstrapIndexDownloader(ServerConnection conn, Logger logger) {
+  private static final Logger LOG = LoggerFactory.getLogger(BootstrapIndexDownloader.class);
+
+  private final ServerConnection conn;
+
+  BootstrapIndexDownloader(ServerConnection conn) {
     this.conn = conn;
-    this.logger = logger;
   }
 
   Collection<JarEntry> getIndex() {
     String index;
     try {
-      logger.debug("Get bootstrap index...");
+      LOG.debug("Get bootstrap index...");
       index = conn.callWebApi("/batch/index");
-      logger.debug("Get bootstrap completed");
+      LOG.debug("Get bootstrap completed");
     } catch (Exception e) {
       throw new IllegalStateException("Fail to get bootstrap index from server", e);
     }
@@ -57,7 +59,7 @@ class BootstrapIndexDownloader {
         String hash = libAndHash[1];
         entries.add(new JarEntry(filename, hash));
       } catch (Exception e) {
-        logger.error("Failed bootstrap index response: " + index);
+        LOG.error("Failed bootstrap index response: {}", index);
         throw new IllegalStateException("Fail to parse entry in bootstrap index: " + line);
       }
     }

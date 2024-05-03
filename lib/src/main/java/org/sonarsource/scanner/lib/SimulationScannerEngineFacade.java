@@ -29,20 +29,24 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 
 class SimulationScannerEngineFacade extends ScannerEngineFacade {
 
-  SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud,
-                                @Nullable String serverVersion) {
-    super(bootstrapProperties, logOutput, isSonarCloud, serverVersion, false, null);
+  private static final Logger LOG = LoggerFactory.getLogger(SimulationScannerEngineFacade.class);
+
+  SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud,
+    @Nullable String serverVersion) {
+    super(bootstrapProperties, isSonarCloud, serverVersion, false, null);
   }
 
   @Override
   void doAnalyze(Map<String, String> allProps) {
     String filePath = allProps.get(InternalProperties.SCANNER_DUMP_TO_FILE);
     writeProperties(filePath, allProps);
-    logOutput.log("Simulation mode. Configuration written to " + new File(filePath).getAbsolutePath(), LogOutput.Level.INFO);
+    LOG.info("Simulation mode. Configuration written to {}", new File(filePath).getAbsolutePath());
   }
 
   private static void writeProperties(String filePath, Map<String, String> p) {

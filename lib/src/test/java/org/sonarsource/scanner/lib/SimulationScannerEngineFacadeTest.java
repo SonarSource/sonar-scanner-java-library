@@ -32,7 +32,6 @@ import org.sonarsource.scanner.lib.internal.InternalProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 class SimulationScannerEngineFacadeTest {
 
@@ -44,7 +43,7 @@ class SimulationScannerEngineFacadeTest {
 
   @BeforeEach
   void setUp() {
-    underTest = new SimulationScannerEngineFacade(new HashMap<>(), mock(LogOutput.class), true, null);
+    underTest = new SimulationScannerEngineFacade(new HashMap<>(), true, null);
     filename = new File(temp, "props").getAbsolutePath();
   }
 

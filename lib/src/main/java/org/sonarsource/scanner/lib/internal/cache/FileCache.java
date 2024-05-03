@@ -26,6 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import javax.annotation.CheckForNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is responsible for managing Sonar batch file cache. You can put file into cache and
@@ -34,22 +36,22 @@ import javax.annotation.CheckForNull;
  */
 public class FileCache {
 
+  private static final Logger LOG = LoggerFactory.getLogger(FileCache.class);
+
   private final Path dir;
   private final Path tmpDir;
   private final FileHashes hashes;
-  private final Logger logger;
 
-  FileCache(Path dir, FileHashes fileHashes, Logger logger) {
+  FileCache(Path dir, FileHashes fileHashes) {
     this.hashes = fileHashes;
-    this.logger = logger;
     this.dir = createDir(dir, "user cache: ");
-    logger.info(String.format("User cache: %s", dir.toString()));
+    LOG.info("User cache: {}", dir);
     this.tmpDir = createDir(dir.resolve("_tmp"), "temp dir");
   }
 
-  public static FileCache create(Path sonarUserHome, Logger logger) {
+  public static FileCache create(Path sonarUserHome) {
     var dir = sonarUserHome.resolve("cache");
-    return new FileCache(dir, new FileHashes(), logger);
+    return new FileCache(dir, new FileHashes());
   }
 
   public Path getDir() {
@@ -66,7 +68,7 @@ public class FileCache {
     if (Files.exists(cachedFile)) {
       return cachedFile;
     }
-    logger.debug(String.format("No file found in the cache with name %s and hash %s", filename, hash));
+    LOG.debug("No file found in the cache with name {} and hash {}", filename, hash);
     return null;
   }
 
@@ -102,12 +104,12 @@ public class FileCache {
     }
   }
 
-  private void renameQuietly(Path sourceFile, Path targetFile) {
+  private static void renameQuietly(Path sourceFile, Path targetFile) {
     try {
       Files.move(sourceFile, targetFile, StandardCopyOption.ATOMIC_MOVE);
     } catch (AtomicMoveNotSupportedException ex) {
-      logger.warn(String.format("Unable to rename %s to %s", sourceFile.toAbsolutePath(), targetFile.toAbsolutePath()));
-      logger.warn("A copy/delete will be tempted but with no guarantee of atomicity");
+      LOG.warn("Unable to rename {} to {}", sourceFile.toAbsolutePath(), targetFile.toAbsolutePath());
+      LOG.warn("A copy/delete will be tempted but with no guarantee of atomicity");
       try {
         Files.move(sourceFile, targetFile);
       } catch (IOException e) {
@@ -140,8 +142,8 @@ public class FileCache {
     }
   }
 
-  private Path createDir(Path dir, String debugTitle) {
-    logger.debug("Create: " + dir.toString());
+  private static Path createDir(Path dir, String debugTitle) {
+    LOG.debug("Create: {}", dir);
     try {
       Files.createDirectories(dir);
     } catch (IOException e) {

@@ -29,7 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sonarsource.scanner.lib.System2;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,8 +43,6 @@ class OsResolverTest {
   private System2 system;
   @Mock
   private Paths2 paths;
-  @Mock
-  private Logger logger;
 
   @InjectMocks
   private OsResolver underTest;

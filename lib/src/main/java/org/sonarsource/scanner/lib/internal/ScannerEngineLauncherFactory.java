@@ -26,26 +26,26 @@ import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 public class ScannerEngineLauncherFactory {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncherFactory.class);
+
   static final String API_PATH_ENGINE = "/analysis/engine";
-  private final Logger logger;
   private final JavaRunnerFactory javaRunnerFactory;
 
-  public ScannerEngineLauncherFactory(Logger logger, System2 system) {
-    this.logger = logger;
-    this.javaRunnerFactory = new JavaRunnerFactory(logger, system, new ProcessWrapperFactory());
+  public ScannerEngineLauncherFactory(System2 system) {
+    this.javaRunnerFactory = new JavaRunnerFactory(system, new ProcessWrapperFactory());
   }
 
-  ScannerEngineLauncherFactory(Logger logger, JavaRunnerFactory javaRunnerFactory) {
-    this.logger = logger;
+  ScannerEngineLauncherFactory(JavaRunnerFactory javaRunnerFactory) {
     this.javaRunnerFactory = javaRunnerFactory;
   }
 
@@ -53,14 +53,14 @@ public class ScannerEngineLauncherFactory {
     JavaRunner javaRunner = javaRunnerFactory.createRunner(serverConnection, fileCache, properties);
     jreSanityCheck(javaRunner);
     var scannerEngine = getScannerEngine(serverConnection, fileCache, true);
-    return new ScannerEngineLauncher(javaRunner, scannerEngine, logger);
+    return new ScannerEngineLauncher(javaRunner, scannerEngine);
   }
 
   private static void jreSanityCheck(JavaRunner javaRunner) {
     javaRunner.execute(Collections.singletonList("--version"), null);
   }
 
-  private CachedFile getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {
+  private static CachedFile getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {
     try {
       var scannerEngineMetadata = getScannerEngineMetadata(serverConnection);
       return fileCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
@@ -68,7 +68,7 @@ public class ScannerEngineLauncherFactory {
     } catch (HashMismatchException e) {
       if (retry) {
         // A new scanner-engine might have been published between the metadata fetch and the download
-        logger.warn("Failed to get the scanner-engine, retrying...");
+        LOG.warn("Failed to get the scanner-engine, retrying...");
         return getScannerEngine(serverConnection, fileCache, false);
       }
       throw e;

@@ -23,22 +23,18 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.JreCacheHit;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 public abstract class ScannerEngineFacade implements AutoCloseable {
-  protected final LogOutput logOutput;
+
   private final Map<String, String> bootstrapProperties;
-  private final Logger logger;
   private final boolean isSonarCloud;
   private final String serverVersion;
   private final boolean wasEngineCacheHit;
   private final JreCacheHit wasJreCacheHit;
 
-  ScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud, @Nullable String serverVersion,
+  ScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud, @Nullable String serverVersion,
     boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
-    this.logger = new LoggerAdapter(logOutput);
-    this.logOutput = logOutput;
     this.isSonarCloud = isSonarCloud;
     this.serverVersion = serverVersion;
     this.wasEngineCacheHit = wasEngineCacheHit;
@@ -74,8 +70,8 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
 
   abstract void doAnalyze(Map<String, String> allProps);
 
-  private void initAnalysisProperties(Map<String, String> p) {
-    new Dirs(logger).init(p);
+  private static void initAnalysisProperties(Map<String, String> p) {
+    new Dirs().init(p);
   }
 
   public Map<String, String> getBootstrapProperties() {

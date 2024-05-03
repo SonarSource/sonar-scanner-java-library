@@ -31,7 +31,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -42,7 +41,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 class ServerConnectionTest {
 
@@ -55,8 +53,6 @@ class ServerConnectionTest {
 
   @TempDir
   private Path sonarUserHome;
-
-  private final Logger logger = mock(Logger.class);
 
   @Test
   void download_success() throws Exception {
@@ -188,7 +184,7 @@ class ServerConnectionTest {
     props.put(InternalProperties.SCANNER_APP_VERSION, "agent");
     props.putAll(additionalProps);
 
-    ServerConnection connection = new ServerConnection(logger);
+    ServerConnection connection = new ServerConnection();
     connection.init(props, sonarUserHome);
     return connection;
   }

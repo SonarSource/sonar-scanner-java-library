@@ -28,7 +28,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,8 +57,7 @@ class LegacyScannerEngineDownloaderTest {
     // index of the files to download
     when(bootstrapIndexDownloader.getIndex()).thenReturn(jars);
 
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor,
-      mock(Logger.class));
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor);
     var files = legacyScannerEngineDownloader.getOrDownload();
 
     assertThat(files).isNotNull();

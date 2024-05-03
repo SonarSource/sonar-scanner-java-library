@@ -34,17 +34,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JavaRunner {
+  private static final Logger LOG = LoggerFactory.getLogger(JavaRunner.class);
 
   private final Path javaExecutable;
-  private final Logger logger;
   private final JreCacheHit jreCacheHit;
 
-  public JavaRunner(Path javaExecutable, Logger logger, JreCacheHit jreCacheHit) {
+  public JavaRunner(Path javaExecutable, JreCacheHit jreCacheHit) {
     this.javaExecutable = javaExecutable;
-    this.logger = logger;
     this.jreCacheHit = jreCacheHit;
   }
 
@@ -64,7 +64,7 @@ public class JavaRunner {
         }
       }
       new StreamGobbler(process.getInputStream(), this::tryParse).start();
-      new StreamGobbler(process.getErrorStream(), stderr -> logger.error("[stderr] " + stderr)).start();
+      new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr)).start();
       if (process.waitFor() != 0) {
         throw new IllegalStateException("Error returned by the Java command execution");
       }
@@ -93,27 +93,27 @@ public class JavaRunner {
       }
       log(log.level, sb.toString());
     } catch (Exception e) {
-      logger.info("[stdout] " + stdout);
+      LOG.info("[stdout] {}", stdout);
     }
   }
 
-  private void log(String level, String msg) {
+  private static void log(String level, String msg) {
     switch (level) {
       case "ERROR":
-        logger.error(msg);
+        LOG.error(msg);
         break;
       case "WARN":
-        logger.warn(msg);
+        LOG.warn(msg);
         break;
       case "DEBUG":
-        logger.debug(msg);
+        LOG.debug(msg);
         break;
       case "TRACE":
-        logger.trace(msg);
+        LOG.trace(msg);
         break;
       case "INFO":
       default:
-        logger.info(msg);
+        LOG.info(msg);
     }
   }
 

@@ -25,10 +25,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static java.lang.String.format;
@@ -37,24 +38,25 @@ import static java.lang.String.format;
  * The scanner engine used to be downloaded from /batch/index and /batch/file, and was even made of multiple files to be put on the classpath.
  */
 class LegacyScannerEngineDownloader {
+
+  private static final Logger LOG = LoggerFactory.getLogger(LegacyScannerEngineDownloader.class);
+
   private final FileCache fileCache;
   private final JarExtractor jarExtractor;
-  private final Logger logger;
   private final ScannerFileDownloader scannerFileDownloader;
   private final BootstrapIndexDownloader bootstrapIndexDownloader;
 
   LegacyScannerEngineDownloader(ScannerFileDownloader scannerFileDownloader, BootstrapIndexDownloader bootstrapIndexDownloader, FileCache fileCache,
-    JarExtractor jarExtractor, Logger logger) {
+    JarExtractor jarExtractor) {
     this.scannerFileDownloader = scannerFileDownloader;
     this.bootstrapIndexDownloader = bootstrapIndexDownloader;
-    this.logger = logger;
     this.fileCache = fileCache;
     this.jarExtractor = jarExtractor;
   }
 
   List<CachedFile> getOrDownload() {
     List<CachedFile> files = new ArrayList<>();
-    logger.debug("Extract sonar-scanner-java-library-batch in temp...");
+    LOG.debug("Extract sonar-scanner-java-library-batch in temp...");
     files.add(new CachedFile(jarExtractor.extractToTemp("sonar-scanner-java-library-batch"), true));
     files.addAll(getOrDownloadScannerEngineFiles());
     return files;

@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.batch.LogOutput;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -40,7 +39,7 @@ class IsolatedLauncherFactoryTest {
   @BeforeEach
   public void setUp() {
     tempCleaning = mock(TempCleaning.class);
-    factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning, mock(Logger.class));
+    factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning);
     props = new Properties();
     legacyScannerEngineDownloader = mock(LegacyScannerEngineDownloader.class);
   }

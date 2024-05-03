@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -42,7 +41,7 @@ class ScannerEngineLauncherTest {
   @Test
   void execute() {
     var scannerEngine = temp.resolve("scanner-engine.jar");
-    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true), mock(Logger.class));
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
 
     Map<String, String> properties = Map.of(ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g",
       ScannerProperties.HOST_URL, "http://localhost:9000");
