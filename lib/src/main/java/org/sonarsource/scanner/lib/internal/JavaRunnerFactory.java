@@ -22,12 +22,15 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,7 +40,6 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
@@ -61,10 +63,12 @@ public class JavaRunnerFactory {
 
   private final Logger logger;
   private final System2 system;
+  private final ProcessWrapperFactory processWrapperFactory;
 
-  public JavaRunnerFactory(Logger logger, System2 system) {
+  public JavaRunnerFactory(Logger logger, System2 system, ProcessWrapperFactory processWrapperFactory) {
     this.logger = logger;
     this.system = system;
+    this.processWrapperFactory = processWrapperFactory;
   }
 
   public JavaRunner createRunner(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
@@ -83,7 +87,7 @@ public class JavaRunnerFactory {
       }
     }
     String javaHome = system.getEnvironmentVariable("JAVA_HOME");
-    var javaExe = "java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "");
+    var javaExe = "java" + (isOsWindows() ? ".exe" : "");
     if (javaHome != null) {
       var javaExecutable = Paths.get(javaHome, "bin", javaExe);
       if (Files.exists(javaExecutable)) {
@@ -92,7 +96,36 @@ public class JavaRunnerFactory {
       }
     }
     logger.info("The java executable in the PATH will be used");
-    return new JavaRunner(Paths.get(javaExe), logger, JreCacheHit.DISABLED);
+    return new JavaRunner(isOsWindows() ? findJavaInPath(javaExe) : Paths.get(javaExe), logger, JreCacheHit.DISABLED);
+  }
+
+  private boolean isOsWindows() {
+    String osName = system.getProperty("os.name");
+    return osName != null && osName.startsWith("Windows");
+  }
+
+  private Path findJavaInPath(String javaExe) {
+    // Windows will search current directory in addition to the PATH variable, which is unsecure.
+    // To avoid it we use where.exe to find the java binary only in PATH.
+    try {
+      ProcessWrapperFactory.ProcessWrapper process = processWrapperFactory.create("C:\\Windows\\System32\\where.exe", "$PATH:" + javaExe);
+
+      Path javaExecutable;
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+        javaExecutable = Paths.get(reader.lines().findFirst().orElseThrow());
+        logger.debug(format("Found java executable in PATH at '%s'", javaExecutable.toAbsolutePath()));
+      }
+
+      int exit = process.waitFor();
+      if (exit != 0) {
+        throw new IllegalStateException(format("Command execution exited with code: %d", exit));
+      }
+
+      return javaExecutable;
+    } catch (Exception e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Cannot find java executable in PATH", e);
+    }
   }
 
   private Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
