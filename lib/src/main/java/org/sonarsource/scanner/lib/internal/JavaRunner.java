@@ -42,7 +42,7 @@ public class JavaRunner {
   private final Logger logger;
   private final JreCacheHit jreCacheHit;
 
-  public JavaRunner(@Nullable Path javaExecutable, Logger logger, JreCacheHit jreCacheHit) {
+  public JavaRunner(Path javaExecutable, Logger logger, JreCacheHit jreCacheHit) {
     this.javaExecutable = javaExecutable;
     this.logger = logger;
     this.jreCacheHit = jreCacheHit;
@@ -55,7 +55,7 @@ public class JavaRunner {
   public void execute(List<String> args, @Nullable String input) {
     try {
       List<String> command = new ArrayList<>(args);
-      command.add(0, getJavaExecutable());
+      command.add(0, javaExecutable.toString());
       Process process = new ProcessBuilder(command).start();
       if (input != null) {
         try (OutputStream stdin = process.getOutputStream();
@@ -74,12 +74,8 @@ public class JavaRunner {
     }
   }
 
-  String getJavaExecutable() {
-    if (javaExecutable != null) {
-      return javaExecutable.toAbsolutePath().toString();
-    }
-    // Will try to use the java executable in the PATH
-    return "java";
+  public Path getJavaExecutable() {
+    return javaExecutable;
   }
 
   void tryParse(String stdout) {

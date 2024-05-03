@@ -23,7 +23,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 
-public class InProcessScannerEngineFacade extends ScannerEngineFacade {
+class InProcessScannerEngineFacade extends ScannerEngineFacade {
   private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
 
   InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,

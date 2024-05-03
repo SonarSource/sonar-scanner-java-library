@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
-import org.sonarsource.scanner.lib.Paths2;
 import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 

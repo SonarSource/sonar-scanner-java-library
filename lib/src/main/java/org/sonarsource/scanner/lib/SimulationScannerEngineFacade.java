@@ -31,7 +31,7 @@ import java.util.TreeSet;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 
-public class SimulationScannerEngineFacade extends ScannerEngineFacade {
+class SimulationScannerEngineFacade extends ScannerEngineFacade {
 
   SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, LogOutput logOutput, boolean isSonarCloud,
                                 @Nullable String serverVersion) {

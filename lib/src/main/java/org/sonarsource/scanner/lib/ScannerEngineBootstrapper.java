@@ -33,6 +33,7 @@ import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.OsResolver;
+import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.Logger;

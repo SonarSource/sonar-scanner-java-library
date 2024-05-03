@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -77,32 +78,38 @@ public class JavaRunnerFactory {
       logger.info("JRE provisioning is disabled");
     } else {
       var cachedFile = getJreFromServer(serverConnection, fileCache, properties, true);
-      // TODO catch exception and fallback to system java
-      return new JavaRunner(cachedFile.getPathInCache(), logger, cachedFile.isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
+      if (cachedFile.isPresent()) {
+        return new JavaRunner(cachedFile.get().getPathInCache(), logger, cachedFile.get().isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
+      }
     }
     String javaHome = system.getEnvironmentVariable("JAVA_HOME");
+    var javaExe = "java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "");
     if (javaHome != null) {
-      var javaExecutable = Paths.get(javaHome, "bin", "java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : ""));
+      var javaExecutable = Paths.get(javaHome, "bin", javaExe);
       if (Files.exists(javaExecutable)) {
         logger.info(format("Using the java executable '%s' from JAVA_HOME", javaExecutable));
         return new JavaRunner(javaExecutable, logger, JreCacheHit.DISABLED);
       }
     }
     logger.info("The java executable in the PATH will be used");
-    return new JavaRunner(null, logger, JreCacheHit.DISABLED);
+    return new JavaRunner(Paths.get(javaExe), logger, JreCacheHit.DISABLED);
   }
 
-  private CachedFile getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
+  private Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
     logger.info(format("JRE provisioning: os[%s], arch[%s]", os, arch));
 
     try {
       var jreMetadata = getJreMetadata(serverConnection, os, arch);
-      var cachedFile = fileCache.getOrDownload(jreMetadata.getFilename(), jreMetadata.getSha256(), "SHA-256",
-        new JreDownloader(serverConnection, jreMetadata));
+      if (jreMetadata.isEmpty()) {
+        logger.info("No JRE found for this OS/architecture");
+        return Optional.empty();
+      }
+      var cachedFile = fileCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
+        new JreDownloader(serverConnection, jreMetadata.get()));
       var extractedDirectory = extractArchive(cachedFile.getPathInCache());
-      return new CachedFile(extractedDirectory.resolve(jreMetadata.javaPath), cachedFile.isCacheHit());
+      return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.isCacheHit()));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download
@@ -113,16 +120,13 @@ public class JavaRunnerFactory {
     }
   }
 
-  private static JreMetadata getJreMetadata(ServerConnection serverConnection, String os, String arch) {
+  private static Optional<JreMetadata> getJreMetadata(ServerConnection serverConnection, String os, String arch) {
     try {
       String response = serverConnection.callRestApi(format(API_PATH_JRE + "?os=%s&arch=%s", os, arch));
       Type listType = new TypeToken<ArrayList<JreMetadata>>() {
       }.getType();
       List<JreMetadata> jres = new Gson().fromJson(response, listType);
-      if (jres.isEmpty()) {
-        throw new IllegalStateException("No JRE metadata found for os[" + os + "] and arch[" + arch + "]");
-      }
-      return jres.get(0);
+      return jres.stream().findFirst();
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get JRE metadata", e);
     }

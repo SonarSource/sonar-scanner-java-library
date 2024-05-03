@@ -22,26 +22,24 @@ package org.sonarsource.scanner.lib.internal;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.sonarsource.scanner.lib.internal.cache.Logger;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
 class JavaRunnerTest {
 
   @Mock
-  private Logger logger;
+  private Logger logger = mock(Logger.class);
 
   @Test
   void execute_shouldLogProcessOutput() {
-    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
 
     runner.execute(List.of("--version"), "test");
     verify(logger, after(1000).atLeastOnce()).info(anyString());
@@ -61,7 +59,7 @@ class JavaRunnerTest {
 
   @Test
   void execute_shouldFailWhenBadRunner() {
-    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
     assertThatThrownBy(() -> runner.execute(command, "test"))
       .isInstanceOf(IllegalStateException.class)
@@ -70,7 +68,7 @@ class JavaRunnerTest {
 
   @Test
   void tryParse_shouldParseLogMessages() {
-    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
 
     runner.tryParse("{\n" +
       "    \"level\": \"ERROR\",\n" +
@@ -92,7 +90,7 @@ class JavaRunnerTest {
 
   @Test
   void tryParse_whenCannotParse_shouldLogInfo() {
-    JavaRunner runner = new JavaRunner(null, logger, JreCacheHit.DISABLED);
+    JavaRunner runner = new JavaRunner(Paths.get("java"), logger, JreCacheHit.DISABLED);
     runner.tryParse("INFO: test");
     verify(logger).info("[stdout] INFO: test");
   }
