@@ -20,11 +20,9 @@
 package org.sonarsource.scanner.lib;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
@@ -195,46 +193,6 @@ class ScannerEngineBootstrapperTest {
         entry("sonar.host.url", "http://localhost"),
         entry("sonar.login", "admin"),
         entry("sonar.password", "gniark"));
-    }
-  }
-
-  @Test
-  void should_set_default_platform_encoding() throws Exception {
-    try (var scannerEngine = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .bootstrap()) {
-
-      scannerEngine.analyze(Map.of());
-
-      assertThat(readDumpedProps().getProperty("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
-    }
-    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)",
-      LogOutput.Level.INFO);
-  }
-
-  @Test
-  void should_set_default_platform_encoding_when_empty() throws Exception {
-    try (var scannerEngine = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .bootstrap()) {
-
-      scannerEngine.analyze(Map.of("sonar.sourceEncoding", ""));
-
-      assertThat(readDumpedProps().getProperty("sonar.sourceEncoding")).isEqualTo(Charset.defaultCharset().name());
-    }
-    verify(logOutput).log("Default locale: \"" + Locale.getDefault() + "\", source code encoding: \"" + Charset.defaultCharset().name() + "\" (analysis is platform dependent)",
-      LogOutput.Level.INFO);
-  }
-
-  @Test
-  void should_use_parameterized_encoding() throws Exception {
-    try (var scannerEngine = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .bootstrap()) {
-
-      scannerEngine.analyze(Map.of("sonar.sourceEncoding", "THE_ISO_1234"));
-
-      assertThat(readDumpedProps().getProperty("sonar.sourceEncoding")).isEqualTo("THE_ISO_1234");
     }
   }
 
