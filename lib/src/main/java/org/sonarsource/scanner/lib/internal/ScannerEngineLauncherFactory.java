@@ -41,7 +41,7 @@ public class ScannerEngineLauncherFactory {
 
   public ScannerEngineLauncherFactory(Logger logger, System2 system) {
     this.logger = logger;
-    this.javaRunnerFactory = new JavaRunnerFactory(logger, system);
+    this.javaRunnerFactory = new JavaRunnerFactory(logger, system, new ProcessWrapperFactory());
   }
 
   ScannerEngineLauncherFactory(Logger logger, JavaRunnerFactory javaRunnerFactory) {

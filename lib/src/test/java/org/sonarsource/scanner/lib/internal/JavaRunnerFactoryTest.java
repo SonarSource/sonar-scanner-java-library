@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SystemUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.System2;
@@ -58,11 +58,17 @@ class JavaRunnerFactoryTest {
   private final FileCache fileCache = mock(FileCache.class);
   private final System2 system = mock(System2.class);
   private final Logger logger = mock(Logger.class);
+  private final ProcessWrapperFactory processWrapperFactory = mock(ProcessWrapperFactory.class);
 
-  private final JavaRunnerFactory underTest = new JavaRunnerFactory(logger, system);
+  private final JavaRunnerFactory underTest = new JavaRunnerFactory(logger, system, processWrapperFactory);
 
   @TempDir
   private Path temp;
+
+  @BeforeEach
+  void setUp() {
+    when(system.getProperty("os.name")).thenReturn("linux");
+  }
 
   @Test
   void createRunner_jreProvisioning() throws IOException {
@@ -86,7 +92,7 @@ class JavaRunnerFactoryTest {
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, props);
 
-    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"+ (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
+    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
@@ -105,15 +111,14 @@ class JavaRunnerFactoryTest {
   void createRunner_jreProvisioningSkipAndJavaHome() throws IOException {
     var javaHome = temp.toAbsolutePath();
     Files.createDirectories(javaHome.resolve("bin"));
-    Files.createFile(javaHome.resolve("bin/java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
+    Files.createFile(javaHome.resolve("bin/java"));
 
     when(system.getEnvironmentVariable("JAVA_HOME")).thenReturn(javaHome.toString());
     Map<String, String> properties = Map.of(SKIP_JRE_PROVISIONING, "true");
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
 
-    assertThat(runner.getJavaExecutable()).isEqualTo(
-      temp.resolve("bin/java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
+    assertThat(runner.getJavaExecutable()).isEqualTo(temp.resolve("bin/java"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
@@ -123,7 +128,23 @@ class JavaRunnerFactoryTest {
 
     JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
 
-    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java" + (SystemUtils.IS_OS_WINDOWS ? ".exe" : "")));
+    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"));
+    assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
+  }
+
+  @Test
+  void createRunner_jreProvisioningSkipAndNoJavaHome_windows() throws IOException, InterruptedException {
+    when(system.getProperty("os.name")).thenReturn("Windows 10");
+    ProcessWrapperFactory.ProcessWrapper processWrapper = mock(ProcessWrapperFactory.ProcessWrapper.class);
+    when(processWrapper.getInputStream()).thenReturn(IOUtils.toInputStream("C:\\bin\\java.exe", StandardCharsets.UTF_8));
+    when(processWrapper.waitFor()).thenReturn(0);
+    when(processWrapperFactory.create("C:\\Windows\\System32\\where.exe", "$PATH:java.exe")).thenReturn(processWrapper);
+
+    Map<String, String> properties = Map.of(SKIP_JRE_PROVISIONING, "true");
+
+    JavaRunner runner = underTest.createRunner(serverConnection, fileCache, properties);
+
+    assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("C:\\bin\\java.exe"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
   }
 
