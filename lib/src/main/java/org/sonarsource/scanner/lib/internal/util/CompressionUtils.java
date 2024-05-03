@@ -25,18 +25,34 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.IOUtils;
 
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
+
 public final class CompressionUtils {
 
   private static final String ERROR_CREATING_DIRECTORY = "Error creating directory: ";
+
+  // indexed by the standard binary representation of permission
+  // if permission is 644; in binary 110 100 100
+  // the positions of the ones (little endian) give the index of the permission in the list below
+  private static final List<PosixFilePermission> POSIX_PERMISSIONS = List.of(
+    PosixFilePermission.OTHERS_EXECUTE, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_READ,
+    PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_READ,
+    PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_READ);
+  private static final int MAX_MODE = (1 << POSIX_PERMISSIONS.size()) - 1;
 
   private CompressionUtils() {
     // utility class
@@ -110,23 +126,44 @@ public final class CompressionUtils {
     try (InputStream fis = Files.newInputStream(compressedFile);
       InputStream bis = new BufferedInputStream(fis);
       InputStream gzis = new GzipCompressorInputStream(bis);
-      TarArchiveInputStream archive = new TarArchiveInputStream(gzis)) {
-      ArchiveEntry entry;
-      while ((entry = archive.getNextEntry()) != null) {
-        if (!archive.canReadEntryData(entry)) {
+      TarArchiveInputStream tarArchiveInputStream = new TarArchiveInputStream(gzis)) {
+      TarArchiveEntry targzEntry;
+      while ((targzEntry = tarArchiveInputStream.getNextEntry()) != null) {
+        if (!tarArchiveInputStream.canReadEntryData(targzEntry)) {
           continue;
         }
-        var f = targetDir.resolve(entry.getName());
-        if (entry.isDirectory()) {
-          Files.createDirectories(f);
+        var entry = targetDir.resolve(targzEntry.getName());
+        if (targzEntry.isDirectory()) {
+          Files.createDirectories(entry);
         } else {
-          var parent = f.getParent();
-          Files.createDirectories(parent);
-          try (OutputStream o = Files.newOutputStream(f)) {
-            IOUtils.copy(archive, o);
+          if (!Files.isDirectory(entry.getParent())) {
+            Files.createDirectories(entry.getParent());
+          }
+          Files.copy(tarArchiveInputStream, entry, StandardCopyOption.REPLACE_EXISTING);
+          int mode = targzEntry.getMode();
+          if (mode != 0 && !IS_OS_WINDOWS) {
+            Set<PosixFilePermission> permissions = fromFileMode(mode);
+            Files.setPosixFilePermissions(entry, permissions);
           }
         }
       }
     }
+  }
+
+  static Set<PosixFilePermission> fromFileMode(final int fileMode) {
+    if ((fileMode & MAX_MODE) != fileMode) {
+      throw new IllegalStateException(
+        "Invalid file mode '" + Integer.toOctalString(fileMode) + "'. File mode must be between 0 and " + MAX_MODE + " (" + Integer.toOctalString(MAX_MODE) + " in octal)");
+    }
+
+    final Set<PosixFilePermission> ret = EnumSet.noneOf(PosixFilePermission.class);
+
+    for (int i = 0; i < POSIX_PERMISSIONS.size(); i++) {
+      if ((fileMode & (1 << i)) != 0) {
+        ret.add(POSIX_PERMISSIONS.get(i));
+      }
+    }
+
+    return ret;
   }
 }
