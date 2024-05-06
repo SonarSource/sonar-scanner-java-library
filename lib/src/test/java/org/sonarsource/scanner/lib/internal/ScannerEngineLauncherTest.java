@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import com.google.gson.Gson;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -43,12 +42,13 @@ class ScannerEngineLauncherTest {
     var scannerEngine = temp.resolve("scanner-engine.jar");
     ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
 
-    Map<String, String> properties = Map.of(ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g",
+    Map<String, String> properties = Map.of(
+      ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g",
       ScannerProperties.HOST_URL, "http://localhost:9000");
     launcher.execute(properties);
 
     verify(javaRunner).execute(
       List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString()),
-      "{\"scannerProperties\":" + new Gson().toJson(properties) + "}");
+      "{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}");
   }
 }

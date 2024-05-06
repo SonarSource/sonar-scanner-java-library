@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.lib.internal;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,8 +69,15 @@ public class ScannerEngineLauncher {
   }
 
   private static String buildJsonProperties(Map<String, String> properties) {
+    JsonArray propertiesArray = new JsonArray();
+    properties.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(prop -> {
+      JsonObject property = new JsonObject();
+      property.addProperty("key", prop.getKey());
+      property.addProperty("value", prop.getValue());
+      propertiesArray.add(property);
+    });
     JsonObject jsonObject = new JsonObject();
-    jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, new Gson().toJsonTree(properties));
+    jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, propertiesArray);
     return new Gson().toJson(jsonObject);
   }
 

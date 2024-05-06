@@ -69,14 +69,14 @@ class JavaRunnerTest {
 
     runner.tryParse("{\n" +
       "    \"level\": \"ERROR\",\n" +
-      "    \"formattedMessage\": \"Some error message\",\n" +
-      "    \"throwable\": \"exception\"\n" +
+      "    \"message\": \"Some error message\",\n" +
+      "    \"stacktrace\": \"exception\"\n" +
       "}");
-    runner.tryParse("{\"level\": \"WARN\", \"formattedMessage\": \"Some warn message\"}");
-    runner.tryParse("{\"level\": \"DEBUG\", \"formattedMessage\": \"Some debug message\"}");
-    runner.tryParse("{\"level\": \"TRACE\", \"formattedMessage\": \"Some trace message\"}");
-    runner.tryParse("{\"level\": \"INFO\", \"formattedMessage\": \"Some info message\"}");
-    runner.tryParse("{\"level\": \"UNKNOWN-LEVEL\", \"formattedMessage\": \"Some unknown level message\"}");
+    runner.tryParse("{\"level\": \"WARN\", \"message\": \"Some warn message\"}");
+    runner.tryParse("{\"level\": \"DEBUG\", \"message\": \"Some debug message\"}");
+    runner.tryParse("{\"level\": \"TRACE\", \"message\": \"Some trace message\"}");
+    runner.tryParse("{\"level\": \"INFO\", \"message\": \"Some info message\"}");
+    runner.tryParse("{\"level\": \"UNKNOWN-LEVEL\", \"message\": \"Some unknown level message\"}");
 
     assertThat(logTester.logs(Level.ERROR)).containsOnly("Some error message\nexception");
     assertThat(logTester.logs(Level.WARN)).containsOnly("Some warn message");
