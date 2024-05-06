@@ -22,8 +22,10 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
@@ -51,11 +53,18 @@ public class ScannerEngineLauncher {
     List<String> args = new ArrayList<>();
     String javaOpts = properties.get(ScannerProperties.SCANNER_JAVA_OPTS);
     if (javaOpts != null) {
-      args.add(javaOpts);
+      args.addAll(split(javaOpts));
     }
     args.add("-jar");
     args.add(scannerEngineJar.getPathInCache().toAbsolutePath().toString());
     return args;
+  }
+
+  private static List<String> split(String value) {
+    return Arrays.stream(value.split("\\s+"))
+      .map(String::trim)
+      .filter(s -> !s.isEmpty())
+      .collect(Collectors.toList());
   }
 
   private static String buildJsonProperties(Map<String, String> properties) {

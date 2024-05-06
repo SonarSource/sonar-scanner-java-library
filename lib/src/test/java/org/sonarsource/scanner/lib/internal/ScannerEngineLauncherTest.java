@@ -43,12 +43,12 @@ class ScannerEngineLauncherTest {
     var scannerEngine = temp.resolve("scanner-engine.jar");
     ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
 
-    Map<String, String> properties = Map.of(ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g",
+    Map<String, String> properties = Map.of(ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g",
       ScannerProperties.HOST_URL, "http://localhost:9000");
     launcher.execute(properties);
 
     verify(javaRunner).execute(
-      List.of("-Xmx4g", "-jar", scannerEngine.toAbsolutePath().toString()),
+      List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString()),
       "{\"scannerProperties\":" + new Gson().toJson(properties) + "}");
   }
 }
