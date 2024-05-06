@@ -35,6 +35,10 @@ import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
@@ -58,6 +62,8 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTS
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
 
 public class OkHttpClientFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OkHttpClientFactory.class);
 
   static final CookieManager COOKIE_MANAGER;
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
@@ -126,6 +132,10 @@ public class OkHttpClientFactory {
         return null;
       });
     }
+
+    var logging = new HttpLoggingInterceptor(LOG::debug);
+    logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+    okHttpClientBuilder.addInterceptor(logging);
 
     return okHttpClientBuilder.build();
   }

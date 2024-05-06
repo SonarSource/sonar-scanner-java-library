@@ -140,7 +140,6 @@ public class ServerConnection {
     if (httpClient == null) {
       throw new IllegalStateException("ServerConnection must be initialized");
     }
-    LOG.debug("Call API: {}}", url);
     try (ResponseBody responseBody = callUrl(url, true, null)) {
       return responseBody.string();
     }
@@ -152,31 +151,30 @@ public class ServerConnection {
    * @param url            the URL to call
    * @param authentication if true, the request will be authenticated with the token
    * @param acceptHeader   the value of the Accept header
-   * @throws IOException           if connectivity error/timeout (network)
    * @throws IllegalStateException if HTTP code is different than 2xx
    */
-  private ResponseBody callUrl(String url, boolean authentication, @Nullable String acceptHeader) throws IOException {
-    try {
-      var requestBuilder = new Request.Builder()
-        .get()
-        .url(url)
-        .addHeader("User-Agent", userAgent);
-      if (authentication && credentials != null) {
-        requestBuilder.header("Authorization", credentials);
-      }
-      if (acceptHeader != null) {
-        requestBuilder.header("Accept", acceptHeader);
-      }
-      Request request = requestBuilder.build();
-      Response response = httpClient.newCall(request).execute();
-      if (!response.isSuccessful()) {
-        response.close();
-        throw new IllegalStateException(format("Error status returned by url [%s]: %s", response.request().url(), response.code()));
-      }
-      return response.body();
-    } catch (Exception e) {
-      LOG.error("Call to URL [{}] failed", url);
-      throw e;
+  private ResponseBody callUrl(String url, boolean authentication, @Nullable String acceptHeader) {
+    var requestBuilder = new Request.Builder()
+      .get()
+      .url(url)
+      .addHeader("User-Agent", userAgent);
+    if (authentication && credentials != null) {
+      requestBuilder.header("Authorization", credentials);
     }
+    if (acceptHeader != null) {
+      requestBuilder.header("Accept", acceptHeader);
+    }
+    Request request = requestBuilder.build();
+    Response response;
+    try {
+      response = httpClient.newCall(request).execute();
+    } catch (Exception e) {
+      throw new IllegalStateException(format("Call to URL [%s] failed", url), e);
+    }
+    if (!response.isSuccessful()) {
+      response.close();
+      throw new IllegalStateException(format("Error status returned by url [%s]: %s", response.request().url(), response.code()));
+    }
+    return response.body();
   }
 }
