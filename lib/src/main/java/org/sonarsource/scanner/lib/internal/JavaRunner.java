@@ -22,11 +22,9 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -56,17 +54,22 @@ public class JavaRunner {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.toString());
+      LOG.atDebug().addArgument(() -> String.join(" ", command)).log("Executing: {}");
       Process process = new ProcessBuilder(command).start();
       if (input != null) {
-        try (OutputStream stdin = process.getOutputStream();
-          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin, StandardCharsets.UTF_8))) {
-          writer.write(input);
+        try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {
+          osw.write(input);
         }
       }
-      new StreamGobbler(process.getInputStream(), this::tryParse).start();
-      new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr)).start();
-      if (process.waitFor() != 0) {
-        throw new IllegalStateException("Error returned by the Java command execution");
+      var stdoutConsummer = new StreamGobbler(process.getInputStream(), this::tryParse);
+      var stdErrConsummer = new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr));
+      stdErrConsummer.start();
+      stdoutConsummer.start();
+      var exitCode = process.waitFor();
+      stdoutConsummer.join();
+      stdErrConsummer.join();
+      if (exitCode != 0) {
+        throw new IllegalStateException("Error returned by the Java command execution: " + process.exitValue());
       }
     } catch (IOException | InterruptedException e) {
       Thread.currentThread().interrupt();

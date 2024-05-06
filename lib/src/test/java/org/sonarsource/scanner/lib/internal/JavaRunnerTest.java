@@ -28,7 +28,6 @@ import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 class JavaRunnerTest {
 
@@ -40,14 +39,10 @@ class JavaRunnerTest {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
     runner.execute(List.of("--version"), "test");
-    await().untilAsserted(() -> {
-      assertThat(logTester.logs(Level.INFO)).isNotEmpty().allMatch(s -> s.startsWith("[stdout] "));
-    });
+    assertThat(logTester.logs(Level.INFO)).isNotEmpty().allMatch(s -> s.startsWith("[stdout] "));
 
     runner.execute(List.of("-version"), null);
-    await().untilAsserted(() -> {
-      assertThat(logTester.logs(Level.ERROR)).isNotEmpty().allMatch(s -> s.startsWith("[stderr] "));
-    });
+    assertThat(logTester.logs(Level.ERROR)).isNotEmpty().allMatch(s -> s.startsWith("[stderr] "));
   }
 
   @Test
