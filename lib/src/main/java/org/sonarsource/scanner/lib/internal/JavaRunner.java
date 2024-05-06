@@ -88,11 +88,11 @@ public class JavaRunner {
       if (log.message != null) {
         sb.append(log.message);
       }
-      if (log.message != null && log.throwable != null) {
+      if (log.message != null && log.stacktrace != null) {
         sb.append("\n");
       }
-      if (log.throwable != null) {
-        sb.append(log.throwable);
+      if (log.stacktrace != null) {
+        sb.append(log.stacktrace);
       }
       log(log.level, sb.toString());
     } catch (Exception e) {
@@ -123,10 +123,10 @@ public class JavaRunner {
   private static class Log {
     @SerializedName("level")
     private String level;
-    @SerializedName("formattedMessage")
+    @SerializedName("message")
     private String message;
-    @SerializedName("throwable")
-    private String throwable;
+    @SerializedName("stacktrace")
+    private String stacktrace;
   }
 
   private static class StreamGobbler extends Thread {
