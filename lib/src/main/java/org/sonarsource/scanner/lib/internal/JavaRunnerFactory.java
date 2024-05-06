@@ -129,7 +129,7 @@ public class JavaRunnerFactory {
     }
   }
 
-  private Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
+  private static Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
     LOG.info("JRE provisioning: os[{}], arch[{}]", os, arch);
