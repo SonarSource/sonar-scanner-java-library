@@ -27,19 +27,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 class VersionUtilsTest {
 
   @Test
-  void isAtLeast_shouldCompareCorrectly() {
-    assertThat(VersionUtils.isAtLeast("10.5", "10.5")).isTrue();
-    assertThat(VersionUtils.isAtLeast("10.10", "10.5")).isTrue();
-    assertThat(VersionUtils.isAtLeast(null, "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("105", "10.5")).isTrue();
-    assertThat(VersionUtils.isAtLeast("10", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("10.0", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("trash", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("11.0.0", "10.5")).isTrue();
-    assertThat(VersionUtils.isAtLeast("10.4.9", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("10.5-SNAPSHOT", "10.5")).isFalse();
-    assertThat(VersionUtils.isAtLeast("10.6-SNAPSHOT", "10.5")).isTrue();
-    assertThat(VersionUtils.isAtLeast("10.5.0.1234", "10.5")).isTrue();
+  void isAtLeast_IgnoringQualifier_shouldCompareCorrectly() {
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.5", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.10", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier(null, "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("105", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.0", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("trash", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("11.0.0", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.4.9", "10.5")).isFalse();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.5-SNAPSHOT", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.6-SNAPSHOT", "10.5")).isTrue();
+    assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.5.0.1234", "10.5")).isTrue();
   }
 }
