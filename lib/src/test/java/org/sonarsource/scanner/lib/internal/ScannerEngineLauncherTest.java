@@ -23,14 +23,23 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.event.Level;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
+import testutils.LogTester;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 class ScannerEngineLauncherTest {
+
+  @RegisterExtension
+  LogTester logTester = new LogTester().setLevel(Level.TRACE);
 
   @TempDir
   private Path temp;
@@ -40,6 +49,7 @@ class ScannerEngineLauncherTest {
   @Test
   void execute() {
     var scannerEngine = temp.resolve("scanner-engine.jar");
+
     ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
 
     Map<String, String> properties = Map.of(
@@ -48,7 +58,34 @@ class ScannerEngineLauncherTest {
     launcher.execute(properties);
 
     verify(javaRunner).execute(
-      List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString()),
-      "{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}");
+      eq(List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString())),
+      eq("{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}"),
+      any());
+  }
+
+  @Test
+  void tryParse_shouldParseLogMessages() {
+    ScannerEngineLauncher.tryParse("{\n" +
+      "    \"level\": \"ERROR\",\n" +
+      "    \"message\": \"Some error message\",\n" +
+      "    \"stacktrace\": \"exception\"\n" +
+      "}");
+    ScannerEngineLauncher.tryParse("{\"level\": \"WARN\", \"message\": \"Some warn message\"}");
+    ScannerEngineLauncher.tryParse("{\"level\": \"DEBUG\", \"message\": \"Some debug message\"}");
+    ScannerEngineLauncher.tryParse("{\"level\": \"TRACE\", \"message\": \"Some trace message\"}");
+    ScannerEngineLauncher.tryParse("{\"level\": \"INFO\", \"message\": \"Some info message\"}");
+    ScannerEngineLauncher.tryParse("{\"level\": \"UNKNOWN-LEVEL\", \"message\": \"Some unknown level message\"}");
+
+    assertThat(logTester.logs(Level.ERROR)).containsOnly("Some error message\nexception");
+    assertThat(logTester.logs(Level.WARN)).containsOnly("Some warn message");
+    assertThat(logTester.logs(Level.DEBUG)).containsOnly("Some debug message");
+    assertThat(logTester.logs(Level.TRACE)).containsOnly("Some trace message");
+    assertThat(logTester.logs(Level.INFO)).containsOnly("Some info message", "Some unknown level message");
+  }
+
+  @Test
+  void tryParse_whenCannotParse_shouldLogInfo() {
+    ScannerEngineLauncher.tryParse("INFO: test");
+    assertThat(logTester.logs(Level.INFO)).containsOnly("[stdout] INFO: test");
   }
 }

@@ -57,7 +57,7 @@ public class ScannerEngineLauncherFactory {
   }
 
   private static void jreSanityCheck(JavaRunner javaRunner) {
-    javaRunner.execute(Collections.singletonList("--version"), null);
+    javaRunner.execute(Collections.singletonList("--version"), null, LOG::debug);
   }
 
   private static CachedFile getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {

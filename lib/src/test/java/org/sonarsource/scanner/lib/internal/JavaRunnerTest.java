@@ -21,6 +21,7 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.event.Level;
@@ -34,15 +35,26 @@ class JavaRunnerTest {
   @RegisterExtension
   LogTester logTester = new LogTester().setLevel(Level.TRACE);
 
+  private final ConcurrentLinkedDeque<String> stdOut = new ConcurrentLinkedDeque<>();
+
   @Test
-  void execute_shouldLogProcessOutput() {
+  void execute_shouldConsummeProcessStdOut() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
-    runner.execute(List.of("--version"), "test");
-    assertThat(logTester.logs(Level.INFO)).isNotEmpty().allMatch(s -> s.startsWith("[stdout] "));
+    assertThat(runner.execute(List.of("--version"), "test", stdOut::add)).isTrue();
 
-    assertThat(runner.execute(List.of("-version"), null)).isTrue();
+    assertThat(stdOut).isNotEmpty();
+    assertThat(logTester.logs(Level.ERROR)).isEmpty();
+  }
 
+  @Test
+  void execute_shouldLogProcessStdError() {
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
+
+    // For some reason the java process exit with 0 even with an unsupported parameter
+    assertThat(runner.execute(List.of("-version"), null, stdOut::add)).isTrue();
+
+    assertThat(stdOut).isEmpty();
     assertThat(logTester.logs(Level.ERROR)).isNotEmpty().allMatch(s -> s.startsWith("[stderr] "));
   }
 
@@ -50,7 +62,7 @@ class JavaRunnerTest {
   void execute_whenInvalidRunner_shouldFail() {
     JavaRunner runner = new JavaRunner(Paths.get("invalid-runner"), JreCacheHit.DISABLED);
     List<String> command = List.of("--version");
-    assertThatThrownBy(() -> runner.execute(command, "test"))
+    assertThatThrownBy(() -> runner.execute(command, "test", stdOut::add))
       .isInstanceOf(IllegalStateException.class)
       .hasMessageContaining("Failed to run the Java command");
   }
@@ -59,35 +71,7 @@ class JavaRunnerTest {
   void execute_shouldReturnFalseWhenNonZeroExitCode() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
-    assertThat(runner.execute(command, "test")).isFalse();
+    assertThat(runner.execute(command, "test", stdOut::add)).isFalse();
   }
 
-  @Test
-  void tryParse_shouldParseLogMessages() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
-
-    runner.tryParse("{\n" +
-      "    \"level\": \"ERROR\",\n" +
-      "    \"message\": \"Some error message\",\n" +
-      "    \"stacktrace\": \"exception\"\n" +
-      "}");
-    runner.tryParse("{\"level\": \"WARN\", \"message\": \"Some warn message\"}");
-    runner.tryParse("{\"level\": \"DEBUG\", \"message\": \"Some debug message\"}");
-    runner.tryParse("{\"level\": \"TRACE\", \"message\": \"Some trace message\"}");
-    runner.tryParse("{\"level\": \"INFO\", \"message\": \"Some info message\"}");
-    runner.tryParse("{\"level\": \"UNKNOWN-LEVEL\", \"message\": \"Some unknown level message\"}");
-
-    assertThat(logTester.logs(Level.ERROR)).containsOnly("Some error message\nexception");
-    assertThat(logTester.logs(Level.WARN)).containsOnly("Some warn message");
-    assertThat(logTester.logs(Level.DEBUG)).containsOnly("Some debug message");
-    assertThat(logTester.logs(Level.TRACE)).containsOnly("Some trace message");
-    assertThat(logTester.logs(Level.INFO)).containsOnly("Some info message", "Some unknown level message");
-  }
-
-  @Test
-  void tryParse_whenCannotParse_shouldLogInfo() {
-    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
-    runner.tryParse("INFO: test");
-    assertThat(logTester.logs(Level.INFO)).containsOnly("[stdout] INFO: test");
-  }
 }

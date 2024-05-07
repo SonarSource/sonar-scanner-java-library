@@ -19,8 +19,6 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +48,7 @@ public class JavaRunner {
     return jreCacheHit;
   }
 
-  public boolean execute(List<String> args, @Nullable String input) {
+  public boolean execute(List<String> args, @Nullable String input, Consumer<String> stdOutConsummer) {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.toString());
@@ -61,7 +59,7 @@ public class JavaRunner {
           osw.write(input);
         }
       }
-      var stdoutConsummer = new StreamGobbler(process.getInputStream(), this::tryParse);
+      var stdoutConsummer = new StreamGobbler(process.getInputStream(), stdOutConsummer);
       var stdErrConsummer = new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr));
       stdErrConsummer.start();
       stdoutConsummer.start();
@@ -81,54 +79,6 @@ public class JavaRunner {
 
   public Path getJavaExecutable() {
     return javaExecutable;
-  }
-
-  void tryParse(String stdout) {
-    try {
-      var log = new Gson().fromJson(stdout, Log.class);
-      StringBuilder sb = new StringBuilder();
-      if (log.message != null) {
-        sb.append(log.message);
-      }
-      if (log.message != null && log.stacktrace != null) {
-        sb.append("\n");
-      }
-      if (log.stacktrace != null) {
-        sb.append(log.stacktrace);
-      }
-      log(log.level, sb.toString());
-    } catch (Exception e) {
-      LOG.info("[stdout] {}", stdout);
-    }
-  }
-
-  private static void log(String level, String msg) {
-    switch (level) {
-      case "ERROR":
-        LOG.error(msg);
-        break;
-      case "WARN":
-        LOG.warn(msg);
-        break;
-      case "DEBUG":
-        LOG.debug(msg);
-        break;
-      case "TRACE":
-        LOG.trace(msg);
-        break;
-      case "INFO":
-      default:
-        LOG.info(msg);
-    }
-  }
-
-  private static class Log {
-    @SerializedName("level")
-    private String level;
-    @SerializedName("message")
-    private String message;
-    @SerializedName("stacktrace")
-    private String stacktrace;
   }
 
   private static class StreamGobbler extends Thread {
