@@ -45,9 +45,8 @@ public class ScannerEngineLauncher {
     this.scannerEngineJar = scannerEngineJar;
   }
 
-  public void execute(Map<String, String> properties) {
-    LOG.info("Starting scanner-engine");
-    javaRunner.execute(buildArgs(properties), buildJsonProperties(properties));
+  public boolean execute(Map<String, String> properties) {
+    return javaRunner.execute(buildArgs(properties), buildJsonProperties(properties));
   }
 
   private List<String> buildArgs(Map<String, String> properties) {

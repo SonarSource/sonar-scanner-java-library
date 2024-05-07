@@ -33,8 +33,8 @@ class NewScannerEngineFacade extends ScannerEngineFacade {
   }
 
   @Override
-  void doAnalyze(Map<String, String> allProps) {
-    launcher.execute(allProps);
+  boolean doAnalyze(Map<String, String> allProps) {
+    return launcher.execute(allProps);
   }
 
   @Override

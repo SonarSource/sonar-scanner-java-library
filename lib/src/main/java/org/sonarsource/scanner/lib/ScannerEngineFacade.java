@@ -52,13 +52,13 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
     return isSonarCloud;
   }
 
-  public void analyze(Map<String, String> analysisProps) {
+  public boolean analyze(Map<String, String> analysisProps) {
     Map<String, String> allProps = new HashMap<>();
     allProps.putAll(bootstrapProperties);
     allProps.putAll(analysisProps);
     initAnalysisProperties(allProps);
     addStatsProperties(allProps);
-    doAnalyze(allProps);
+    return doAnalyze(allProps);
   }
 
   private void addStatsProperties(Map<String, String> allProps) {
@@ -68,7 +68,7 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
     allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
   }
 
-  abstract void doAnalyze(Map<String, String> allProps);
+  abstract boolean doAnalyze(Map<String, String> allProps);
 
   private static void initAnalysisProperties(Map<String, String> p) {
     new Dirs().init(p);

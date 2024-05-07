@@ -50,7 +50,7 @@ public class JavaRunner {
     return jreCacheHit;
   }
 
-  public void execute(List<String> args, @Nullable String input) {
+  public boolean execute(List<String> args, @Nullable String input) {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.toString());
@@ -69,8 +69,10 @@ public class JavaRunner {
       stdoutConsummer.join();
       stdErrConsummer.join();
       if (exitCode != 0) {
-        throw new IllegalStateException("Error returned by the Java command execution: " + process.exitValue());
+        LOG.debug("Java command exited with code {}", process.exitValue());
+        return false;
       }
+      return true;
     } catch (IOException | InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Failed to run the Java command", e);
