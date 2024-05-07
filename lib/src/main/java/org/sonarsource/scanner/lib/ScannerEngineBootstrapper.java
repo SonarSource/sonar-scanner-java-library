@@ -26,6 +26,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.OsResolver;
@@ -42,6 +45,8 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
  * Entry point to run a Sonar analysis programmatically.
  */
 public class ScannerEngineBootstrapper {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineBootstrapper.class);
 
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private static final String SONARCLOUD_REST_API = "https://api.sonarcloud.io";
@@ -90,6 +95,7 @@ public class ScannerEngineBootstrapper {
    * Bootstrap the scanner-engine.
    */
   public ScannerEngineFacade bootstrap() {
+    LOG.atDebug().addArgument(() -> FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory())).log("Scanner max available memory: {}");
     initBootstrapDefaultValues();
     var properties = Map.copyOf(bootstrapProperties);
     var isSonarCloud = isSonarCloud(properties);
