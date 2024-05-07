@@ -41,7 +41,8 @@ class JavaRunnerTest {
     runner.execute(List.of("--version"), "test");
     assertThat(logTester.logs(Level.INFO)).isNotEmpty().allMatch(s -> s.startsWith("[stdout] "));
 
-    runner.execute(List.of("-version"), null);
+    assertThat(runner.execute(List.of("-version"), null)).isTrue();
+
     assertThat(logTester.logs(Level.ERROR)).isNotEmpty().allMatch(s -> s.startsWith("[stderr] "));
   }
 
@@ -55,12 +56,10 @@ class JavaRunnerTest {
   }
 
   @Test
-  void execute_shouldFailWhenBadRunner() {
+  void execute_shouldReturnFalseWhenNonZeroExitCode() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
-    assertThatThrownBy(() -> runner.execute(command, "test"))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessageContaining("Error returned by the Java command execution");
+    assertThat(runner.execute(command, "test")).isFalse();
   }
 
   @Test

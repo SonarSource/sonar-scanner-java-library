@@ -43,10 +43,11 @@ class SimulationScannerEngineFacade extends ScannerEngineFacade {
   }
 
   @Override
-  void doAnalyze(Map<String, String> allProps) {
+  boolean doAnalyze(Map<String, String> allProps) {
     String filePath = allProps.get(InternalProperties.SCANNER_DUMP_TO_FILE);
     writeProperties(filePath, allProps);
     LOG.info("Simulation mode. Configuration written to {}", new File(filePath).getAbsolutePath());
+    return true;
   }
 
   private static void writeProperties(String filePath, Map<String, String> p) {

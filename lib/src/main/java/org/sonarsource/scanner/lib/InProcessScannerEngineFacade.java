@@ -35,8 +35,9 @@ class InProcessScannerEngineFacade extends ScannerEngineFacade {
   }
 
   @Override
-  void doAnalyze(Map<String, String> allProps) {
+  boolean doAnalyze(Map<String, String> allProps) {
     launcherAndCl.getLauncher().execute(allProps, new Slf4jLogOutputAdapter());
+    return true;
   }
 
   @Override
