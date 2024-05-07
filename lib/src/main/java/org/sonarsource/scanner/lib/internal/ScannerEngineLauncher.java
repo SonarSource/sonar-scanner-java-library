@@ -27,14 +27,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 
 public class ScannerEngineLauncher {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncher.class);
 
   private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
