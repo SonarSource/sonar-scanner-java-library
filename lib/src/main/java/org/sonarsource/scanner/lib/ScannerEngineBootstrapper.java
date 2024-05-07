@@ -111,7 +111,7 @@ public class ScannerEngineBootstrapper {
 
     if (isSimulation) {
       return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
-    } else if (isSonarCloud || VersionUtils.isAtLeast(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
+    } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
       var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
       return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {

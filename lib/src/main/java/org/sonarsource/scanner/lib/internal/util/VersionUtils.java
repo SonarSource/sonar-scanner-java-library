@@ -35,10 +35,10 @@ public class VersionUtils {
    * @param targetVersion the target version to compare with
    * @return true if the version is at least the target version
    */
-  public static boolean isAtLeast(@Nullable String version, String targetVersion) {
+  public static boolean isAtLeastIgnoringQualifier(@Nullable String version, String targetVersion) {
     if (StringUtils.isBlank(version) || String.valueOf(version.charAt(0)).matches("\\D")) {
       return false;
     }
-    return Version.parse(version).compareTo(Version.parse(targetVersion)) >= 0;
+    return Version.parse(StringUtils.substringBefore(version, "-")).compareTo(Version.parse(targetVersion)) >= 0;
   }
 }
