@@ -22,15 +22,20 @@ package org.sonarsource.scanner.lib.internal;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 
 public class ScannerEngineLauncher {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncher.class);
 
   private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
@@ -42,7 +47,55 @@ public class ScannerEngineLauncher {
   }
 
   public boolean execute(Map<String, String> properties) {
-    return javaRunner.execute(buildArgs(properties), buildJsonProperties(properties));
+    return javaRunner.execute(buildArgs(properties), buildJsonProperties(properties), ScannerEngineLauncher::tryParse);
+  }
+
+  static void tryParse(String stdout) {
+    try {
+      var log = new Gson().fromJson(stdout, Log.class);
+      StringBuilder sb = new StringBuilder();
+      if (log.message != null) {
+        sb.append(log.message);
+      }
+      if (log.message != null && log.stacktrace != null) {
+        sb.append("\n");
+      }
+      if (log.stacktrace != null) {
+        sb.append(log.stacktrace);
+      }
+      log(log.level, sb.toString());
+    } catch (Exception e) {
+      LOG.info("[stdout] {}", stdout);
+    }
+  }
+
+  private static void log(String level, String msg) {
+    switch (level) {
+      case "ERROR":
+        LOG.error(msg);
+        break;
+      case "WARN":
+        LOG.warn(msg);
+        break;
+      case "DEBUG":
+        LOG.debug(msg);
+        break;
+      case "TRACE":
+        LOG.trace(msg);
+        break;
+      case "INFO":
+      default:
+        LOG.info(msg);
+    }
+  }
+
+  private static class Log {
+    @SerializedName("level")
+    private String level;
+    @SerializedName("message")
+    private String message;
+    @SerializedName("stacktrace")
+    private String stacktrace;
   }
 
   private List<String> buildArgs(Map<String, String> properties) {
