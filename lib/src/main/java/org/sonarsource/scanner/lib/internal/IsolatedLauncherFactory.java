@@ -21,7 +21,10 @@ package org.sonarsource.scanner.lib.internal;
 
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -58,7 +61,10 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncherAndClassloader createLauncher(ClassloadRules rules, ServerConnection serverConnection, FileCache fileCache) {
+  public IsolatedLauncherAndClassloader createLauncher(ServerConnection serverConnection, FileCache fileCache) {
+    Set<String> unmaskRules = new HashSet<>();
+    unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
+    ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
     LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(serverConnection, fileCache).create();
     return createLauncher(legacyScannerEngineDownloader, rules);
   }

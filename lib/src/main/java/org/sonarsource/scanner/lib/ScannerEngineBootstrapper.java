@@ -21,15 +21,11 @@ package org.sonarsource.scanner.lib;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.OsResolver;
@@ -95,9 +91,6 @@ public class ScannerEngineBootstrapper {
    */
   public ScannerEngineFacade bootstrap() {
     initBootstrapDefaultValues();
-    Set<String> unmaskRules = new HashSet<>();
-    unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
-    ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
     var properties = Map.copyOf(bootstrapProperties);
     var isSonarCloud = isSonarCloud(properties);
     var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
@@ -115,7 +108,7 @@ public class ScannerEngineBootstrapper {
       var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
       return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
-      var launcher = launcherFactory.createLauncher(rules, serverConnection, fileCache);
+      var launcher = launcherFactory.createLauncher(serverConnection, fileCache);
       return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
     }
   }

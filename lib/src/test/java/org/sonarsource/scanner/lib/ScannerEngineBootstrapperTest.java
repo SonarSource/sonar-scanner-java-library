@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
-import org.sonarsource.scanner.lib.internal.ClassloadRules;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
@@ -103,7 +102,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_old_bootstrapping_with_sonarqube_10_5() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(any(ClassloadRules.class), eq(serverConnection), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(serverConnection), any(FileCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
@@ -111,7 +110,7 @@ class ScannerEngineBootstrapperTest {
     when(serverConnection.callRestApi("/analysis/version")).thenReturn("10.5");
 
     try (var scannerEngineFacade = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
-      verify(launcherFactory).createLauncher(any(ClassloadRules.class), eq(serverConnection), any(FileCache.class));
+      verify(launcherFactory).createLauncher(eq(serverConnection), any(FileCache.class));
       assertThat(scannerEngineFacade.isSonarCloud()).isFalse();
       assertThat(scannerEngineFacade.getServerVersion()).isEqualTo("10.5");
     }
