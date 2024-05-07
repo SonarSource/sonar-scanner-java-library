@@ -20,6 +20,8 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
+      <!-- provided by the bootstrapper plugin context (Maven, Gradle) -->
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>

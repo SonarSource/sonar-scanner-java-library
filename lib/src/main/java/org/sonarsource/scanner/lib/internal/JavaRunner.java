@@ -52,7 +52,9 @@ public class JavaRunner {
     try {
       List<String> command = new ArrayList<>(args);
       command.add(0, javaExecutable.toString());
-      LOG.atDebug().addArgument(() -> String.join(" ", command)).log("Executing: {}");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Executing: {}", String.join(" ", command));
+      }
       Process process = new ProcessBuilder(command).start();
       if (input != null) {
         try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {

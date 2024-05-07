@@ -95,7 +95,9 @@ public class ScannerEngineBootstrapper {
    * Bootstrap the scanner-engine.
    */
   public ScannerEngineFacade bootstrap() {
-    LOG.atDebug().addArgument(() -> FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory())).log("Scanner max available memory: {}");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Scanner max available memory: {}", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
+    }
     initBootstrapDefaultValues();
     var properties = Map.copyOf(bootstrapProperties);
     var isSonarCloud = isSonarCloud(properties);
