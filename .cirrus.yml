@@ -29,18 +29,19 @@ env:
 # RE-USABLE CONFIGS
 #
 container_definition: &CONTAINER_DEFINITION
-  image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j17-latest
+  image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j18-latest
   cluster_name: ${CIRRUS_CLUSTER_NAME}
   region: eu-central-1
   namespace: default
 
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
-  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == "master")
+  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == $CIRRUS_DEFAULT_BRANCH || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BUILD_SOURCE == 'api' )
 
 #
 # TASKS
 #
 build_task:
+  <<: *ONLY_SONARSOURCE_QA
   eks_container:
     <<: *CONTAINER_DEFINITION
     cpu: 2
@@ -57,6 +58,30 @@ build_task:
     - regular_mvn_build_deploy_analyze
   cleanup_before_cache_script:
     - cleanup_maven_repository
+
+mend_scan_task:
+  depends_on:
+    - build
+  eks_container:
+    <<: *CONTAINER_DEFINITION
+    cpu: 2
+    memory: 2G
+  # run only on master and long-term branches
+  only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_BRANCH == $CIRRUS_DEFAULT_BRANCH || $CIRRUS_BRANCH =~ "branch-.*")
+  env:
+    WS_APIKEY: VAULT[development/kv/data/mend data.apikey]
+  maven_cache:
+    folder: ${CIRRUS_WORKING_DIR}/.m2/repository
+  whitesource_script:
+    - source cirrus-env QA
+    - source set_maven_build_version $BUILD_NUMBER
+    - mvn clean install -DskipTests --batch-mode
+    - source ws_scan.sh
+  cleanup_before_cache_script: cleanup_maven_repository
+  allow_failures: "true"
+  always:
+    ws_artifacts:
+      path: "whitesource/**/*"
 
 qa_task:
   depends_on:
