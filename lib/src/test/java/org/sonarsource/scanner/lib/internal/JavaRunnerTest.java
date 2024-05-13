@@ -41,6 +41,7 @@ class JavaRunnerTest {
   void execute_shouldConsummeProcessStdOut() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
+    // java --version is printing to stdout
     assertThat(runner.execute(List.of("--version"), "test", stdOut::add)).isTrue();
 
     assertThat(stdOut).isNotEmpty();
@@ -51,7 +52,7 @@ class JavaRunnerTest {
   void execute_shouldLogProcessStdError() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
 
-    // For some reason the java process exit with 0 even with an unsupported parameter
+    // java -version is printing to stderr
     assertThat(runner.execute(List.of("-version"), null, stdOut::add)).isTrue();
 
     assertThat(stdOut).isEmpty();
