@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.internal.ArchResolver;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.OsResolver;
@@ -155,7 +156,9 @@ public class ScannerEngineBootstrapper {
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
-    setBootstrapPropertyIfNotAlreadySet(SCANNER_ARCH, system.getProperty("os.arch"));
+    if (!bootstrapProperties.containsKey(SCANNER_ARCH)) {
+      setBootstrapProperty(SCANNER_ARCH, new ArchResolver().getCpuArch());
+    }
   }
 
   private String getSonarCloudUrl() {
