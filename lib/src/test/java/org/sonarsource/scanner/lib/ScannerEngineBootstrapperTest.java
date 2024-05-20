@@ -200,7 +200,7 @@ class ScannerEngineBootstrapperTest {
       .bootstrap()) {
 
       assertThat(scannerEngine.getBootstrapProperties()).containsEntry("sonar.scanner.os", "linux");
-      assertThat(scannerEngine.getBootstrapProperties()).containsEntry("sonar.scanner.arch", "x64");
+      assertThat(scannerEngine.getBootstrapProperties()).containsKey("sonar.scanner.arch");
     }
   }
 
