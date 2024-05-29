@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,10 +119,12 @@ public class ScannerEngineLauncher {
 
   private static String buildJsonProperties(Map<String, String> properties) {
     JsonArray propertiesArray = new JsonArray();
-    properties.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(prop -> {
+    properties.entrySet().stream()
+      .filter(prop -> prop.getKey() != null)
+      .sorted(Map.Entry.comparingByKey()).forEach(prop -> {
       JsonObject property = new JsonObject();
       property.addProperty("key", prop.getKey());
-      property.addProperty("value", prop.getValue());
+      property.addProperty("value", Optional.ofNullable(prop.getValue()).orElse(""));
       propertiesArray.add(property);
     });
     JsonObject jsonObject = new JsonObject();
