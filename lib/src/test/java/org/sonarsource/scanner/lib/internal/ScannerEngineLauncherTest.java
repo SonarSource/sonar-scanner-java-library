@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.lib.internal;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,23 @@ class ScannerEngineLauncherTest {
     verify(javaRunner).execute(
       eq(List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString())),
       eq("{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}"),
+      any());
+  }
+
+  @Test
+  void replace_null_values_by_empty_in_json_and_ignore_null_key() {
+    var scannerEngine = temp.resolve("scanner-engine.jar");
+
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
+
+    Map<String, String> properties = new HashMap<>();
+    properties.put("sonar.myProp", null);
+    properties.put(null, "someValue");
+    launcher.execute(properties);
+
+    verify(javaRunner).execute(
+      eq(List.of("-jar", scannerEngine.toAbsolutePath().toString())),
+      eq("{\"scannerProperties\":[{\"key\":\"sonar.myProp\",\"value\":\"\"}]}"),
       any());
   }
 
