@@ -49,7 +49,11 @@ public class ServerConnection {
   private String restApiBaseUrl;
   private String userAgent;
   @Nullable
-  private String credentials;
+  private String token;
+  @Nullable
+  private String login;
+  @Nullable
+  private String password;
   private OkHttpClient httpClient;
 
   public void init(Map<String, String> bootstrapProperties, Path sonarUserHome) {
@@ -57,11 +61,9 @@ public class ServerConnection {
     restApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.API_BASE_URL));
     userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP),
       bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
-    String token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
-    String login = bootstrapProperties.getOrDefault(ScannerProperties.SONAR_LOGIN, token);
-    if (login != null) {
-      credentials = Credentials.basic(login, bootstrapProperties.getOrDefault(ScannerProperties.SONAR_PASSWORD, ""));
-    }
+    this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
+    this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
+    this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
     httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
   }
 
@@ -158,8 +160,12 @@ public class ServerConnection {
       .get()
       .url(url)
       .addHeader("User-Agent", userAgent);
-    if (authentication && credentials != null) {
-      requestBuilder.header("Authorization", credentials);
+    if (authentication) {
+      if (token != null) {
+        requestBuilder.header("Authorization",  "Bearer " + token);
+      } else if (login != null) {
+        requestBuilder.header("Authorization", Credentials.basic(login, password != null ? password : ""));
+      }
     }
     if (acceptHeader != null) {
       requestBuilder.header("Accept", acceptHeader);

@@ -136,7 +136,7 @@ class ServerConnectionTest {
     assertThat(content).isEqualTo(HELLO_WORLD);
 
     sonarqube.verify(getRequestedFor(anyUrl())
-      .withHeader("Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("some_token:".getBytes(StandardCharsets.UTF_8)))));
+      .withHeader("Authorization", equalTo("Bearer some_token")));
   }
 
   @Test
