@@ -67,7 +67,7 @@ public class ServerConnection {
     httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
   }
 
-  private static String removeTrailingSlash(String url) {
+  public static String removeTrailingSlash(String url) {
     return url.replaceAll("(/)+$", "");
   }
 
