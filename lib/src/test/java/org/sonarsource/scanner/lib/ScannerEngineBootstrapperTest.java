@@ -173,6 +173,19 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
+  void should_set_sonarqube_api_url_and_remove_trailing_slash() throws Exception {
+    try (var scannerEngine = underTest
+      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
+      .setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost/")
+      .bootstrap()) {
+
+      assertThat(scannerEngine.getBootstrapProperties()).contains(
+        entry(ScannerProperties.API_BASE_URL, "http://localhost/api/v2"));
+      assertThat(scannerEngine.isSonarCloud()).isFalse();
+    }
+  }
+
+  @Test
   void should_set_properties() throws Exception {
     try (var scannerEngine = underTest
       .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())

@@ -41,6 +41,7 @@ import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
+import static org.sonarsource.scanner.lib.internal.http.ServerConnection.removeTrailingSlash;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -151,8 +152,8 @@ public class ScannerEngineBootstrapper {
 
   private void initBootstrapDefaultValues() {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
-      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (bootstrapProperties.get(ScannerProperties.HOST_URL) + "/api/v2"));
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, isSonarCloud(bootstrapProperties) ?
+      SONARCLOUD_REST_API : (removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL)) + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
