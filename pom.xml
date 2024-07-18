@@ -55,6 +55,7 @@
     <gitRepositoryName>sonar-scanner-java-library</gitRepositoryName>
     <okhttp.version>4.12.0</okhttp.version>
     <mockito.version>3.12.4</mockito.version>
+    <byte-buddy.version>1.14.18</byte-buddy.version>
   </properties>
 
   <dependencyManagement>
@@ -128,6 +129,18 @@
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.16.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>${byte-buddy.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-agent</artifactId>
+        <version>${byte-buddy.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
