@@ -145,7 +145,9 @@ public class ScannerEngineBootstrapper {
       try {
         return serverConnection.callWebApi("/api/server/version");
       } catch (Exception e2) {
-        throw new IllegalStateException("Failed to get server version", e);
+        var ex = new IllegalStateException("Failed to get server version", e2);
+        ex.addSuppressed(e);
+        throw ex;
       }
     }
   }

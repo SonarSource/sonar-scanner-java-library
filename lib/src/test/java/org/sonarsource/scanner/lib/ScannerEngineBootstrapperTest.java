@@ -37,6 +37,7 @@ import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -107,13 +108,34 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
       launcherFactory, scannerEngineLauncherFactory);
-    when(serverConnection.callRestApi("/analysis/version")).thenReturn("10.5");
+    when(serverConnection.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
+    when(serverConnection.callWebApi("/api/server/version")).thenReturn("10.5");
 
     try (var scannerEngineFacade = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       verify(launcherFactory).createLauncher(eq(serverConnection), any(FileCache.class));
       assertThat(scannerEngineFacade.isSonarCloud()).isFalse();
       assertThat(scannerEngineFacade.getServerVersion()).isEqualTo("10.5");
     }
+  }
+
+  @Test
+  void should_preserve_both_exceptions_when_checking_version() throws Exception {
+    IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
+    when(launcherFactory.createLauncher(eq(serverConnection), any(FileCache.class)))
+      .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
+
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
+      launcherFactory, scannerEngineLauncherFactory);
+    when(serverConnection.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
+    when(serverConnection.callWebApi("/api/server/version")).thenThrow(new IOException("400 Server Error"));
+
+    assertThatThrownBy(() -> {
+      try (var ignored = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
+        // Should throw
+      }
+    })
+      .hasMessage("Failed to get server version")
+      .hasStackTraceContaining("400 Server Error", "404 Not found");
   }
 
   @Test
