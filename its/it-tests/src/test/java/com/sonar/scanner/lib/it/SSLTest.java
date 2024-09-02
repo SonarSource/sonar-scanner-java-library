@@ -23,6 +23,9 @@ import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.junit4.OrchestratorRule;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.lib.it.tools.SimpleScanner;
+import com.tngtech.java.junit.dataprovider.DataProvider;
+import com.tngtech.java.junit.dataprovider.DataProviderRunner;
+import com.tngtech.java.junit.dataprovider.UseDataProvider;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,17 +50,22 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(DataProviderRunner.class)
 public class SSLTest {
 
   // This keystore contains only the CA used to sign the server certificate
-  private static final String KEYSTORE_CLIENT_WITH_CA = "/SSLTest/client-with-ca.p12";
+  private static final String KEYSTORE_CLIENT_WITH_CA_KEYTOOL = "/SSLTest/client-with-ca-keytool.p12";
+  private static final String KEYSTORE_CLIENT_WITH_CA_OPENSSL = "/SSLTest/client-with-ca-openssl.p12";
   private static final String CLIENT_WITH_CA_KEYSTORE_PASSWORD = "pwdClientCAP12";
 
   // This keystore contains only the server certificate
-  private static final String KEYSTORE_CLIENT_WITH_CERTIFICATE = "/SSLTest/client-with-certificate.p12";
+  private static final String KEYSTORE_CLIENT_WITH_CERTIFICATE_KEYTOOL = "/SSLTest/client-with-certificate-keytool.p12";
+  private static final String KEYSTORE_CLIENT_WITH_CERTIFICATE_OPENSSL = "/SSLTest/client-with-certificate-openssl.p12";
+  private static final String KEYSTORE_CLIENT_WITH_CERTIFICATE_OPENSSL_JDKTRUST = "/SSLTest/client-with-certificate-openssl-jdktrust.p12";
   private static final String CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD = "pwdClientP12";
 
   private static final String SERVER_KEYSTORE = "/SSLTest/server.p12";
@@ -171,7 +179,7 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
-    Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA).toURI()).toAbsolutePath();
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
     Path clientKeystore = Paths.get(SSLTest.class.getResource(CLIENT_KEYSTORE).toURI()).toAbsolutePath();
     assertThat(clientKeystore).exists();
@@ -197,7 +205,7 @@ public class SSLTest {
     assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
 
-    Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA).toURI()).toAbsolutePath();
+    Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
     Path clientKeystore = Paths.get(SSLTest.class.getResource(CLIENT_KEYSTORE).toURI()).toAbsolutePath();
     assertThat(clientKeystore).exists();
@@ -227,16 +235,8 @@ public class SSLTest {
   }
 
   @Test
-  public void simple_analysis_with_server_certificate_using_ca_in_truststore() throws Exception {
-    simple_analysis_with_server_certificate(KEYSTORE_CLIENT_WITH_CA, CLIENT_WITH_CA_KEYSTORE_PASSWORD);
-  }
-
-  @Test
-  public void simple_analysis_with_server_certificate_using_server_certificate_in_truststore() throws Exception {
-    simple_analysis_with_server_certificate(KEYSTORE_CLIENT_WITH_CERTIFICATE, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD);
-  }
-
-  private void simple_analysis_with_server_certificate(String clientTrustStore, String keyStorePassword) throws Exception {
+  @UseDataProvider("variousClientTrustStores")
+  public void simple_analysis_with_server_certificate(String clientTrustStore, String keyStorePassword, boolean useJavaSslProperties) throws Exception {
     startSSLTransparentReverseProxy(false);
     SimpleScanner scanner = new SimpleScanner();
 
@@ -248,10 +248,28 @@ public class SSLTest {
     assertThat(clientTruststore).exists();
 
     Map<String, String> params = new HashMap<>();
-    params.put("javax.net.ssl.trustStore", clientTruststore.toString());
-    params.put("javax.net.ssl.trustStorePassword", keyStorePassword);
+    if (useJavaSslProperties) {
+      params.put("javax.net.ssl.trustStore", clientTruststore.toString());
+      params.put("javax.net.ssl.trustStorePassword", keyStorePassword);
+    } else {
+      params.put("sonar.scanner.truststorePath", clientTruststore.toString());
+      params.put("sonar.scanner.truststorePassword", keyStorePassword);
+    }
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
+    System.out.println(buildResult.getLogs());
     assertThat(buildResult.getLastStatus()).isZero();
+  }
+
+  @DataProvider()
+  public static Object[][] variousClientTrustStores() {
+    return new Object[][] {
+      {KEYSTORE_CLIENT_WITH_CA_KEYTOOL, CLIENT_WITH_CA_KEYSTORE_PASSWORD, true},
+      {KEYSTORE_CLIENT_WITH_CA_OPENSSL, CLIENT_WITH_CA_KEYSTORE_PASSWORD, false},
+      {KEYSTORE_CLIENT_WITH_CERTIFICATE_KEYTOOL, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD, true},
+      {KEYSTORE_CLIENT_WITH_CERTIFICATE_OPENSSL, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD, false},
+      {KEYSTORE_CLIENT_WITH_CERTIFICATE_OPENSSL_JDKTRUST, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD, false},
+      {KEYSTORE_CLIENT_WITH_CERTIFICATE_OPENSSL_JDKTRUST, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD, true}
+    };
   }
 }

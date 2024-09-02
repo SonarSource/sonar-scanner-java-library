@@ -286,14 +286,14 @@ The `server.p12` file can now be used to start a TLS server.
 
 #### Now let's a client to connect to our TLS server
 
-Since we've created a self signed certificate. The client must either have our certificate (without the private key) or must have the CA certificate.
+Since we've created a self-signed certificate. The client must either have our certificate (without the private key) or must have the CA certificate.
 
-##### Let's create a JKS with the server certificate
+##### Let's create a PKCS12 keystore with the server certificate
 
-This one is more easier :
+Keytool is adding extra fields to the keystore, that are not supported by older versions of openssl. Waiting for openssl 3.3.0+ and the possibility to use the `-jdktrust anyExtendedKeyUsage` option, we have to use keytool to create the keystore.
 
 ```bash
-$ keytool -import -alias localhost -keystore client-with-certificate.p12 -file server.pem 
+$ keytool -import -storetype PKCS12 -alias localhost -keystore client-with-certificate-keytool.p12 -file server.pem 
   Enter keystore password: pwdClientP12 
   Re-enter new password: pwdClientP12
   Owner: CN=localhost, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
@@ -314,10 +314,23 @@ $ keytool -import -alias localhost -keystore client-with-certificate.p12 -file s
 The password is `pwdClientP12` and you have to `Trust this certificate`.
 This PKCS12 file must be used in a TrustedKeyStore.
 
-##### Let's create a JKS with CA certificate
+At the moment, Java can only support openssl truststore if using the new property `-jdktrust`
+```bash
+$ openssl version
+OpenSSL 3.3.1 4 Jun 2024 (Library: OpenSSL 3.3.1 4 Jun 2024)
+$ openssl pkcs12 -export -caname localhost -nokeys -in server.pem -out client-with-certificate-openssl-jdktrust.p12 --passout pass:pwdClientP12 -jdktrust anyExtendedKeyUsage
+```
+
+Thanks to bouncycastle addition, we can now accept openssl generated PKCS12 keystore out-of-the-box.
 
 ```bash
-$ keytool -import -trustcacerts -alias localhost -keystore client-with-ca.p12 -file ca.crt
+$ openssl pkcs12 -export -caname localhost -nokeys -in server.pem -out client-with-certificate-openssl.p12 --passout pass:pwdClientP12
+```
+
+##### Let's also create a PKCS12 keystore with only the CA certificate
+
+```bash
+$ keytool -import -storetype PKCS12 -trustcacerts -alias localhost -keystore client-with-ca-keytool.p12 -file ca.crt
   Enter keystore password: pwdClientCAP12 
   Re-enter new password: pwdClientCAP12
   Owner: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
@@ -363,6 +376,12 @@ $ keytool -import -trustcacerts -alias localhost -keystore client-with-ca.p12 -f
 The password is `pwdClientCAP12` and you have to `Trust this certificate`.
 This PKCS12 file must be used in a TrustedKeyStore.
 
+Thanks to bouncycastle addition, we can now accept openssl generated PKCS12 keystore out-of-the-box:
+
+```bash
+$ openssl pkcs12 -export -caname localhost -nokeys -in ca.crt -out client-with-ca-openssl.p12 --passout pass:pwdClientCAP12
+```
+
 ### Create a certificate that will be used to authenticate a user
 
 The principle is the same we'll have a CA authority signing certificates that will be send by the user to the server.
@@ -401,7 +420,7 @@ subject=C = CH, ST = Geneva, L = Geneva, O = SonarSource SA, CN = Julien Henry
 Getting CA Private Key
 ```
 
-Let's create the pkcs12 certificate containing the client certificate
+Let's create the pkcs12 keystore containing the client certificate
 
 ```bash
 $ openssl pkcs12 -export -in client.pem -inkey client.key -name julienhenry -out client.p12
@@ -413,7 +432,7 @@ This will go to client keyStore.
 Now we'll generate the `server-with-client-ca.p12` file that will have the CA certificate. Since we don't need to add the key of the certificate (only required to sign, not to verify), we can import it directly with keytool.
 
 ```bash
-$ keytool -import -trustcacerts -alias client-ca -keystore server-with-client-ca.p12 -file ca-client-auth.crt
+$ keytool -import -storetype PKCS12 -trustcacerts -alias client-ca -keystore server-with-client-ca.p12 -file ca-client-auth.crt
 Enter keystore password: pwdServerWithClientCA 
 Re-enter new password: pwdServerWithClientCA
 Owner: CN=SonarSource, O=SonarSource SA, L=Geneva, ST=Geneva, C=CH
