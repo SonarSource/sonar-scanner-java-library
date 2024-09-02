@@ -26,11 +26,14 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.Security;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import nl.altindag.ssl.SSLFactory;
+import nl.altindag.ssl.util.KeyStoreUtils;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.JavaNetCookieJar;
@@ -40,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
+import org.sonarsource.scanner.lib.internal.http.ssl.SonarBouncyCastlePKCS12Provider;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
 import static java.lang.Integer.parseInt;
@@ -176,13 +180,19 @@ public class OkHttpClientFactory {
     if (System.getProperties().containsKey("javax.net.ssl.keyStore")) {
       sslFactoryBuilder.withSystemPropertyDerivedIdentityMaterial();
     }
-    var keyStore = sslConfig.getKeyStore();
-    if (keyStore != null && Files.exists(keyStore.getPath())) {
-      sslFactoryBuilder.withIdentityMaterial(keyStore.getPath(), keyStore.getKeyStorePassword().toCharArray(), keyStore.getKeyStoreType());
+    var keyStoreConfig = sslConfig.getKeyStore();
+    if (keyStoreConfig != null && Files.exists(keyStoreConfig.getPath())) {
+      sslFactoryBuilder.withIdentityMaterial(keyStoreConfig.getPath(), keyStoreConfig.getKeyStorePassword().toCharArray(), keyStoreConfig.getKeyStoreType());
     }
-    var trustStore = sslConfig.getTrustStore();
-    if (trustStore != null && Files.exists(trustStore.getPath())) {
-      sslFactoryBuilder.withTrustMaterial(trustStore.getPath(), trustStore.getKeyStorePassword().toCharArray(), trustStore.getKeyStoreType());
+    var trustStoreConfig = sslConfig.getTrustStore();
+    if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
+      Security.addProvider(new SonarBouncyCastlePKCS12Provider());
+      KeyStore trustStore = KeyStoreUtils.loadKeyStore(
+        trustStoreConfig.getPath(),
+        trustStoreConfig.getKeyStorePassword().toCharArray(),
+        trustStoreConfig.getKeyStoreType(),
+        SonarBouncyCastlePKCS12Provider.NAME);
+      sslFactoryBuilder.withTrustMaterial(trustStore);
     }
     return sslFactoryBuilder.build();
   }

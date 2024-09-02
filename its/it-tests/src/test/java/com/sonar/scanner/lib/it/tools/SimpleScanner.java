@@ -39,11 +39,11 @@ public class SimpleScanner {
 
   public SimpleScanner() {
     if (!Files.exists(JAR_PATH)) {
-      throw new IllegalStateException("Could not find simple-scanner artifact in " + JAR_PATH.toString());
+      throw new IllegalStateException("Could not find simple-scanner artifact in " + JAR_PATH);
     }
     javaBin = Paths.get(System.getProperty("java.home"), "bin", "java");
     if (!Files.exists(javaBin)) {
-      throw new IllegalStateException("Could not find java in " + javaBin.toString());
+      throw new IllegalStateException("Could not find java in " + javaBin);
     }
 
     exec = new CommandExecutor(javaBin);
@@ -75,7 +75,7 @@ public class SimpleScanner {
     analysisProperties.load(Files.newInputStream(propertiesFile));
     analysisProperties.setProperty("sonar.projectBaseDir", baseDir.toAbsolutePath().toString());
     analysisProperties.setProperty("sonar.host.url", host);
-    analysisProperties.setProperty("sonar.login", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+    analysisProperties.setProperty("sonar.token", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
     analysisProperties.putAll(extraProps);
     return (Map) analysisProperties;
   }
