@@ -19,29 +19,29 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import org.junit.Test;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assert.fail;
+import org.junit.jupiter.api.Test;
 
-public class JarExtractorTest {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class JarExtractorTest {
+
+  private final JarExtractor underTest = new JarExtractor();
+
   @Test
-  public void test_extract() throws Exception {
-    Path jarFile = new JarExtractor().extractToTemp("fake");
+  void test_extract() throws Exception {
+    Path jarFile = underTest.extractToTemp("fake");
     assertThat(jarFile).exists();
-    assertThat(new String(Files.readAllBytes(jarFile), StandardCharsets.UTF_8)).isEqualTo("Fake jar for unit tests");
+    assertThat(Files.readString(jarFile)).isEqualTo("Fake jar for unit tests");
     assertThat(jarFile.toUri().toURL().toString()).doesNotContain("jar:file");
   }
 
   @Test
-  public void should_fail_to_extract() throws Exception {
-    try {
-      new JarExtractor().extractToTemp("unknown");
-      fail();
-    } catch (IllegalStateException e) {
-      assertThat(e).hasMessage("Fail to extract unknown.jar");
-    }
+  void should_fail_to_extract() {
+    assertThatThrownBy(() -> underTest.extractToTemp("unknown"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to extract unknown.jar");
   }
 }

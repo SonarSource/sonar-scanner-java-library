@@ -22,48 +22,51 @@ package org.sonarsource.scanner.lib.internal;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.Callable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class IsolatedLauncherProxyTest {
+class IsolatedLauncherProxyTest {
   private ClassLoader cl = null;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     cl = new URLClassLoader(new URL[0], Thread.currentThread().getContextClassLoader());
   }
 
   @Test
-  public void delegate_proxied() {
+  void delegate_proxied() {
     String str = "test";
     CharSequence s = IsolatedLauncherProxy.create(cl, str, CharSequence.class);
     assertThat(s).isEqualTo(str);
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void exceptions_unwrapped() throws ReflectiveOperationException {
+  @Test
+  void exceptions_unwrapped() throws ReflectiveOperationException {
     Runnable r = IsolatedLauncherProxy.create(cl, Runnable.class, ExceptionThrower.class.getName());
-    r.run();
+
+    assertThatThrownBy(r::run)
+      .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
-  public void create_proxied() throws Exception {
+  void create_proxied() throws Exception {
     Callable<?> c = IsolatedLauncherProxy.create(cl, Callable.class, SimpleClass.class.getName());
     assertThat(c.getClass().getClassLoader()).isEqualTo(cl);
     assertThat(c.getClass().getClassLoader()).isNotEqualTo(Thread.currentThread().getContextClassLoader());
     assertThat(c.call()).isEqualTo(URLClassLoader.class.getSimpleName());
   }
 
-  public static class ExceptionThrower implements Runnable {
+  static class ExceptionThrower implements Runnable {
     @Override
     public void run() {
       throw new IllegalStateException("message");
     }
   }
 
-  public static class SimpleClass implements Callable<String> {
+  static class SimpleClass implements Callable<String> {
     @Override
     public String call() throws Exception {
       return Thread.currentThread().getContextClassLoader().getClass().getSimpleName();

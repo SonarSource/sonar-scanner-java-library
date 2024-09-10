@@ -57,7 +57,6 @@ import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThrows;
 
 class OkHttpClientFactoryTest {
 
@@ -155,9 +154,9 @@ class OkHttpClientFactoryTest {
           .withFixedDelay(2000)
           .withBody("Success")));
 
-      var thrown = assertThrows(IOException.class, () -> call(sonarqubeMock.url("/batch/index")));
-
-      assertThat(thrown).hasStackTraceContaining("timeout");
+      assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
+        .isInstanceOf(IOException.class)
+        .hasStackTraceContaining("timeout");
     }
 
     @Test
@@ -170,9 +169,9 @@ class OkHttpClientFactoryTest {
           .withChunkedDribbleDelay(2, 2000)
           .withBody("Success")));
 
-      var thrown = assertThrows(IOException.class, () -> call(sonarqubeMock.url("/batch/index")));
-
-      assertThat(thrown).hasStackTraceContaining("timeout");
+      assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
+        .isInstanceOf(IOException.class)
+        .hasStackTraceContaining("timeout");
     }
 
     @Test
@@ -181,7 +180,9 @@ class OkHttpClientFactoryTest {
       bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
       bootstrapProperties.put("sonar.scanner.proxyPort", "not_a_number");
 
-      assertThrows(IllegalArgumentException.class, () -> OkHttpClientFactory.create(bootstrapProperties, sonarUserHome));
+      assertThatThrownBy(() -> OkHttpClientFactory.create(bootstrapProperties, sonarUserHome))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("sonar.scanner.proxyPort is not a valid integer: not_a_number");
     }
 
     @Nested
@@ -307,9 +308,9 @@ class OkHttpClientFactoryTest {
     void it_should_not_trust_server_self_signed_certificate_by_default() {
       bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
 
-      var thrown = assertThrows(SSLHandshakeException.class, () -> call(sonarqubeMock.url("/batch/index")));
-
-      assertThat(thrown).hasStackTraceContaining("CertificateException");
+      assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
+        .isInstanceOf(SSLHandshakeException.class)
+        .hasStackTraceContaining("CertificateException");
     }
 
     @Test
@@ -356,12 +357,12 @@ class OkHttpClientFactoryTest {
       bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
       bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdClientWithServerCA");
 
-      var thrown = assertThrows(Exception.class, () -> call(sonarqubeMock.url("/batch/index")));
-
-      assertThat(thrown).satisfiesAnyOf(
-        e -> assertThat(e).hasStackTraceContaining("SSLHandshakeException"),
-        // Exception is flaky because of https://bugs.openjdk.org/browse/JDK-8172163
-        e -> assertThat(e).hasStackTraceContaining("Broken pipe"));
+      assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
+        .isInstanceOf(Exception.class)
+        .satisfiesAnyOf(
+          e -> assertThat(e).hasStackTraceContaining("SSLHandshakeException"),
+          // Exception is flaky because of https://bugs.openjdk.org/browse/JDK-8172163
+          e -> assertThat(e).hasStackTraceContaining("Broken pipe"));
     }
 
     @Test

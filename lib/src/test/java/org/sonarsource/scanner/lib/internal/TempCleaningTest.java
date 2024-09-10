@@ -23,26 +23,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TempCleaningTest {
-
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+class TempCleaningTest {
 
   @Test
-  public void should_clean_jvm_tmp_dir() {
+  void should_clean_jvm_tmp_dir() {
     TempCleaning cleaning = new TempCleaning();
     assertThat(cleaning.tempDir).isDirectory().exists();
   }
 
   @Test
-  public void should_clean() throws Exception {
-    Path dir = temp.newFolder().toPath();
+  void should_clean(@TempDir Path dir) throws Exception {
     Path oldBatch = dir.resolve("sonar-scanner-java-library-batch656.jar");
     Files.write(oldBatch, "foo".getBytes(StandardCharsets.UTF_8));
     FileTime fTime = FileTime.fromMillis(System.currentTimeMillis() - 3 * TempCleaning.ONE_DAY_IN_MILLISECONDS);
