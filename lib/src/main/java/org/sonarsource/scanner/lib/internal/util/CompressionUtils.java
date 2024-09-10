@@ -85,7 +85,7 @@ public final class CompressionUtils {
         if (filter.test(entry)) {
           var target = toDir.resolve(entry.getName());
 
-          verifyInsideTargetDirectory(entry, target, targetDirNormalizedPath);
+          verifyInsideTargetDirectory(entry.getName(), target, targetDirNormalizedPath);
 
           if (entry.isDirectory()) {
             throwExceptionIfDirectoryIsNotCreatable(target);
@@ -100,10 +100,10 @@ public final class CompressionUtils {
     }
   }
 
-  private static void verifyInsideTargetDirectory(ZipEntry entry, Path entryPath, Path targetDirNormalizedPath) {
+  private static void verifyInsideTargetDirectory(String entryName, Path entryPath, Path targetDirNormalizedPath) {
     if (!entryPath.normalize().startsWith(targetDirNormalizedPath)) {
       // vulnerability - trying to create a file outside the target directory
-      throw new IllegalStateException("Unzipping an entry outside the target directory is not allowed: " + entry.getName());
+      throw new IllegalStateException("Extracting an entry outside the target directory is not allowed: " + entryName);
     }
   }
 
@@ -123,6 +123,7 @@ public final class CompressionUtils {
   }
 
   public static void extractTarGz(Path compressedFile, Path targetDir) throws IOException {
+    Path targetDirNormalizedPath = targetDir.normalize();
     try (InputStream fis = Files.newInputStream(compressedFile);
       InputStream bis = new BufferedInputStream(fis);
       InputStream gzis = new GzipCompressorInputStream(bis);
@@ -132,18 +133,21 @@ public final class CompressionUtils {
         if (!tarArchiveInputStream.canReadEntryData(targzEntry)) {
           continue;
         }
-        var entry = targetDir.resolve(targzEntry.getName());
+        var target = targetDir.resolve(targzEntry.getName());
+
+        verifyInsideTargetDirectory(targzEntry.getName(), target, targetDirNormalizedPath);
+
         if (targzEntry.isDirectory()) {
-          Files.createDirectories(entry);
+          Files.createDirectories(target);
         } else {
-          if (!Files.isDirectory(entry.getParent())) {
-            Files.createDirectories(entry.getParent());
+          if (!Files.isDirectory(target.getParent())) {
+            Files.createDirectories(target.getParent());
           }
-          Files.copy(tarArchiveInputStream, entry, StandardCopyOption.REPLACE_EXISTING);
+          Files.copy(tarArchiveInputStream, target, StandardCopyOption.REPLACE_EXISTING);
           int mode = targzEntry.getMode();
           if (mode != 0 && !IS_OS_WINDOWS) {
             Set<PosixFilePermission> permissions = fromFileMode(mode);
-            Files.setPosixFilePermissions(entry, permissions);
+            Files.setPosixFilePermissions(target, permissions);
           }
         }
       }

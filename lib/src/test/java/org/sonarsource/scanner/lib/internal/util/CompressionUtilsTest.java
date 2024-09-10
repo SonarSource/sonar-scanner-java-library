@@ -67,7 +67,7 @@ class CompressionUtilsTest {
 
     assertThatThrownBy(() -> CompressionUtils.unzip(zip, toDir))
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Unzipping an entry outside the target directory is not allowed: ../../../../../../../../../../../../../../../../" +
+      .hasMessage("Extracting an entry outside the target directory is not allowed: ../../../../../../../../../../../../../../../../" +
         "../../../../../../../../../../../../../../../../../../../../../../../../tmp/evil.txt");
   }
 
@@ -77,6 +77,19 @@ class CompressionUtilsTest {
     var toDir = temp.resolve("dir");
     CompressionUtils.extractTarGz(tar, toDir);
     assertThat(toDir.toFile().list()).hasSize(3);
+  }
+
+  @Test
+  void fail_if_extracting_targz_file_outside_target_directory() {
+    var targz = Paths.get("src/test/resources/slip.tar.gz");
+    var toDir = temp.resolve("dir");
+
+    assertThatThrownBy(() -> CompressionUtils.extractTarGz(targz, toDir))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Extracting an entry outside the target directory is not allowed: ../../../../../../../../../../../../../../../../../"
+        + "../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../"
+        + "../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../../"
+        + "../tmp/slipped.txt");
   }
 
   @Test
