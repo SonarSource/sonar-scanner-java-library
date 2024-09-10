@@ -22,21 +22,17 @@ package org.sonarsource.scanner.lib;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DirsTest {
+class DirsTest {
 
   private final Map<String, String> p = new HashMap<>();
 
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
-
   @Test
-  public void should_init_default_project_dirs() throws Exception {
+  void should_init_default_project_dirs() throws Exception {
     new Dirs().init(p);
 
     File projectDir = new File(p.get(AnalysisProperties.PROJECT_BASEDIR));
@@ -50,8 +46,7 @@ public class DirsTest {
   }
 
   @Test
-  public void should_set_relative_path_to_project_work_dir() throws Exception {
-    File initialProjectDir = temp.getRoot();
+  void should_set_relative_path_to_project_work_dir(@TempDir File initialProjectDir) throws Exception {
     p.put(ScannerProperties.WORK_DIR, "relative/path");
     p.put(AnalysisProperties.PROJECT_BASEDIR, initialProjectDir.getAbsolutePath());
     new Dirs().init(p);

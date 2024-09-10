@@ -20,36 +20,31 @@
 package org.sonarsource.scanner.lib.internal.cache;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class FileHashesTest {
+class FileHashesTest {
+  private final SecureRandom secureRandom = new SecureRandom();
 
-  SecureRandom secureRandom = new SecureRandom();
+  private final FileHashes underTest = new FileHashes();
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
 
   @Test
-  public void test_md5_hash() throws IOException {
+  void test_md5_hash() throws IOException {
     assertThat(hash("sonar", "MD5")).isEqualTo("d85e336d61f5344395c42126fac239bc");
 
     // compare results with commons-codec
@@ -61,7 +56,7 @@ public class FileHashesTest {
   }
 
   @Test
-  public void test_sha256_hash() throws IOException {
+  void test_sha256_hash() throws IOException {
     assertThat(hash("sonar", "SHA-256")).isEqualTo("48ce1a75f18924f02f7d555a0c30d5c2f5f09eba641a555555d355a477bb9ae6");
 
     // compare results with commons-codec
@@ -73,7 +68,7 @@ public class FileHashesTest {
   }
 
   @Test
-  public void test_toHex() {
+  void test_toHex() {
     // lower-case
     assertThat(FileHashes.toHex("aloa_bi_bop_a_loula".getBytes())).isEqualTo("616c6f615f62695f626f705f615f6c6f756c61");
 
@@ -86,24 +81,22 @@ public class FileHashesTest {
   }
 
   @Test
-  public void fail_if_file_does_not_exist() throws IOException {
-    File file = temp.newFile("does_not_exist");
-    file.delete();
+  void fail_if_file_does_not_exist(@TempDir Path tmpDir) {
+    var doesNotExist = tmpDir.resolve("does_not_exist").toFile();
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to compute hash of: " + file.getAbsolutePath());
-
-    new FileHashes().of(file, "MD5");
+    assertThatThrownBy(() -> underTest.of(doesNotExist, "MD5"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to compute hash of: " + doesNotExist);
   }
 
   @Test
-  public void fail_if_stream_is_closed() throws Exception {
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to compute hash");
-
+  void fail_if_stream_is_closed() throws Exception {
     InputStream input = mock(InputStream.class);
     when(input.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new IllegalThreadStateException());
-    new FileHashes().of(input, "MD5");
+
+    assertThatThrownBy(() -> underTest.of(input, "MD5"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to compute hash");
   }
 
   private String randomString() {
@@ -112,7 +105,7 @@ public class FileHashesTest {
 
   private String hash(String s, String hashAlgorithm) throws IOException {
     try (InputStream in = new ByteArrayInputStream(s.getBytes())) {
-      return new FileHashes().of(in, hashAlgorithm);
+      return underTest.of(in, hashAlgorithm);
     }
   }
 }

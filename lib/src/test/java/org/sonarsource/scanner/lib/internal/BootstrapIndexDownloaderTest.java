@@ -22,34 +22,30 @@ package org.sonarsource.scanner.lib.internal;
 import java.io.IOException;
 import java.util.Collection;
 import org.assertj.core.groups.Tuple;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class BootstrapIndexDownloaderTest {
+class BootstrapIndexDownloaderTest {
   private ServerConnection connection;
   private BootstrapIndexDownloader bootstrapIndexDownloader;
 
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     connection = mock(ServerConnection.class);
     bootstrapIndexDownloader = new BootstrapIndexDownloader(connection);
   }
 
   @Test
-  public void should_download_jar_files() throws Exception {
+  void should_download_jar_files() throws Exception {
     // index of the files to download
     when(connection.callWebApi("/batch/index")).thenReturn(
       "cpd.jar|CA124VADFSDS\n" +
@@ -63,17 +59,16 @@ public class BootstrapIndexDownloaderTest {
   }
 
   @Test
-  public void test_invalid_index() throws Exception {
+  void test_invalid_index() throws Exception {
     when(connection.callWebApi("/batch/index")).thenReturn("cpd.jar\n");
 
-    exception.expect(IllegalStateException.class);
-    exception.expectMessage("Fail to parse entry in bootstrap index: cpd.jar");
-
-    bootstrapIndexDownloader.getIndex();
+    assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to parse entry in bootstrap index: cpd.jar");
   }
 
   @Test
-  public void test_handles_empty_line_gracefully() throws Exception {
+  void test_handles_empty_line_gracefully() throws Exception {
     when(connection.callWebApi("/batch/index")).thenReturn("\n");
 
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
@@ -81,19 +76,21 @@ public class BootstrapIndexDownloaderTest {
     verify(connection, times(1)).callWebApi("/batch/index");
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void test_handles_empty_string_with_exception() throws Exception {
+  @Test
+  void test_handles_empty_string_with_exception() throws Exception {
     when(connection.callWebApi("/batch/index")).thenReturn("");
 
-    bootstrapIndexDownloader.getIndex();
+    assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to parse entry in bootstrap index: ");
   }
 
   @Test
-  public void should_fail() throws IOException {
+  void should_fail() throws IOException {
     when(connection.callWebApi("/batch/index")).thenThrow(new IOException("io error"));
 
-    exception.expect(IllegalStateException.class);
-    exception.expectMessage("Fail to get bootstrap index from server");
-    bootstrapIndexDownloader.getIndex();
+    assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Fail to get bootstrap index from server");
   }
 }

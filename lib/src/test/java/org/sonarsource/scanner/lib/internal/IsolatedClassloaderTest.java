@@ -50,16 +50,16 @@ class IsolatedClassloaderTest {
     // JUnit is available in the parent classloader (classpath used to execute this test) but not in the core JVM
     assertThat(classLoader.loadClass("java.lang.String", false)).isNotNull();
 
-    assertThatThrownBy(() -> classLoader.loadClass("org.junit.Test", false)).isInstanceOf(ClassNotFoundException.class).hasMessageContaining("org.junit.Test");
+    assertThatThrownBy(() -> classLoader.loadClass("org.junit.jupiter.api.Test", false)).isInstanceOf(ClassNotFoundException.class).hasMessageContaining("org.junit.jupiter.api.Test");
     classLoader.close();
   }
 
   @Test
   void should_use_parent_to_load() throws ClassNotFoundException {
     ClassloadRules rules = mock(ClassloadRules.class);
-    when(rules.canLoad("org.junit.Test")).thenReturn(true);
+    when(rules.canLoad("org.junit.jupiter.api.Test")).thenReturn(true);
     classLoader = new IsolatedClassloader(getClass().getClassLoader(), rules);
-    assertThat(classLoader.loadClass("org.junit.Test", false)).isNotNull();
+    assertThat(classLoader.loadClass("org.junit.jupiter.api.Test", false)).isNotNull();
   }
 
   @Test

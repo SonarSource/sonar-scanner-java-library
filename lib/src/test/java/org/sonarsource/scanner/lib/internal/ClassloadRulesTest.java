@@ -19,27 +19,26 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
-import org.junit.Before;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class ClassloadRulesTest {
+class ClassloadRulesTest {
   private ClassloadRules rules;
   private Set<String> maskRules;
   private Set<String> unmaskRules;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     maskRules = new HashSet<>();
     unmaskRules = new HashSet<>();
   }
 
   @Test
-  public void testUnmask() {
+  void testUnmask() {
     unmaskRules.add("org.apache.ant.");
     rules = new ClassloadRules(maskRules, unmaskRules);
 
@@ -50,12 +49,12 @@ public class ClassloadRulesTest {
     assertThat(rules.canLoad("org.apache.ant.Foo")).isTrue();
     assertThat(rules.canLoad("org.apache.ant.project.Project")).isTrue();
   }
-  
+
   @Test
-  public void testUnmaskAll() {
+  void testUnmaskAll() {
     unmaskRules.add("");
     rules = new ClassloadRules(maskRules, unmaskRules);
-    
+
     assertThat(rules.canLoad("org.sonar.runner.Foo")).isTrue();
     assertThat(rules.canLoad("org.objectweb.asm.ClassVisitor")).isTrue();
     assertThat(rules.canLoad("org.apache")).isTrue();
@@ -65,13 +64,13 @@ public class ClassloadRulesTest {
   }
 
   @Test
-  public void testDefault() {
+  void testDefault() {
     rules = new ClassloadRules(maskRules, unmaskRules);
     assertThat(rules.canLoad("org.sonar.runner.Foo")).isFalse();
   }
 
   @Test
-  public void testMaskAndUnmask() throws ClassNotFoundException {
+  void testMaskAndUnmask() {
     unmaskRules.add("org.apache.ant.");
     maskRules.add("org.apache.ant.foo.");
     rules = new ClassloadRules(maskRules, unmaskRules);
@@ -80,27 +79,27 @@ public class ClassloadRulesTest {
     assertThat(rules.canLoad("org.apache.ant.foo.something")).isFalse();
     assertThat(rules.canLoad("org.apache")).isFalse();
   }
-  
+
   @Test
-  public void testUsedByMaven() {
-    maskRules.add( "org.slf4j.LoggerFactory" );
+  void testUsedByMaven() {
+    maskRules.add("org.slf4j.LoggerFactory");
     // Include slf4j Logger that is exposed by some Sonar components
-    unmaskRules.add( "org.slf4j.Logger" );
-    unmaskRules.add( "org.slf4j.ILoggerFactory" );
+    unmaskRules.add("org.slf4j.Logger");
+    unmaskRules.add("org.slf4j.ILoggerFactory");
     // Exclude other slf4j classes
     // .unmask("org.slf4j.impl.")
-    maskRules.add( "org.slf4j." );
+    maskRules.add("org.slf4j.");
     // Exclude logback
-    maskRules.add( "ch.qos.logback." );
-    maskRules.add( "org.sonar." );
+    maskRules.add("ch.qos.logback.");
+    maskRules.add("org.sonar.");
     unmaskRules.add("org.sonar.runner.batch.");
     // Guava is not the same version in SonarQube classloader
-    maskRules.add( "com.google.common" );
+    maskRules.add("com.google.common");
     // Include everything else
-    unmaskRules.add( "" );
-    
+    unmaskRules.add("");
+
     rules = new ClassloadRules(maskRules, unmaskRules);
-    
+
     assertThat(rules.canLoad("org.sonar.runner.batch.IsolatedLauncher")).isTrue();
   }
 }
