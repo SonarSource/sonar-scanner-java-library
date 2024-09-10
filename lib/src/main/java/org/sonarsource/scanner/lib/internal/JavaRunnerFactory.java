@@ -181,8 +181,8 @@ public class JavaRunnerFactory {
 
   private static Path extractArchive(Path cachedFile) {
     String filename = cachedFile.getFileName().toString();
-    var destDir = cachedFile.getParent().resolve(filename + "_unzip");
-    var lockFile = cachedFile.getParent().resolve(filename + "_unzip.lock");
+    var destDir = cachedFile.getParent().resolve(filename + "_extracted");
+    var lockFile = cachedFile.getParent().resolve(filename + "_extracted.lock");
     if (!Files.exists(destDir)) {
       try (FileOutputStream out = new FileOutputStream(lockFile.toFile())) {
         FileLock lock = createLockWithRetries(out.getChannel());
