@@ -39,11 +39,11 @@ import okhttp3.Credentials;
 import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
-import org.sonarsource.scanner.lib.internal.http.ssl.SonarBouncyCastlePKCS12Provider;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
 import static java.lang.Integer.parseInt;
@@ -186,12 +186,12 @@ public class OkHttpClientFactory {
     }
     var trustStoreConfig = sslConfig.getTrustStore();
     if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
-      Security.addProvider(new SonarBouncyCastlePKCS12Provider());
+      Security.addProvider(new BouncyCastleProvider());
       KeyStore trustStore = KeyStoreUtils.loadKeyStore(
         trustStoreConfig.getPath(),
         trustStoreConfig.getKeyStorePassword().toCharArray(),
         trustStoreConfig.getKeyStoreType(),
-        SonarBouncyCastlePKCS12Provider.NAME);
+        BouncyCastleProvider.PROVIDER_NAME);
       sslFactoryBuilder.withTrustMaterial(trustStore);
     }
     return sslFactoryBuilder.build();
