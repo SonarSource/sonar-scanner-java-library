@@ -121,7 +121,7 @@ public class ProxyTest {
     return contextHandler;
   }
 
-  private static final SecurityHandler basicAuth(String username, String password, String realm) {
+  private static SecurityHandler basicAuth(String username, String password, String realm) {
 
     HashLoginService l = new HashLoginService(realm);
 
