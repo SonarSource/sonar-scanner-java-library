@@ -49,6 +49,11 @@ build_task:
     - regular_mvn_build_deploy_analyze
   cleanup_before_cache_script:
     - cleanup_maven_repository
+  on_failure:
+    junit_result_artifacts:
+      path: "**/target/surefire-reports/**.xml"
+      format: junit
+      type: text/xml
 
 mend_scan_task:
   depends_on:
@@ -101,8 +106,12 @@ qa_task:
   cleanup_before_cache_script:
     - cleanup_maven_repository
   on_failure:
-    reports_artifacts:
-      path: "**/target/**/logs/*"
+    server_logs_artifacts:
+      path: "**/target/**/logs/**.log"
+    junit_result_artifacts:
+      path: "**/target/surefire-reports/**.xml"
+      format: junit
+      type: text/xml
 
 promote_task:
   depends_on:
