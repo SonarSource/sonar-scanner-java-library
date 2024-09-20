@@ -53,6 +53,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 @RunWith(DataProviderRunner.class)
 public class SSLTest {
@@ -237,6 +238,7 @@ public class SSLTest {
   @Test
   @UseDataProvider("variousClientTrustStores")
   public void simple_analysis_with_server_certificate(String clientTrustStore, String keyStorePassword, boolean useJavaSslProperties) throws Exception {
+    assumeTrue("New SSL properties have been introduced in 10.6", ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(10,6) || useJavaSslProperties);
     startSSLTransparentReverseProxy(false);
     SimpleScanner scanner = new SimpleScanner();
 

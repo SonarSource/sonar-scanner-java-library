@@ -20,6 +20,7 @@
 package com.sonar.scanner.lib.it.tools;
 
 import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.orchestrator.container.Server;
 import com.sonar.scanner.lib.it.ScannerJavaLibraryTestSuite;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -75,7 +76,12 @@ public class SimpleScanner {
     analysisProperties.load(Files.newInputStream(propertiesFile));
     analysisProperties.setProperty("sonar.projectBaseDir", baseDir.toAbsolutePath().toString());
     analysisProperties.setProperty("sonar.host.url", host);
-    analysisProperties.setProperty("sonar.token", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+    if (ScannerJavaLibraryTestSuite.ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(10, 0)) {
+      analysisProperties.setProperty("sonar.token", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+    } else {
+      analysisProperties.setProperty("sonar.login", Server.ADMIN_LOGIN);
+      analysisProperties.setProperty("sonar.password", Server.ADMIN_PASSWORD);
+    }
     analysisProperties.putAll(extraProps);
     return (Map) analysisProperties;
   }
