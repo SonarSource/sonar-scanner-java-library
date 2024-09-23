@@ -36,11 +36,21 @@ import org.sonarsource.scanner.lib.internal.OsResolver;
 import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.http.OkHttpClientFactory;
 import org.sonarsource.scanner.lib.internal.http.ServerConnection;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_HOST;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PORT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_USER;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
 import static org.sonarsource.scanner.lib.internal.http.ServerConnection.removeTrailingSlash;
 
 /**
@@ -112,14 +122,48 @@ public class ScannerEngineBootstrapper {
       serverVersion = getServerVersion(serverConnection, isSimulation, properties);
     }
 
+    var newBootstrapping = isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING);
+    properties = mapDeprecatedProperties(newBootstrapping, properties);
+
     if (isSimulation) {
       return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
-    } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
-      return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
-      var launcher = launcherFactory.createLauncher(serverConnection, fileCache);
-      return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
+      if (newBootstrapping) {
+        var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
+        return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
+      } else {
+        var launcher = launcherFactory.createLauncher(serverConnection, fileCache);
+        return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
+      }
+    }
+  }
+
+  private Map<String, String> mapDeprecatedProperties(boolean newBootstrapping, Map<String, String> properties) {
+    var mutableProperties = new HashMap<>(properties);
+    if (!newBootstrapping) {
+      migrateProperties(properties, OkHttpClientFactory.READ_TIMEOUT_SEC_PROPERTY, SONAR_SCANNER_SOCKET_TIMEOUT, mutableProperties);
+      migrateProperties(properties, "http.proxyHost", SONAR_SCANNER_PROXY_HOST, mutableProperties);
+      migrateProperties(properties, "http.proxyPort", SONAR_SCANNER_PROXY_PORT, mutableProperties);
+      migrateProperties(properties, "http.proxyPassword", SONAR_SCANNER_PROXY_PASSWORD, mutableProperties);
+      migrateProperties(properties, "javax.net.ssl.trustStore", SONAR_SCANNER_TRUSTSTORE_PATH, mutableProperties);
+      migrateProperties(properties, "javax.net.ssl.trustStorePassword", SONAR_SCANNER_TRUSTSTORE_PASSWORD, mutableProperties);
+      migrateProperties(properties, "javax.net.ssl.keyStore", SONAR_SCANNER_KEYSTORE_PATH, mutableProperties);
+      migrateProperties(properties, "javax.net.ssl.keyStorePassword", SONAR_SCANNER_KEYSTORE_PASSWORD, mutableProperties);
+    }
+    return mutableProperties;
+  }
+
+  private static void migrateProperties(Map<String, String> properties, String oldPropKey, String newPropKey, HashMap<String, String> mutableProperties) {
+    if (properties.containsKey(newPropKey)) {
+      if (properties.containsKey(oldPropKey) && !Objects.equals(properties.get(oldPropKey), properties.get(newPropKey))) {
+        LOG.warn("Configuration conflict detected between the old property '{}' with value '{}' and the new property '{}' with value '{}'. The old property will be ignored", oldPropKey, properties.get(oldPropKey), newPropKey, properties.get(newPropKey));
+      }
+      mutableProperties.put(oldPropKey, properties.get(newPropKey));
+      // Some proxy or SSL properties were read through System properties
+      System.setProperty(oldPropKey, properties.get(newPropKey));
+    } else if (properties.containsKey(oldPropKey) && !properties.containsKey(newPropKey)) {
+      LOG.warn("Property '{}' is deprecated. Use '{}' instead", oldPropKey, newPropKey);
+      mutableProperties.put(newPropKey, properties.get(oldPropKey));
     }
   }
 

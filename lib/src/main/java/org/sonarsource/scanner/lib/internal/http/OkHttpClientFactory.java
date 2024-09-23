@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal.http;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -29,6 +30,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -76,7 +80,11 @@ public class OkHttpClientFactory {
 
   static final int DEFAULT_CONNECT_TIMEOUT = 5;
   static final int DEFAULT_RESPONSE_TIMEOUT = 0;
-  static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
+  /**
+   * @deprecated since SonarQube 10.6. Use {@link ScannerProperties#SONAR_SCANNER_SOCKET_TIMEOUT} instead.
+   */
+  @Deprecated
+  public static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
   static final int DEFAULT_READ_TIMEOUT_SEC = 60;
 
   private OkHttpClientFactory() {
@@ -113,8 +121,7 @@ public class OkHttpClientFactory {
     // OkHttp detects 'http.proxyHost' java property already, so just focus on sonar properties
     String proxyHost = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_HOST), null);
     if (proxyHost != null) {
-      var defaultProxyPort = bootstrapProperties.get(ScannerProperties.HOST_URL).startsWith("https") ? "443" : "80";
-      String proxyPortStr = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_PORT), defaultProxyPort);
+      String proxyPortStr = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_PORT), "80");
       var proxyPort = parseIntProperty(proxyPortStr, SONAR_SCANNER_PROXY_PORT);
       okHttpClientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
     }
@@ -187,22 +194,26 @@ public class OkHttpClientFactory {
     }
     var trustStoreConfig = sslConfig.getTrustStore();
     if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
-      KeyStore trustStore = loadKeyStoreWithBouncyCastle(
-        trustStoreConfig.getPath(),
-        trustStoreConfig.getKeyStorePassword().toCharArray(),
-        trustStoreConfig.getKeyStoreType());
+      KeyStore trustStore;
+      try {
+        trustStore = loadKeyStoreWithBouncyCastle(
+          trustStoreConfig.getPath(),
+          trustStoreConfig.getKeyStorePassword().toCharArray(),
+          trustStoreConfig.getKeyStoreType());
+        LOG.debug("Loaded truststore from '{}' containing {} certificates", trustStoreConfig.getPath(), trustStore.size());
+      } catch (KeyStoreException | IOException | CertificateException | NoSuchAlgorithmException e) {
+        throw new GenericKeyStoreException("Unable to read truststore from " + trustStoreConfig.getPath(), e);
+      }
       sslFactoryBuilder.withTrustMaterial(trustStore);
     }
     return sslFactoryBuilder.build();
   }
 
-  public static KeyStore loadKeyStoreWithBouncyCastle(Path keystorePath, char[] keystorePassword, String keystoreType) {
+  public static KeyStore loadKeyStoreWithBouncyCastle(Path keystorePath, char[] keystorePassword, String keystoreType) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
     try (InputStream keystoreInputStream = Files.newInputStream(keystorePath, StandardOpenOption.READ)) {
       KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
       keystore.load(keystoreInputStream, keystorePassword);
       return keystore;
-    } catch (Exception e) {
-      throw new GenericKeyStoreException(e);
     }
   }
 
