@@ -23,6 +23,19 @@ container_definition: &CONTAINER_DEFINITION
   region: eu-central-1
   namespace: default
 
+vm_instance_template: &VM_TEMPLATE
+  experimental: true # see https://github.com/cirruslabs/cirrus-ci-docs/issues/1051
+  image: docker-builder-v*
+  type: t2.small
+  region: eu-central-1
+  disk: 10
+  cpu: 4
+  memory: 8G
+
+fips_vm_template: &FIPS_VM_TEMPLATE
+  image: /sonarsource/service/cirrusci/platform-sq-fips-linux
+  <<: *VM_TEMPLATE
+
 only_sonarsource_qa: &ONLY_SONARSOURCE_QA
   only_if: $CIRRUS_USER_COLLABORATOR == 'true' && $CIRRUS_TAG == "" && ($CIRRUS_PR != "" || $CIRRUS_BRANCH == $CIRRUS_DEFAULT_BRANCH || $CIRRUS_BRANCH =~ "branch-.*" || $CIRRUS_BUILD_SOURCE == 'api' )
 
@@ -83,11 +96,9 @@ qa_task:
   depends_on:
     - build
   <<: *ONLY_SONARSOURCE_QA
-  eks_container:
-    <<: *CONTAINER_DEFINITION
-    image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j17-latest
-    cpu: 2
-    memory: 3G
+  ec2_instance:
+    type: t2.xlarge
+    <<: *FIPS_VM_TEMPLATE
   env:
     matrix:
       - QA_CATEGORY: RELEASE
@@ -102,7 +113,7 @@ qa_task:
     - source set_maven_build_version $BUILD_NUMBER
     - cd its
     - function get_sq_version() { case $QA_CATEGORY in "RELEASE-7-9") echo "LATEST_RELEASE[7.9]";; "RELEASE") echo "LATEST_RELEASE";; *) echo "$QA_CATEGORY";; esac }
-    - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$(get_sq_version) -DjavaVersion=$JAVA_VERSION
+    - ./cirrus-fips-wrapper.sh mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$(get_sq_version) -DjavaVersion=$JAVA_VERSION
   cleanup_before_cache_script:
     - cleanup_maven_repository
   on_failure:
