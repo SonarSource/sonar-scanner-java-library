@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal.http;
 
+import java.io.InputStream;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
@@ -26,14 +27,14 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
-import java.security.Security;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import nl.altindag.ssl.SSLFactory;
-import nl.altindag.ssl.util.KeyStoreUtils;
+import nl.altindag.ssl.exception.GenericKeyStoreException;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.JavaNetCookieJar;
@@ -186,15 +187,23 @@ public class OkHttpClientFactory {
     }
     var trustStoreConfig = sslConfig.getTrustStore();
     if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
-      Security.addProvider(new BouncyCastleProvider());
-      KeyStore trustStore = KeyStoreUtils.loadKeyStore(
+      KeyStore trustStore = loadKeyStoreWithBouncyCastle(
         trustStoreConfig.getPath(),
         trustStoreConfig.getKeyStorePassword().toCharArray(),
-        trustStoreConfig.getKeyStoreType(),
-        BouncyCastleProvider.PROVIDER_NAME);
+        trustStoreConfig.getKeyStoreType());
       sslFactoryBuilder.withTrustMaterial(trustStore);
     }
     return sslFactoryBuilder.build();
+  }
+
+  public static KeyStore loadKeyStoreWithBouncyCastle(Path keystorePath, char[] keystorePassword, String keystoreType) {
+    try (InputStream keystoreInputStream = Files.newInputStream(keystorePath, StandardOpenOption.READ)) {
+      KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
+      keystore.load(keystoreInputStream, keystorePassword);
+      return keystore;
+    } catch (Exception e) {
+      throw new GenericKeyStoreException(e);
+    }
   }
 
 }
