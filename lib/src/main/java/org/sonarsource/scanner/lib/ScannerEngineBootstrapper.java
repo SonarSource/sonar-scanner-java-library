@@ -36,6 +36,7 @@ import org.sonarsource.scanner.lib.internal.OsResolver;
 import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.http.HttpConfig;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
@@ -106,7 +107,8 @@ public class ScannerEngineBootstrapper {
     var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var sonarUserHome = resolveSonarUserHome(properties);
     var fileCache = FileCache.create(sonarUserHome);
-    scannerHttpClient.init(properties, sonarUserHome);
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
+    scannerHttpClient.init(properties, httpConfig);
     String serverVersion = null;
     if (!isSonarCloud) {
       serverVersion = getServerVersion(scannerHttpClient, isSimulation, properties);

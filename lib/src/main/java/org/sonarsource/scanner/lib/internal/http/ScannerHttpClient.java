@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.Utils;
-import org.sonarsource.scanner.lib.internal.InternalProperties;
 
 import static java.lang.String.format;
 
@@ -47,7 +46,6 @@ public class ScannerHttpClient {
 
   private String webApiBaseUrl;
   private String restApiBaseUrl;
-  private String userAgent;
   @Nullable
   private String token;
   @Nullable
@@ -55,17 +53,16 @@ public class ScannerHttpClient {
   @Nullable
   private String password;
   private OkHttpClient httpClient;
+  private HttpConfig httpConfig;
 
-  public void init(Map<String, String> bootstrapProperties, Path sonarUserHome) {
-    webApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL));
-    restApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.API_BASE_URL));
-    userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP),
-      bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
+  public void init(Map<String, String> bootstrapProperties, HttpConfig httpConfig) {
+    this.webApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL));
+    this.restApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.API_BASE_URL));
     this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
     this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
     this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
-    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
-    httpClient = OkHttpClientFactory.create(httpConfig);
+    this.httpConfig = httpConfig;
+    this.httpClient = OkHttpClientFactory.create(httpConfig);
   }
 
   public static String removeTrailingSlash(String url) {
@@ -160,7 +157,7 @@ public class ScannerHttpClient {
     var requestBuilder = new Request.Builder()
       .get()
       .url(url)
-      .addHeader("User-Agent", userAgent);
+      .addHeader("User-Agent", httpConfig.getUserAgent());
     if (authentication) {
       if (token != null) {
         requestBuilder.header("Authorization", "Bearer " + token);

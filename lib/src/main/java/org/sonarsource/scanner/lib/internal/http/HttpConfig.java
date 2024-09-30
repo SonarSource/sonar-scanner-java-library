@@ -30,10 +30,12 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
 import static java.lang.Integer.parseInt;
+import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_CONNECT_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
@@ -65,8 +67,10 @@ public class HttpConfig {
   private final Proxy proxy;
   private final String proxyUser;
   private final String proxyPassword;
+  private final String userAgent;
 
   public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+    this.userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
     this.socketTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_SOCKET_TIMEOUT, READ_TIMEOUT_SEC_PROPERTY, DEFAULT_READ_TIMEOUT_SEC);
     this.connectTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_CONNECT_TIMEOUT, null, DEFAULT_CONNECT_TIMEOUT);
     this.responseTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_RESPONSE_TIMEOUT, null, DEFAULT_RESPONSE_TIMEOUT);
@@ -174,6 +178,10 @@ public class HttpConfig {
       return defaultPath;
     }
     return null;
+  }
+
+  public String getUserAgent() {
+    return userAgent;
   }
 
   public SslConfig getSslConfig() {
