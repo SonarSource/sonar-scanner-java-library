@@ -57,9 +57,9 @@ public class HttpConfig {
 
   static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
   static final Duration DEFAULT_RESPONSE_TIMEOUT = Duration.ZERO;
-  static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
+  public static final String READ_TIMEOUT_SEC_PROPERTY = "sonar.ws.timeout";
   static final Duration DEFAULT_READ_TIMEOUT_SEC = Duration.ofSeconds(60);
-  public static final int DEFAULT_PROXY_PORT = 80;
+  static final int DEFAULT_PROXY_PORT = 80;
 
   private final String webApiBaseUrl;
   private final String restApiBaseUrl;

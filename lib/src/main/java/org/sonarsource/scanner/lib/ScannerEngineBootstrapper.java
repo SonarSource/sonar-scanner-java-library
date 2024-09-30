@@ -19,12 +19,15 @@
  */
 package org.sonarsource.scanner.lib;
 
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -121,7 +124,45 @@ public class ScannerEngineBootstrapper {
       return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
       var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
-      return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
+      var adaptedProperties = adaptDeprecatedProperties(properties, httpConfig);
+      return new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
+    }
+  }
+
+  /**
+   * Older SonarQube versions used to rely on some different properties, or even {@link System} properties.
+   * For backward compatibility, we adapt the new properties to the old format.
+   */
+  @Nonnull
+  private Map<String, String> adaptDeprecatedProperties(Map<String, String> properties, HttpConfig httpConfig) {
+    var adaptedProperties = new HashMap<>(properties);
+    if (!adaptedProperties.containsKey(HttpConfig.READ_TIMEOUT_SEC_PROPERTY)) {
+      adaptedProperties.put(HttpConfig.READ_TIMEOUT_SEC_PROPERTY, "" + httpConfig.getSocketTimeout().get(ChronoUnit.SECONDS));
+    }
+    if (httpConfig.getProxy() != null) {
+      setSystemPropertyIfNotAlreadySet("http.proxyHost", ((InetSocketAddress) httpConfig.getProxy().address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("https.proxyHost", ((InetSocketAddress) httpConfig.getProxy().address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("http.proxyPort", "" + ((InetSocketAddress) httpConfig.getProxy().address()).getPort());
+      setSystemPropertyIfNotAlreadySet("https.proxyPort", "" + ((InetSocketAddress) httpConfig.getProxy().address()).getPort());
+    }
+    setSystemPropertyIfNotAlreadySet("http.proxyUser", httpConfig.getProxyUser());
+    setSystemPropertyIfNotAlreadySet("http.proxyPassword", httpConfig.getProxyPassword());
+
+    if (httpConfig.getSslConfig().getKeyStore() != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", httpConfig.getSslConfig().getKeyStore().getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", httpConfig.getSslConfig().getKeyStore().getKeyStorePassword());
+    }
+    if (httpConfig.getSslConfig().getTrustStore() != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", httpConfig.getSslConfig().getTrustStore().getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", httpConfig.getSslConfig().getTrustStore().getKeyStorePassword());
+    }
+
+    return Map.copyOf(adaptedProperties);
+  }
+
+  private void setSystemPropertyIfNotAlreadySet(String key, String value) {
+    if (system.getProperty(key) == null && StringUtils.isNotBlank(value)) {
+      System.setProperty(key, value);
     }
   }
 
@@ -156,8 +197,8 @@ public class ScannerEngineBootstrapper {
 
   private void initBootstrapDefaultValues() {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, isSonarCloud(bootstrapProperties) ?
-      SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
+      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
