@@ -185,7 +185,7 @@ class ScannerHttpClientTest {
     props.putAll(additionalProps);
 
     ScannerHttpClient connection = new ScannerHttpClient();
-    connection.init(props, new HttpConfig(props, sonarUserHome));
+    connection.init(new HttpConfig(props, sonarUserHome));
     return connection;
   }
 

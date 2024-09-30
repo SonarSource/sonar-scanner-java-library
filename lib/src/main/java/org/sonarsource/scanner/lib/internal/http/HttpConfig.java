@@ -28,8 +28,10 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
@@ -59,6 +61,15 @@ public class HttpConfig {
   static final Duration DEFAULT_READ_TIMEOUT_SEC = Duration.ofSeconds(60);
   public static final int DEFAULT_PROXY_PORT = 80;
 
+  private final String webApiBaseUrl;
+  private final String restApiBaseUrl;
+  @Nullable
+  private final String token;
+  @Nullable
+  private final String login;
+  @Nullable
+  private final String password;
+
   private final SslConfig sslConfig;
   private final Duration socketTimeout;
   private final Duration connectTimeout;
@@ -70,6 +81,11 @@ public class HttpConfig {
   private final String userAgent;
 
   public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+    this.webApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/");
+    this.restApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.API_BASE_URL), "/");
+    this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
+    this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
+    this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
     this.userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
     this.socketTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_SOCKET_TIMEOUT, READ_TIMEOUT_SEC_PROPERTY, DEFAULT_READ_TIMEOUT_SEC);
     this.connectTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_CONNECT_TIMEOUT, null, DEFAULT_CONNECT_TIMEOUT);
@@ -178,6 +194,29 @@ public class HttpConfig {
       return defaultPath;
     }
     return null;
+  }
+
+  public String getWebApiBaseUrl() {
+    return webApiBaseUrl;
+  }
+
+  public String getRestApiBaseUrl() {
+    return restApiBaseUrl;
+  }
+
+  @Nullable
+  public String getToken() {
+    return token;
+  }
+
+  @Nullable
+  public String getLogin() {
+    return login;
+  }
+
+  @Nullable
+  public String getPassword() {
+    return password;
   }
 
   public String getUserAgent() {

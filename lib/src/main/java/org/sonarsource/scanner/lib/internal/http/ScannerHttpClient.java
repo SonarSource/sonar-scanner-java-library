@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
 import javax.annotation.Nullable;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -33,7 +32,6 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.Utils;
 
 import static java.lang.String.format;
@@ -44,36 +42,21 @@ public class ScannerHttpClient {
 
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
-  private String webApiBaseUrl;
-  private String restApiBaseUrl;
-  @Nullable
-  private String token;
-  @Nullable
-  private String login;
-  @Nullable
-  private String password;
+
   private OkHttpClient httpClient;
   private HttpConfig httpConfig;
 
-  public void init(Map<String, String> bootstrapProperties, HttpConfig httpConfig) {
-    this.webApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL));
-    this.restApiBaseUrl = removeTrailingSlash(bootstrapProperties.get(ScannerProperties.API_BASE_URL));
-    this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
-    this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
-    this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
+  public void init(HttpConfig httpConfig) {
     this.httpConfig = httpConfig;
     this.httpClient = OkHttpClientFactory.create(httpConfig);
   }
 
-  public static String removeTrailingSlash(String url) {
-    return url.replaceAll("(/)+$", "");
-  }
 
   public void downloadFromRestApi(String urlPath, Path toFile) throws IOException {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
-    String url = restApiBaseUrl + urlPath;
+    String url = httpConfig.getRestApiBaseUrl() + urlPath;
     downloadFile(url, toFile, true);
   }
 
@@ -81,7 +64,7 @@ public class ScannerHttpClient {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
-    String url = webApiBaseUrl + urlPath;
+    String url = httpConfig.getWebApiBaseUrl() + urlPath;
     downloadFile(url, toFile, true);
   }
 
@@ -117,7 +100,7 @@ public class ScannerHttpClient {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
-    String url = restApiBaseUrl + urlPath;
+    String url = httpConfig.getRestApiBaseUrl() + urlPath;
     return callApi(url);
   }
 
@@ -125,7 +108,7 @@ public class ScannerHttpClient {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
-    String url = webApiBaseUrl + urlPath;
+    String url = httpConfig.getWebApiBaseUrl() + urlPath;
     return callApi(url);
   }
 
@@ -159,10 +142,10 @@ public class ScannerHttpClient {
       .url(url)
       .addHeader("User-Agent", httpConfig.getUserAgent());
     if (authentication) {
-      if (token != null) {
-        requestBuilder.header("Authorization", "Bearer " + token);
-      } else if (login != null) {
-        requestBuilder.header("Authorization", Credentials.basic(login, password != null ? password : ""));
+      if (httpConfig.getToken() != null) {
+        requestBuilder.header("Authorization", "Bearer " + httpConfig.getToken());
+      } else if (httpConfig.getLogin() != null) {
+        requestBuilder.header("Authorization", Credentials.basic(httpConfig.getLogin(), httpConfig.getPassword() != null ? httpConfig.getPassword() : ""));
       }
     }
     if (acceptHeader != null) {

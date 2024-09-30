@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.ArchResolver;
@@ -42,7 +43,6 @@ import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
-import static org.sonarsource.scanner.lib.internal.http.ScannerHttpClient.removeTrailingSlash;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -108,7 +108,7 @@ public class ScannerEngineBootstrapper {
     var sonarUserHome = resolveSonarUserHome(properties);
     var fileCache = FileCache.create(sonarUserHome);
     var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
-    scannerHttpClient.init(properties, httpConfig);
+    scannerHttpClient.init(httpConfig);
     String serverVersion = null;
     if (!isSonarCloud) {
       serverVersion = getServerVersion(scannerHttpClient, isSimulation, properties);
@@ -157,7 +157,7 @@ public class ScannerEngineBootstrapper {
   private void initBootstrapDefaultValues() {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, isSonarCloud(bootstrapProperties) ?
-      SONARCLOUD_REST_API : (removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL)) + "/api/v2"));
+      SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
