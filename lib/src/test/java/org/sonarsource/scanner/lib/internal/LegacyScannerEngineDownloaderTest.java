@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +69,7 @@ class LegacyScannerEngineDownloaderTest {
 
   @Test
   void test_jar_downloader(@TempDir Path tmpDir) throws Exception {
-    ServerConnection connection = mock(ServerConnection.class);
+    ScannerHttpClient connection = mock(ScannerHttpClient.class);
     LegacyScannerEngineDownloader.ScannerFileDownloader downloader = new LegacyScannerEngineDownloader.ScannerFileDownloader(connection);
     var toFile = Files.createTempFile(tmpDir, "squid", ".jar");
     downloader.download("squid.jar", toFile);

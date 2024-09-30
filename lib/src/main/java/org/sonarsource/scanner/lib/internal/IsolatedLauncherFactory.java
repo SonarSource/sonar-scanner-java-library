@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 public class IsolatedLauncherFactory {
 
@@ -61,11 +61,11 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncherAndClassloader createLauncher(ServerConnection serverConnection, FileCache fileCache) {
+  public IsolatedLauncherAndClassloader createLauncher(ScannerHttpClient scannerHttpClient, FileCache fileCache) {
     Set<String> unmaskRules = new HashSet<>();
     unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(serverConnection, fileCache).create();
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(scannerHttpClient, fileCache).create();
     return createLauncher(legacyScannerEngineDownloader, rules);
   }
 

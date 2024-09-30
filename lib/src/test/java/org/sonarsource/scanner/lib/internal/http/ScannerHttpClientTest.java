@@ -42,7 +42,7 @@ import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ServerConnectionTest {
+class ScannerHttpClientTest {
 
   private static final String HELLO_WORLD = "hello, world!";
 
@@ -56,7 +56,7 @@ class ServerConnectionTest {
 
   @Test
   void download_success() throws Exception {
-    ServerConnection connection = create();
+    ScannerHttpClient connection = create();
     answer(HELLO_WORLD);
 
     String response = connection.callWebApi("/batch/index.txt");
@@ -66,7 +66,7 @@ class ServerConnectionTest {
 
   @Test
   void callWebApi_fails_on_url_validation() {
-    ServerConnection connection = create();
+    ScannerHttpClient connection = create();
     answer(HELLO_WORLD);
 
     assertThatThrownBy(() -> connection.callWebApi("should_fail"))
@@ -79,7 +79,7 @@ class ServerConnectionTest {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD);
 
-    ServerConnection underTest = create();
+    ScannerHttpClient underTest = create();
     underTest.downloadFromWebApi("/batch/index.txt", toFile);
 
     assertThat(Files.readString(toFile)).isEqualTo(HELLO_WORLD);
@@ -88,7 +88,7 @@ class ServerConnectionTest {
   @Test
   void downloadFromWebApi_fails_on_url_validation(@TempDir Path tmpFolder) {
     var toFile = tmpFolder.resolve("index.txt");
-    ServerConnection connection = create();
+    ScannerHttpClient connection = create();
     answer(HELLO_WORLD);
 
     assertThatThrownBy(() -> connection.downloadFromWebApi("should_fail", toFile))
@@ -101,7 +101,7 @@ class ServerConnectionTest {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD, 400);
 
-    ServerConnection underTest = create();
+    ScannerHttpClient underTest = create();
     assertThatThrownBy(() -> underTest.downloadFromWebApi("/batch/index.txt", toFile))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage(format("Error status returned by url [http://%s:%d/batch/index.txt]: 400", "localhost", sonarqube.getPort()));
@@ -109,7 +109,7 @@ class ServerConnectionTest {
 
   @Test
   void should_support_server_url_without_trailing_slash() throws Exception {
-    ServerConnection connection = create(sonarqube.baseUrl().replaceAll("(/)+$", ""));
+    ScannerHttpClient connection = create(sonarqube.baseUrl().replaceAll("(/)+$", ""));
 
     answer(HELLO_WORLD);
     String content = connection.callWebApi("/batch/index.txt");
@@ -118,7 +118,7 @@ class ServerConnectionTest {
 
   @Test
   void should_support_server_url_with_trailing_slash() throws Exception {
-    ServerConnection connection = create(sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
+    ScannerHttpClient connection = create(sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
 
     answer(HELLO_WORLD);
     String content = connection.callWebApi("/batch/index.txt");
@@ -129,7 +129,7 @@ class ServerConnectionTest {
   void should_authenticate_with_token() throws Exception {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.token", "some_token");
-    ServerConnection connection = create(sonarqube.baseUrl(), props);
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
 
     answer(HELLO_WORLD);
     String content = connection.callWebApi("/batch/index.txt");
@@ -144,7 +144,7 @@ class ServerConnectionTest {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.login", "some_username");
     props.put("sonar.password", "some_password");
-    ServerConnection connection = create(sonarqube.baseUrl(), props);
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
 
     answer(HELLO_WORLD);
     String content = connection.callWebApi("/batch/index.txt");
@@ -160,7 +160,7 @@ class ServerConnectionTest {
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD);
 
-    ServerConnection underTest = create();
+    ScannerHttpClient underTest = create();
     underTest.downloadFromExternalUrl(sonarqube.baseUrl() + "/batch/index.txt", toFile);
     assertThat(Files.readString(toFile)).isEqualTo(HELLO_WORLD);
 
@@ -168,15 +168,15 @@ class ServerConnectionTest {
       .withoutHeader("Authorization"));
   }
 
-  private ServerConnection create() {
+  private ScannerHttpClient create() {
     return create(sonarqube.baseUrl());
   }
 
-  private ServerConnection create(String url) {
+  private ScannerHttpClient create(String url) {
     return create(url, new HashMap<>());
   }
 
-  private ServerConnection create(String url, Map<String, String> additionalProps) {
+  private ScannerHttpClient create(String url, Map<String, String> additionalProps) {
     Map<String, String> props = new HashMap<>();
     props.put(ScannerProperties.HOST_URL, url);
     props.put(ScannerProperties.API_BASE_URL, url);
@@ -184,7 +184,7 @@ class ServerConnectionTest {
     props.put(InternalProperties.SCANNER_APP_VERSION, "agent");
     props.putAll(additionalProps);
 
-    ServerConnection connection = new ServerConnection();
+    ScannerHttpClient connection = new ScannerHttpClient();
     connection.init(props, sonarUserHome);
     return connection;
   }

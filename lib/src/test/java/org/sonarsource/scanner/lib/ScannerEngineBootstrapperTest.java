@@ -34,7 +34,7 @@ import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,7 +50,7 @@ import static org.sonarsource.scanner.lib.ScannerEngineBootstrapper.SQ_VERSION_N
 
 class ScannerEngineBootstrapperTest {
 
-  private final ServerConnection serverConnection = mock(ServerConnection.class);
+  private final ScannerHttpClient scannerHttpClient = mock(ScannerHttpClient.class);
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory = mock(ScannerEngineLauncherFactory.class);
   private final System2 system = mock(System2.class);
 
@@ -67,17 +67,17 @@ class ScannerEngineBootstrapperTest {
     when(system.getProperty("os.arch")).thenReturn("x64");
 
     var launcher = mock(ScannerEngineLauncher.class);
-    when(scannerEngineLauncherFactory.createLauncher(any(ServerConnection.class), any(FileCache.class), anyMap()))
+    when(scannerEngineLauncherFactory.createLauncher(any(ScannerHttpClient.class), any(FileCache.class), anyMap()))
       .thenReturn(launcher);
 
-    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
+    underTest = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       new IsolatedLauncherFactory(), scannerEngineLauncherFactory);
   }
 
   @Test
   void should_use_new_bootstrapping_with_default_url() throws Exception {
     try (var scannerEngineFacade = underTest.bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(serverConnection), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(scannerEngineFacade.isSonarCloud()).isTrue();
     }
   }
@@ -85,16 +85,16 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_new_bootstrapping_with_sonarcloud_url() throws Exception {
     try (var scannerEngineFacade = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "https://sonarcloud.io").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(serverConnection), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(scannerEngineFacade.isSonarCloud()).isTrue();
     }
   }
 
   @Test
   void should_use_new_bootstrapping_with_sonarqube_10_6() throws Exception {
-    when(serverConnection.callRestApi("/analysis/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
     try (var scannerEngineFacade = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(serverConnection), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(scannerEngineFacade.isSonarCloud()).isFalse();
       assertThat(scannerEngineFacade.getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
     }
@@ -103,16 +103,16 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_old_bootstrapping_with_sonarqube_10_5() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(serverConnection), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
-    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(serverConnection.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
-    when(serverConnection.callWebApi("/api/server/version")).thenReturn("10.5");
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("10.5");
 
     try (var scannerEngineFacade = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
-      verify(launcherFactory).createLauncher(eq(serverConnection), any(FileCache.class));
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
       assertThat(scannerEngineFacade.isSonarCloud()).isFalse();
       assertThat(scannerEngineFacade.getServerVersion()).isEqualTo("10.5");
     }
@@ -121,13 +121,13 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_preserve_both_exceptions_when_checking_version() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(serverConnection), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
-    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, serverConnection,
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(serverConnection.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
-    when(serverConnection.callWebApi("/api/server/version")).thenThrow(new IOException("400 Server Error"));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new IOException("404 Not found"));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenThrow(new IOException("400 Server Error"));
 
     assertThatThrownBy(() -> {
       try (var ignored = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {

@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static java.lang.String.format;
 
@@ -70,9 +70,9 @@ class LegacyScannerEngineDownloader {
   }
 
   static class ScannerFileDownloader implements FileCache.Downloader {
-    private final ServerConnection connection;
+    private final ScannerHttpClient connection;
 
-    ScannerFileDownloader(ServerConnection conn) {
+    ScannerFileDownloader(ScannerHttpClient conn) {
       this.connection = conn;
     }
 

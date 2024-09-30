@@ -25,7 +25,7 @@ import java.util.HashMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -37,7 +37,7 @@ import static org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory.
 
 class ScannerEngineLauncherFactoryTest {
 
-  private final ServerConnection serverConnection = mock(ServerConnection.class);
+  private final ScannerHttpClient scannerHttpClient = mock(ScannerHttpClient.class);
   private final FileCache fileCache = mock(FileCache.class);
   private final JavaRunnerFactory javaRunnerFactory = mock(JavaRunnerFactory.class);
 
@@ -46,11 +46,11 @@ class ScannerEngineLauncherFactoryTest {
 
   @Test
   void createLauncher() throws IOException {
-    when(serverConnection.callRestApi(API_PATH_ENGINE)).thenReturn("{\"filename\":\"scanner-engine.jar\",\"sha256\":\"123456\"}");
-    when(javaRunnerFactory.createRunner(eq(serverConnection), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenReturn("{\"filename\":\"scanner-engine.jar\",\"sha256\":\"123456\"}");
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
-    factory.createLauncher(serverConnection, fileCache, new HashMap<>());
+    factory.createLauncher(scannerHttpClient, fileCache, new HashMap<>());
 
     verify(fileCache).getOrDownload(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"),
       any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class));
@@ -60,19 +60,19 @@ class ScannerEngineLauncherFactoryTest {
   void scannerEngineDownloader_download() throws IOException {
     String filename = "scanner-engine.jar";
     var output = temp.resolve(filename);
-    new ScannerEngineLauncherFactory.ScannerEngineDownloader(serverConnection,
+    new ScannerEngineLauncherFactory.ScannerEngineDownloader(scannerHttpClient,
       new ScannerEngineLauncherFactory.ScannerEngineMetadata(filename, "123456", null))
       .download(filename, output);
-    verify(serverConnection).downloadFromRestApi(API_PATH_ENGINE, output);
+    verify(scannerHttpClient).downloadFromRestApi(API_PATH_ENGINE, output);
   }
 
   @Test
   void scannerEngineDownloader_download_withDownloadUrl() throws IOException {
     String filename = "scanner-engine.jar";
     var output = temp.resolve(filename);
-    new ScannerEngineLauncherFactory.ScannerEngineDownloader(serverConnection,
+    new ScannerEngineLauncherFactory.ScannerEngineDownloader(scannerHttpClient,
       new ScannerEngineLauncherFactory.ScannerEngineMetadata(filename, "123456", "https://localhost/scanner-engine.jar"))
       .download(filename, output);
-    verify(serverConnection).downloadFromExternalUrl("https://localhost/scanner-engine.jar", output);
+    verify(scannerHttpClient).downloadFromExternalUrl("https://localhost/scanner-engine.jar", output);
   }
 }

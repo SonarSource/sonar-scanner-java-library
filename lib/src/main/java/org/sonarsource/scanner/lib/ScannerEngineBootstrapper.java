@@ -36,12 +36,12 @@ import org.sonarsource.scanner.lib.internal.OsResolver;
 import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
-import static org.sonarsource.scanner.lib.internal.http.ServerConnection.removeTrailingSlash;
+import static org.sonarsource.scanner.lib.internal.http.ScannerHttpClient.removeTrailingSlash;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -57,14 +57,14 @@ public class ScannerEngineBootstrapper {
   private final IsolatedLauncherFactory launcherFactory;
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory;
   private final Map<String, String> bootstrapProperties = new HashMap<>();
-  private final ServerConnection serverConnection;
+  private final ScannerHttpClient scannerHttpClient;
   private final System2 system;
 
   ScannerEngineBootstrapper(String app, String version, System2 system,
-    ServerConnection serverConnection, IsolatedLauncherFactory launcherFactory,
+    ScannerHttpClient scannerHttpClient, IsolatedLauncherFactory launcherFactory,
     ScannerEngineLauncherFactory scannerEngineLauncherFactory) {
     this.system = system;
-    this.serverConnection = serverConnection;
+    this.scannerHttpClient = scannerHttpClient;
     this.launcherFactory = launcherFactory;
     this.scannerEngineLauncherFactory = scannerEngineLauncherFactory;
     this.setBootstrapProperty(InternalProperties.SCANNER_APP, app)
@@ -73,7 +73,7 @@ public class ScannerEngineBootstrapper {
 
   public static ScannerEngineBootstrapper create(String app, String version) {
     System2 system = new System2();
-    return new ScannerEngineBootstrapper(app, version, system, new ServerConnection(),
+    return new ScannerEngineBootstrapper(app, version, system, new ScannerHttpClient(),
       new IsolatedLauncherFactory(), new ScannerEngineLauncherFactory(system));
   }
 
@@ -106,19 +106,19 @@ public class ScannerEngineBootstrapper {
     var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var sonarUserHome = resolveSonarUserHome(properties);
     var fileCache = FileCache.create(sonarUserHome);
-    serverConnection.init(properties, sonarUserHome);
+    scannerHttpClient.init(properties, sonarUserHome);
     String serverVersion = null;
     if (!isSonarCloud) {
-      serverVersion = getServerVersion(serverConnection, isSimulation, properties);
+      serverVersion = getServerVersion(scannerHttpClient, isSimulation, properties);
     }
 
     if (isSimulation) {
       return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
+      var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, properties);
       return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
-      var launcher = launcherFactory.createLauncher(serverConnection, fileCache);
+      var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
       return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
     }
   }
@@ -134,16 +134,16 @@ public class ScannerEngineBootstrapper {
     return Paths.get(sonarUserHome);
   }
 
-  private static String getServerVersion(ServerConnection serverConnection, boolean isSimulation, Map<String, String> properties) {
+  private static String getServerVersion(ScannerHttpClient scannerHttpClient, boolean isSimulation, Map<String, String> properties) {
     if (isSimulation) {
       return properties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "5.6");
     }
 
     try {
-      return serverConnection.callRestApi("/analysis/version");
+      return scannerHttpClient.callRestApi("/analysis/version");
     } catch (Exception e) {
       try {
-        return serverConnection.callWebApi("/api/server/version");
+        return scannerHttpClient.callWebApi("/api/server/version");
       } catch (Exception e2) {
         var ex = new IllegalStateException("Failed to get server version", e2);
         ex.addSuppressed(e);

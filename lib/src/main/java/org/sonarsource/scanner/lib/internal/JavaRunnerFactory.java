@@ -46,7 +46,7 @@ import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.CompressionUtils;
 
 import static java.lang.String.format;
@@ -72,7 +72,7 @@ public class JavaRunnerFactory {
     this.processWrapperFactory = processWrapperFactory;
   }
 
-  public JavaRunner createRunner(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
+  public JavaRunner createRunner(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
     String javaExecutablePropValue = properties.get(JAVA_EXECUTABLE_PATH);
     if (javaExecutablePropValue != null) {
       LOG.info("Using the configured java executable '{}'", javaExecutablePropValue);
@@ -82,7 +82,7 @@ public class JavaRunnerFactory {
     if (skipJreProvisioning) {
       LOG.info("JRE provisioning is disabled");
     } else {
-      var cachedFile = getJreFromServer(serverConnection, fileCache, properties, true);
+      var cachedFile = getJreFromServer(scannerHttpClient, fileCache, properties, true);
       if (cachedFile.isPresent()) {
         return new JavaRunner(cachedFile.get().getPathInCache(), cachedFile.get().isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
       }
@@ -129,34 +129,34 @@ public class JavaRunnerFactory {
     }
   }
 
-  private static Optional<CachedFile> getJreFromServer(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties, boolean retry) {
+  private static Optional<CachedFile> getJreFromServer(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
     LOG.info("JRE provisioning: os[{}], arch[{}]", os, arch);
 
     try {
-      var jreMetadata = getJreMetadata(serverConnection, os, arch);
+      var jreMetadata = getJreMetadata(scannerHttpClient, os, arch);
       if (jreMetadata.isEmpty()) {
         LOG.info("No JRE found for this OS/architecture");
         return Optional.empty();
       }
       var cachedFile = fileCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
-        new JreDownloader(serverConnection, jreMetadata.get()));
+        new JreDownloader(scannerHttpClient, jreMetadata.get()));
       var extractedDirectory = extractArchive(cachedFile.getPathInCache());
       return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.isCacheHit()));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download
         LOG.warn("Failed to get the JRE, retrying...");
-        return getJreFromServer(serverConnection, fileCache, properties, false);
+        return getJreFromServer(scannerHttpClient, fileCache, properties, false);
       }
       throw e;
     }
   }
 
-  private static Optional<JreMetadata> getJreMetadata(ServerConnection serverConnection, String os, String arch) {
+  private static Optional<JreMetadata> getJreMetadata(ScannerHttpClient scannerHttpClient, String os, String arch) {
     try {
-      String response = serverConnection.callRestApi(format(API_PATH_JRE + "?os=%s&arch=%s", os, arch));
+      String response = scannerHttpClient.callRestApi(format(API_PATH_JRE + "?os=%s&arch=%s", os, arch));
       Type listType = new TypeToken<ArrayList<JreMetadata>>() {
       }.getType();
       List<JreMetadata> jres = new Gson().fromJson(response, listType);
@@ -239,10 +239,10 @@ public class JavaRunnerFactory {
   }
 
   static class JreDownloader implements FileCache.Downloader {
-    private final ServerConnection connection;
+    private final ScannerHttpClient connection;
     private final JreMetadata jreMetadata;
 
-    JreDownloader(ServerConnection connection, JreMetadata jreMetadata) {
+    JreDownloader(ScannerHttpClient connection, JreMetadata jreMetadata) {
       this.connection = connection;
       this.jreMetadata = jreMetadata;
     }

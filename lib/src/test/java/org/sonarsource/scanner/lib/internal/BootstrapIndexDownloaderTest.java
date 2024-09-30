@@ -25,7 +25,7 @@ import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,12 +35,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BootstrapIndexDownloaderTest {
-  private ServerConnection connection;
+  private ScannerHttpClient connection;
   private BootstrapIndexDownloader bootstrapIndexDownloader;
 
   @BeforeEach
   void setUp() {
-    connection = mock(ServerConnection.class);
+    connection = mock(ScannerHttpClient.class);
     bootstrapIndexDownloader = new BootstrapIndexDownloader(connection);
   }
 

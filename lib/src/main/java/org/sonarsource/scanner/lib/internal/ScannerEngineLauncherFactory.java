@@ -32,7 +32,7 @@ import org.sonarsource.scanner.lib.System2;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 public class ScannerEngineLauncherFactory {
 
@@ -49,10 +49,10 @@ public class ScannerEngineLauncherFactory {
     this.javaRunnerFactory = javaRunnerFactory;
   }
 
-  public ScannerEngineLauncher createLauncher(ServerConnection serverConnection, FileCache fileCache, Map<String, String> properties) {
-    JavaRunner javaRunner = javaRunnerFactory.createRunner(serverConnection, fileCache, properties);
+  public ScannerEngineLauncher createLauncher(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
+    JavaRunner javaRunner = javaRunnerFactory.createRunner(scannerHttpClient, fileCache, properties);
     jreSanityCheck(javaRunner);
-    var scannerEngine = getScannerEngine(serverConnection, fileCache, true);
+    var scannerEngine = getScannerEngine(scannerHttpClient, fileCache, true);
     return new ScannerEngineLauncher(javaRunner, scannerEngine);
   }
 
@@ -60,24 +60,24 @@ public class ScannerEngineLauncherFactory {
     javaRunner.execute(Collections.singletonList("--version"), null, LOG::debug);
   }
 
-  private static CachedFile getScannerEngine(ServerConnection serverConnection, FileCache fileCache, boolean retry) {
+  private static CachedFile getScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, boolean retry) {
     try {
-      var scannerEngineMetadata = getScannerEngineMetadata(serverConnection);
+      var scannerEngineMetadata = getScannerEngineMetadata(scannerHttpClient);
       return fileCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
-        new ScannerEngineDownloader(serverConnection, scannerEngineMetadata));
+        new ScannerEngineDownloader(scannerHttpClient, scannerEngineMetadata));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new scanner-engine might have been published between the metadata fetch and the download
         LOG.warn("Failed to get the scanner-engine, retrying...");
-        return getScannerEngine(serverConnection, fileCache, false);
+        return getScannerEngine(scannerHttpClient, fileCache, false);
       }
       throw e;
     }
   }
 
-  private static ScannerEngineMetadata getScannerEngineMetadata(ServerConnection serverConnection) {
+  private static ScannerEngineMetadata getScannerEngineMetadata(ScannerHttpClient scannerHttpClient) {
     try {
-      String response = serverConnection.callRestApi(API_PATH_ENGINE);
+      String response = scannerHttpClient.callRestApi(API_PATH_ENGINE);
       return new Gson().fromJson(response, ScannerEngineMetadata.class);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get scanner-engine metadata", e);
@@ -91,10 +91,10 @@ public class ScannerEngineLauncherFactory {
   }
 
   static class ScannerEngineDownloader implements FileCache.Downloader {
-    private final ServerConnection connection;
+    private final ScannerHttpClient connection;
     private final ScannerEngineMetadata scannerEngineMetadata;
 
-    ScannerEngineDownloader(ServerConnection connection, ScannerEngineMetadata scannerEngineMetadata) {
+    ScannerEngineDownloader(ScannerHttpClient connection, ScannerEngineMetadata scannerEngineMetadata) {
       this.connection = connection;
       this.scannerEngineMetadata = scannerEngineMetadata;
     }

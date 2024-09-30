@@ -39,9 +39,9 @@ import org.sonarsource.scanner.lib.internal.InternalProperties;
 
 import static java.lang.String.format;
 
-public class ServerConnection {
+public class ScannerHttpClient {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ServerConnection.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerHttpClient.class);
 
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
