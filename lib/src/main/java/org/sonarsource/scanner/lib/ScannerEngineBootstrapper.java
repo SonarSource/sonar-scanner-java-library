@@ -134,27 +134,30 @@ public class ScannerEngineBootstrapper {
    * For backward compatibility, we adapt the new properties to the old format.
    */
   @Nonnull
-  private Map<String, String> adaptDeprecatedProperties(Map<String, String> properties, HttpConfig httpConfig) {
+  Map<String, String> adaptDeprecatedProperties(Map<String, String> properties, HttpConfig httpConfig) {
     var adaptedProperties = new HashMap<>(properties);
     if (!adaptedProperties.containsKey(HttpConfig.READ_TIMEOUT_SEC_PROPERTY)) {
       adaptedProperties.put(HttpConfig.READ_TIMEOUT_SEC_PROPERTY, "" + httpConfig.getSocketTimeout().get(ChronoUnit.SECONDS));
     }
-    if (httpConfig.getProxy() != null) {
-      setSystemPropertyIfNotAlreadySet("http.proxyHost", ((InetSocketAddress) httpConfig.getProxy().address()).getHostString());
-      setSystemPropertyIfNotAlreadySet("https.proxyHost", ((InetSocketAddress) httpConfig.getProxy().address()).getHostString());
-      setSystemPropertyIfNotAlreadySet("http.proxyPort", "" + ((InetSocketAddress) httpConfig.getProxy().address()).getPort());
-      setSystemPropertyIfNotAlreadySet("https.proxyPort", "" + ((InetSocketAddress) httpConfig.getProxy().address()).getPort());
+    var proxy = httpConfig.getProxy();
+    if (proxy != null) {
+      setSystemPropertyIfNotAlreadySet("http.proxyHost", ((InetSocketAddress) proxy.address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("https.proxyHost", ((InetSocketAddress) proxy.address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("http.proxyPort", "" + ((InetSocketAddress) proxy.address()).getPort());
+      setSystemPropertyIfNotAlreadySet("https.proxyPort", "" + ((InetSocketAddress) proxy.address()).getPort());
     }
     setSystemPropertyIfNotAlreadySet("http.proxyUser", httpConfig.getProxyUser());
     setSystemPropertyIfNotAlreadySet("http.proxyPassword", httpConfig.getProxyPassword());
 
-    if (httpConfig.getSslConfig().getKeyStore() != null) {
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", httpConfig.getSslConfig().getKeyStore().getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", httpConfig.getSslConfig().getKeyStore().getKeyStorePassword());
+    var keyStore = httpConfig.getSslConfig().getKeyStore();
+    if (keyStore != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", keyStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", keyStore.getKeyStorePassword());
     }
-    if (httpConfig.getSslConfig().getTrustStore() != null) {
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", httpConfig.getSslConfig().getTrustStore().getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", httpConfig.getSslConfig().getTrustStore().getKeyStorePassword());
+    var trustStore = httpConfig.getSslConfig().getTrustStore();
+    if (trustStore != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", trustStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", trustStore.getKeyStorePassword());
     }
 
     return Map.copyOf(adaptedProperties);

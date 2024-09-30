@@ -20,21 +20,29 @@
 package org.sonarsource.scanner.lib;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.mockito.Mockito;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.http.HttpConfig;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
+import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
+import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -252,5 +260,54 @@ class ScannerEngineBootstrapperTest {
       assertThat(scannerEngine.getBootstrapProperties()).containsEntry("sonar.scanner.os", "some-os");
       assertThat(scannerEngine.getBootstrapProperties()).containsEntry("sonar.scanner.arch", "some-arch");
     }
+  }
+
+  @Test
+  void should_set_deprecated_timeout_property() {
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+
+    when(httpConfig.getSocketTimeout()).thenReturn(Duration.ofSeconds(100));
+
+    var adapted = underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+    assertThat(adapted).containsEntry("sonar.ws.timeout", "100");
+  }
+
+  @Test
+  @RestoreSystemProperties
+  void should_set_deprecated_proxy_properties() {
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+    when(httpConfig.getSocketTimeout()).thenReturn(Duration.ofSeconds(10));
+
+    when(httpConfig.getProxy()).thenReturn(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("myproxy", 8080)));
+
+    underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+
+    assertThat(System.getProperties()).contains(
+      entry("http.proxyHost", "myproxy"),
+      entry("https.proxyHost", "myproxy"),
+      entry("http.proxyPort", "8080"),
+      entry("https.proxyPort", "8080"));
+  }
+
+  @Test
+  @RestoreSystemProperties
+  void should_set_deprecated_ssl_properties() {
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSocketTimeout()).thenReturn(Duration.ofSeconds(10));
+
+    when(httpConfig.getSslConfig())
+      .thenReturn(new SslConfig(
+        new CertificateStore(Paths.get("some/keystore.p12"), "keystorePass"),
+        new CertificateStore(Paths.get("some/truststore.p12"), "truststorePass")));
+
+    underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+
+    assertThat(System.getProperties()).contains(
+      entry("javax.net.ssl.keyStore", "some/keystore.p12"),
+      entry("javax.net.ssl.keyStorePassword", "keystorePass"),
+      entry("javax.net.ssl.trustStore", "some/truststore.p12"),
+      entry("javax.net.ssl.trustStorePassword", "truststorePass"));
   }
 }
