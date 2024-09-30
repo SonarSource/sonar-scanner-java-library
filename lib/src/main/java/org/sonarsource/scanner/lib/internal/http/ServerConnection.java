@@ -64,7 +64,8 @@ public class ServerConnection {
     this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
     this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
     this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
-    httpClient = OkHttpClientFactory.create(bootstrapProperties, sonarUserHome);
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
+    httpClient = OkHttpClientFactory.create(httpConfig);
   }
 
   public static String removeTrailingSlash(String url) {
@@ -107,7 +108,7 @@ public class ServerConnection {
     LOG.debug("Download {} to {}", url, toFile.toAbsolutePath());
 
     try (ResponseBody responseBody = callUrl(url, authentication, "application/octet-stream");
-      InputStream in = responseBody.byteStream()) {
+         InputStream in = responseBody.byteStream()) {
       Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException | RuntimeException e) {
       Utils.deleteQuietly(toFile);
@@ -162,7 +163,7 @@ public class ServerConnection {
       .addHeader("User-Agent", userAgent);
     if (authentication) {
       if (token != null) {
-        requestBuilder.header("Authorization",  "Bearer " + token);
+        requestBuilder.header("Authorization", "Bearer " + token);
       } else if (login != null) {
         requestBuilder.header("Authorization", Credentials.basic(login, password != null ? password : ""));
       }
