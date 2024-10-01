@@ -30,7 +30,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import javax.net.ssl.SSLHandshakeException;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +59,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OkHttpClientFactoryTest {
 
-  private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
   private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
   private final Map<String, String> bootstrapProperties = new HashMap<>();
@@ -73,23 +71,6 @@ class OkHttpClientFactoryTest {
   void prepareMocks() {
     this.sonarUserHome = sonarUserHomeDir;
     bootstrapProperties.clear();
-  }
-
-  @Test
-  void support_custom_timeouts() {
-    int readTimeoutSec = 2000;
-
-    OkHttpClient underTest = OkHttpClientFactory.create(Map.of(SONAR_WS_TIMEOUT, String.valueOf(readTimeoutSec)), sonarUserHome);
-
-    assertThat(underTest.readTimeoutMillis()).isEqualTo(readTimeoutSec * 1000);
-  }
-
-  @Test
-  void support_custom_timeouts_throws_exception_on_non_number() {
-    var props = Map.of(SONAR_WS_TIMEOUT, "fail");
-    assertThatThrownBy(() -> OkHttpClientFactory.create(props, sonarUserHome))
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessage("sonar.scanner.socketTimeout is not a valid integer: fail");
   }
 
   @Nested
@@ -172,17 +153,6 @@ class OkHttpClientFactoryTest {
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
         .isInstanceOf(IOException.class)
         .hasStackTraceContaining("timeout");
-    }
-
-    @Test
-    void it_should_throw_if_invalid_proxy_port() {
-      bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-      bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
-      bootstrapProperties.put("sonar.scanner.proxyPort", "not_a_number");
-
-      assertThatThrownBy(() -> OkHttpClientFactory.create(bootstrapProperties, sonarUserHome))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("sonar.scanner.proxyPort is not a valid integer: not_a_number");
     }
 
     @Nested
@@ -395,11 +365,11 @@ class OkHttpClientFactoryTest {
   }
 
   private Response call(String url) throws IOException {
-    return OkHttpClientFactory.create(bootstrapProperties, sonarUserHome).newCall(
-      new Request.Builder()
-        .url(url)
-        .get()
-        .build())
+    return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)).newCall(
+        new Request.Builder()
+          .url(url)
+          .get()
+          .build())
       .execute();
   }
 

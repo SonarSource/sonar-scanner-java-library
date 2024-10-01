@@ -23,15 +23,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 class BootstrapIndexDownloader {
 
   private static final Logger LOG = LoggerFactory.getLogger(BootstrapIndexDownloader.class);
 
-  private final ServerConnection conn;
+  private final ScannerHttpClient conn;
 
-  BootstrapIndexDownloader(ServerConnection conn) {
+  BootstrapIndexDownloader(ScannerHttpClient conn) {
     this.conn = conn;
   }
 

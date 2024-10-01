@@ -19,14 +19,18 @@
  */
 package org.sonarsource.scanner.lib;
 
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.ArchResolver;
@@ -36,12 +40,12 @@ import org.sonarsource.scanner.lib.internal.OsResolver;
 import org.sonarsource.scanner.lib.internal.Paths2;
 import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.http.ServerConnection;
+import org.sonarsource.scanner.lib.internal.http.HttpConfig;
+import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
-import static org.sonarsource.scanner.lib.internal.http.ServerConnection.removeTrailingSlash;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -57,14 +61,14 @@ public class ScannerEngineBootstrapper {
   private final IsolatedLauncherFactory launcherFactory;
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory;
   private final Map<String, String> bootstrapProperties = new HashMap<>();
-  private final ServerConnection serverConnection;
+  private final ScannerHttpClient scannerHttpClient;
   private final System2 system;
 
   ScannerEngineBootstrapper(String app, String version, System2 system,
-    ServerConnection serverConnection, IsolatedLauncherFactory launcherFactory,
+    ScannerHttpClient scannerHttpClient, IsolatedLauncherFactory launcherFactory,
     ScannerEngineLauncherFactory scannerEngineLauncherFactory) {
     this.system = system;
-    this.serverConnection = serverConnection;
+    this.scannerHttpClient = scannerHttpClient;
     this.launcherFactory = launcherFactory;
     this.scannerEngineLauncherFactory = scannerEngineLauncherFactory;
     this.setBootstrapProperty(InternalProperties.SCANNER_APP, app)
@@ -73,7 +77,7 @@ public class ScannerEngineBootstrapper {
 
   public static ScannerEngineBootstrapper create(String app, String version) {
     System2 system = new System2();
-    return new ScannerEngineBootstrapper(app, version, system, new ServerConnection(),
+    return new ScannerEngineBootstrapper(app, version, system, new ScannerHttpClient(),
       new IsolatedLauncherFactory(), new ScannerEngineLauncherFactory(system));
   }
 
@@ -106,20 +110,62 @@ public class ScannerEngineBootstrapper {
     var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var sonarUserHome = resolveSonarUserHome(properties);
     var fileCache = FileCache.create(sonarUserHome);
-    serverConnection.init(properties, sonarUserHome);
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
+    scannerHttpClient.init(httpConfig);
     String serverVersion = null;
     if (!isSonarCloud) {
-      serverVersion = getServerVersion(serverConnection, isSimulation, properties);
+      serverVersion = getServerVersion(scannerHttpClient, isSimulation, properties);
     }
 
     if (isSimulation) {
       return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(serverConnection, fileCache, properties);
+      var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, properties);
       return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
     } else {
-      var launcher = launcherFactory.createLauncher(serverConnection, fileCache);
-      return new InProcessScannerEngineFacade(properties, launcher, false, serverVersion);
+      var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
+      var adaptedProperties = adaptDeprecatedProperties(properties, httpConfig);
+      return new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
+    }
+  }
+
+  /**
+   * Older SonarQube versions used to rely on some different properties, or even {@link System} properties.
+   * For backward compatibility, we adapt the new properties to the old format.
+   */
+  @Nonnull
+  Map<String, String> adaptDeprecatedProperties(Map<String, String> properties, HttpConfig httpConfig) {
+    var adaptedProperties = new HashMap<>(properties);
+    if (!adaptedProperties.containsKey(HttpConfig.READ_TIMEOUT_SEC_PROPERTY)) {
+      adaptedProperties.put(HttpConfig.READ_TIMEOUT_SEC_PROPERTY, "" + httpConfig.getSocketTimeout().get(ChronoUnit.SECONDS));
+    }
+    var proxy = httpConfig.getProxy();
+    if (proxy != null) {
+      setSystemPropertyIfNotAlreadySet("http.proxyHost", ((InetSocketAddress) proxy.address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("https.proxyHost", ((InetSocketAddress) proxy.address()).getHostString());
+      setSystemPropertyIfNotAlreadySet("http.proxyPort", "" + ((InetSocketAddress) proxy.address()).getPort());
+      setSystemPropertyIfNotAlreadySet("https.proxyPort", "" + ((InetSocketAddress) proxy.address()).getPort());
+    }
+    setSystemPropertyIfNotAlreadySet("http.proxyUser", httpConfig.getProxyUser());
+    setSystemPropertyIfNotAlreadySet("http.proxyPassword", httpConfig.getProxyPassword());
+
+    var keyStore = httpConfig.getSslConfig().getKeyStore();
+    if (keyStore != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", keyStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", keyStore.getKeyStorePassword());
+    }
+    var trustStore = httpConfig.getSslConfig().getTrustStore();
+    if (trustStore != null) {
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", trustStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", trustStore.getKeyStorePassword());
+    }
+
+    return Map.copyOf(adaptedProperties);
+  }
+
+  private void setSystemPropertyIfNotAlreadySet(String key, String value) {
+    if (system.getProperty(key) == null && StringUtils.isNotBlank(value)) {
+      System.setProperty(key, value);
     }
   }
 
@@ -134,16 +180,16 @@ public class ScannerEngineBootstrapper {
     return Paths.get(sonarUserHome);
   }
 
-  private static String getServerVersion(ServerConnection serverConnection, boolean isSimulation, Map<String, String> properties) {
+  private static String getServerVersion(ScannerHttpClient scannerHttpClient, boolean isSimulation, Map<String, String> properties) {
     if (isSimulation) {
       return properties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "5.6");
     }
 
     try {
-      return serverConnection.callRestApi("/analysis/version");
+      return scannerHttpClient.callRestApi("/analysis/version");
     } catch (Exception e) {
       try {
-        return serverConnection.callWebApi("/api/server/version");
+        return scannerHttpClient.callWebApi("/api/server/version");
       } catch (Exception e2) {
         var ex = new IllegalStateException("Failed to get server version", e2);
         ex.addSuppressed(e);
@@ -154,8 +200,8 @@ public class ScannerEngineBootstrapper {
 
   private void initBootstrapDefaultValues() {
     setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, isSonarCloud(bootstrapProperties) ?
-      SONARCLOUD_REST_API : (removeTrailingSlash(bootstrapProperties.get(ScannerProperties.HOST_URL)) + "/api/v2"));
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
+      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
