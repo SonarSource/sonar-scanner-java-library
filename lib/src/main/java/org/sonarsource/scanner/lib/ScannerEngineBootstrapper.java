@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.lib;
 
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.temporal.ChronoUnit;
@@ -27,7 +28,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -121,20 +121,38 @@ public class ScannerEngineBootstrapper {
       return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
       var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, properties);
-      return new NewScannerEngineFacade(properties, launcher, isSonarCloud, serverVersion);
+      var adaptedProperties = adaptDeprecatedPropertiesForForkedBootstrapping(properties, httpConfig);
+      return new NewScannerEngineFacade(adaptedProperties, launcher, isSonarCloud, serverVersion);
     } else {
       var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
-      var adaptedProperties = adaptDeprecatedProperties(properties, httpConfig);
+      var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(properties, httpConfig);
       return new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
     }
+  }
+
+  /**
+   * New versions of SonarQube/SonarCloud will run on a separate VM. For people who used to rely on configuring SSL
+   * by inserting the trusted certificate in the Scanner JVM truststore,
+   * we need to adapt the properties to read from the truststore of the scanner JVM.
+   */
+  Map<String, String> adaptDeprecatedPropertiesForForkedBootstrapping(Map<String, String> properties, HttpConfig httpConfig) {
+    var adaptedProperties = new HashMap<>(properties);
+    if (system.getProperty("javax.net.ssl.trustStore") == null && httpConfig.getSslConfig().getTrustStore() == null) {
+      var defaultJvmTrustStoreLocation = Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts");
+      if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
+        LOG.debug("Mapping default scanner JVM truststore location '{}' to new properties", defaultJvmTrustStoreLocation);
+        adaptedProperties.put("sonar.scanner.truststorePath", defaultJvmTrustStoreLocation.toString());
+        adaptedProperties.put("sonar.scanner.truststorePassword", System.getProperty("javax.net.ssl.trustStorePassword", "changeit"));
+      }
+    }
+    return Map.copyOf(adaptedProperties);
   }
 
   /**
    * Older SonarQube versions used to rely on some different properties, or even {@link System} properties.
    * For backward compatibility, we adapt the new properties to the old format.
    */
-  @Nonnull
-  Map<String, String> adaptDeprecatedProperties(Map<String, String> properties, HttpConfig httpConfig) {
+  Map<String, String> adaptDeprecatedPropertiesForInProcessBootstrapping(Map<String, String> properties, HttpConfig httpConfig) {
     var adaptedProperties = new HashMap<>(properties);
     if (!adaptedProperties.containsKey(HttpConfig.READ_TIMEOUT_SEC_PROPERTY)) {
       adaptedProperties.put(HttpConfig.READ_TIMEOUT_SEC_PROPERTY, "" + httpConfig.getSocketTimeout().get(ChronoUnit.SECONDS));
