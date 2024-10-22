@@ -113,11 +113,11 @@ public class OkHttpClientFactory {
       sslFactoryBuilder.withSystemPropertyDerivedIdentityMaterial();
     }
     var keyStoreConfig = sslConfig.getKeyStore();
-    if (keyStoreConfig != null && Files.exists(keyStoreConfig.getPath())) {
+    if (keyStoreConfig != null) {
       sslFactoryBuilder.withIdentityMaterial(keyStoreConfig.getPath(), keyStoreConfig.getKeyStorePassword().toCharArray(), keyStoreConfig.getKeyStoreType());
     }
     var trustStoreConfig = sslConfig.getTrustStore();
-    if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
+    if (trustStoreConfig != null) {
       KeyStore trustStore = loadKeyStoreWithBouncyCastle(
         trustStoreConfig.getPath(),
         trustStoreConfig.getKeyStorePassword().toCharArray(),

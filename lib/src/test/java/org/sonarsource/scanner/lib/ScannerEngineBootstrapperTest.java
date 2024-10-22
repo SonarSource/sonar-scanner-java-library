@@ -269,7 +269,7 @@ class ScannerEngineBootstrapperTest {
 
     when(httpConfig.getSocketTimeout()).thenReturn(Duration.ofSeconds(100));
 
-    var adapted = underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+    var adapted = underTest.adaptDeprecatedPropertiesForInProcessBootstrapping(Map.of(), httpConfig);
     assertThat(adapted).containsEntry("sonar.ws.timeout", "100");
   }
 
@@ -282,7 +282,7 @@ class ScannerEngineBootstrapperTest {
 
     when(httpConfig.getProxy()).thenReturn(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("myproxy", 8080)));
 
-    underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+    underTest.adaptDeprecatedPropertiesForInProcessBootstrapping(Map.of(), httpConfig);
 
     assertThat(System.getProperties()).contains(
       entry("http.proxyHost", "myproxy"),
@@ -302,12 +302,50 @@ class ScannerEngineBootstrapperTest {
         new CertificateStore(Paths.get("some/keystore.p12"), "keystorePass"),
         new CertificateStore(Paths.get("some/truststore.p12"), "truststorePass")));
 
-    underTest.adaptDeprecatedProperties(Map.of(), httpConfig);
+    underTest.adaptDeprecatedPropertiesForInProcessBootstrapping(Map.of(), httpConfig);
 
     assertThat(System.getProperties()).contains(
       entry("javax.net.ssl.keyStore", "some/keystore.p12"),
       entry("javax.net.ssl.keyStorePassword", "keystorePass"),
       entry("javax.net.ssl.trustStore", "some/truststore.p12"),
       entry("javax.net.ssl.trustStorePassword", "truststorePass"));
+  }
+
+  @Test
+  void should_set_ssl_properties_from_cacerts() {
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+
+    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+
+    assertThat(adapted).contains(
+      entry("sonar.scanner.truststorePath", Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts").toString()),
+      entry("sonar.scanner.truststorePassword", "changeit"));
+  }
+
+  @Test
+  void should_not_set_ssl_properties_from_cacerts_if_already_set_as_scanner_props(@TempDir Path tempDir) throws IOException {
+    var cacerts = tempDir.resolve("truststore.p12");
+    Files.createFile(cacerts);
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, new CertificateStore(cacerts, "something")));
+
+    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+
+    assertThat(adapted).isEmpty();
+  }
+
+  @Test
+  void should_not_set_ssl_properties_from_cacerts_if_already_set_as_JVM_props(@TempDir Path tempDir) throws IOException {
+    var cacerts = tempDir.resolve("truststore.p12");
+    Files.createFile(cacerts);
+    var httpConfig = mock(HttpConfig.class);
+    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+
+    when(system.getProperty("javax.net.ssl.trustStore")).thenReturn(cacerts.toString());
+
+    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+
+    assertThat(adapted).isEmpty();
   }
 }

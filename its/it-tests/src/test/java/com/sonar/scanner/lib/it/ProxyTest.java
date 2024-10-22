@@ -202,23 +202,20 @@ public class ProxyTest {
     SimpleScanner scanner = new SimpleScanner();
 
     Map<String, String> params = new HashMap<>();
-    // By default no request to localhost will use proxy
-    params.put("http.nonProxyHosts", "");
-    params.put("http.proxyHost", "localhost");
-    params.put("http.proxyPort", "" + httpProxyPort);
+    params.put("sonar.scanner.proxyHost", "localhost");
+    params.put("sonar.scanner.proxyPort", "" + httpProxyPort);
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
     assertThat(buildResult.getLastStatus()).isEqualTo(1);
     assertThat(buildResult.getLogs()).contains("Error status returned by url", ": 407");
     assertThat(seenByProxy).isEmpty();
 
-    params.put("http.proxyUser", PROXY_USER);
-    params.put("http.proxyPassword", PROXY_PASSWORD);
+    params.put("sonar.scanner.proxyUser", PROXY_USER);
+    params.put("sonar.scanner.proxyPassword", PROXY_PASSWORD);
     buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
     assertThat(seenByProxy).isNotEmpty();
-    if (ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(6, 1)) {
-      assertThat(buildResult.getLastStatus()).isZero();
-    }
+    System.out.println(buildResult.getLogs());
+    assertThat(buildResult.getLastStatus()).isZero();
   }
 
 }
