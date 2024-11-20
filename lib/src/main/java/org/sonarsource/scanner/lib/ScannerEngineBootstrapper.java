@@ -42,6 +42,7 @@ import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.HttpConfig;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
+import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
@@ -170,12 +171,12 @@ public class ScannerEngineBootstrapper {
     var keyStore = httpConfig.getSslConfig().getKeyStore();
     if (keyStore != null) {
       setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", keyStore.getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", keyStore.getKeyStorePassword());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", keyStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
     }
     var trustStore = httpConfig.getSslConfig().getTrustStore();
     if (trustStore != null) {
       setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", trustStore.getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", trustStore.getKeyStorePassword());
+      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", trustStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
     }
 
     return Map.copyOf(adaptedProperties);

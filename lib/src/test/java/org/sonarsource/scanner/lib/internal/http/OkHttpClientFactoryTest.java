@@ -29,7 +29,9 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLHandshakeException;
+import nl.altindag.ssl.exception.GenericKeyStoreException;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,8 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -55,6 +59,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OkHttpClientFactoryTest {
@@ -71,6 +76,59 @@ class OkHttpClientFactoryTest {
   void prepareMocks() {
     this.sonarUserHome = sonarUserHomeDir;
     bootstrapProperties.clear();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "keystore_changeit.p12, wrong,        false",
+    "keystore_changeit.p12, changeit,     true",
+    "keystore_changeit.p12,,              true",
+    "keystore_sonar.p12,    wrong,        false",
+    "keystore_sonar.p12,    sonar,        true",
+    "keystore_sonar.p12,,                 true",
+    "keystore_anotherpwd.p12, wrong,      false",
+    "keystore_anotherpwd.p12, anotherpwd, true",
+    "keystore_anotherpwd.p12,,            false"})
+  void it_should_fail_if_invalid_truststore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
+    bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
+    if (password != null) {
+      bootstrapProperties.put("sonar.scanner.truststorePassword", password);
+    }
+
+    if (shouldSucceed) {
+      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)));
+    } else {
+      assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
+        .isInstanceOf(GenericKeyStoreException.class)
+        .hasMessageContaining("Unable to read truststore from")
+        .hasStackTraceContaining("wrong password or corrupted file");
+    }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "keystore_changeit.p12, wrong,        false",
+    "keystore_changeit.p12, changeit,     true",
+    "keystore_changeit.p12,,              true",
+    "keystore_sonar.p12,    wrong,        false",
+    "keystore_sonar.p12,    sonar,        true",
+    "keystore_sonar.p12,,                 true",
+    "keystore_anotherpwd.p12, wrong,      false",
+    "keystore_anotherpwd.p12, anotherpwd, true",
+    "keystore_anotherpwd.p12,,            false"})
+  void it_should_fail_if_invalid_keystore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
+    bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
+    if (password != null) {
+      bootstrapProperties.put("sonar.scanner.keystorePassword", password);
+    }
+
+    if (shouldSucceed) {
+      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)));
+    } else {
+      assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
+        .isInstanceOf(GenericKeyStoreException.class)
+        .hasMessageContaining("keystore password was incorrect");
+    }
   }
 
   @Nested
@@ -366,10 +424,10 @@ class OkHttpClientFactoryTest {
 
   private Response call(String url) throws IOException {
     return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)).newCall(
-        new Request.Builder()
-          .url(url)
-          .get()
-          .build())
+      new Request.Builder()
+        .url(url)
+        .get()
+        .build())
       .execute();
   }
 
