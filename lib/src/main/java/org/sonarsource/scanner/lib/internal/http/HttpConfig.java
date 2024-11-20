@@ -165,8 +165,7 @@ public class HttpConfig {
     var trustStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_TRUSTSTORE_PATH, "truststore", sonarUserHome.resolve("ssl/truststore.p12"));
     if (trustStorePath != null) {
       LOG.debug("Using truststore: {}", trustStorePath);
-      var trustStorePassword = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD), CertificateStore.DEFAULT_PASSWORD);
-      return new CertificateStore(trustStorePath, trustStorePassword);
+      return new CertificateStore(trustStorePath, bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD));
     }
     return null;
   }
@@ -176,8 +175,7 @@ public class HttpConfig {
     var keyStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_KEYSTORE_PATH, "keystore", sonarUserHome.resolve("ssl/keystore.p12"));
     if (keyStorePath != null) {
       LOG.debug("Using keystore: {}", keyStorePath);
-      var keyStorePassword = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD), CertificateStore.DEFAULT_PASSWORD);
-      return new CertificateStore(keyStorePath, keyStorePassword);
+      return new CertificateStore(keyStorePath, bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD));
     }
     return null;
   }
