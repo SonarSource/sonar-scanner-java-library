@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>77.0.0.2082</version>
+    <version>82.0.0.2314</version>
   </parent>
 
   <groupId>org.sonarsource.scanner.lib</groupId>
@@ -49,6 +49,7 @@
 
   <properties>
     <maven.compiler.release>11</maven.compiler.release>
+    <license.name>GNU LGPL v3</license.name>
 
     <!-- used for deployment to SonarSource Artifactory -->
     <gitRepositoryName>sonar-scanner-java-library</gitRepositoryName>
@@ -129,29 +130,6 @@
   </dependencyManagement>
 
   <profiles>
-    <profile>
-      <id>release</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.1.0</version>
-            <configuration>
-              <source>8</source>
-            </configuration>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
     <profile>
       <id>its</id>
       <modules>
