@@ -39,6 +39,7 @@ import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_CONNECT_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
@@ -79,6 +80,7 @@ public class HttpConfig {
   private final String proxyUser;
   private final String proxyPassword;
   private final String userAgent;
+  private final boolean skipSystemTrustMaterial;
 
   public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
     this.webApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/");
@@ -94,6 +96,7 @@ public class HttpConfig {
     this.proxy = loadProxy(bootstrapProperties);
     this.proxyUser = loadProxyUser(bootstrapProperties);
     this.proxyPassword = loadProxyPassword(bootstrapProperties);
+    this.skipSystemTrustMaterial = Boolean.parseBoolean(defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE), "false"));
   }
 
   private static String loadProxyPassword(Map<String, String> bootstrapProperties) {
@@ -248,5 +251,9 @@ public class HttpConfig {
 
   public String getProxyPassword() {
     return proxyPassword;
+  }
+
+  public boolean skipSystemTruststore() {
+    return skipSystemTrustMaterial;
   }
 }
