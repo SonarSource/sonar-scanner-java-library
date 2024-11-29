@@ -104,19 +104,19 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>3.9.1</version>
+      <version>3.9.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit-pioneer</groupId>
       <artifactId>junit-pioneer</artifactId>
-      <version>2.2.0</version>
+      <version>2.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.5.8</version>
+      <version>1.5.12</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
