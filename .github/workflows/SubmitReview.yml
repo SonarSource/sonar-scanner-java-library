@@ -8,7 +8,6 @@ jobs:
   SubmitReview_job:
     name: Submit Review
     runs-on: ubuntu-latest
-    environment: jira
     permissions:
       id-token: write
       pull-requests: read

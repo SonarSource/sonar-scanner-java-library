@@ -8,7 +8,6 @@ jobs:
   PullRequestMerged_job:
     name: Pull Request Merged
     runs-on: ubuntu-latest
-    environment: jira
     permissions:
       id-token: write
       pull-requests: read
