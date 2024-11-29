@@ -45,6 +45,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
+import org.slf4j.event.Level;
+import testutils.LogTester;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -67,6 +69,9 @@ class OkHttpClientFactoryTest {
   private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
   private final Map<String, String> bootstrapProperties = new HashMap<>();
+
+  @RegisterExtension
+  private LogTester logTester = new LogTester();
 
   @TempDir
   private Path sonarUserHomeDir;
@@ -129,6 +134,25 @@ class OkHttpClientFactoryTest {
         .isInstanceOf(GenericKeyStoreException.class)
         .hasMessageContaining("keystore password was incorrect");
     }
+  }
+
+  @Test
+  void should_load_os_certificates_by_default() {
+    logTester.setLevel(Level.DEBUG);
+
+    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome));
+
+    assertThat(logTester.logs(Level.DEBUG)).contains("Loading OS trusted SSL certificates...");
+  }
+
+  @Test
+  void should_skip_load_of_os_certificates_if_props_set() {
+    logTester.setLevel(Level.DEBUG);
+    bootstrapProperties.put("sonar.scanner.skipSystemTruststore", "true");
+
+    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome));
+
+    assertThat(logTester.logs(Level.DEBUG)).doesNotContain("Loading OS trusted SSL certificates...");
   }
 
   @Nested

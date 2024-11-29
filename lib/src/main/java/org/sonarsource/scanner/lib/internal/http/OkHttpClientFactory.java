@@ -50,6 +50,7 @@ import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 
 public class OkHttpClientFactory {
 
@@ -72,7 +73,7 @@ public class OkHttpClientFactory {
 
   static OkHttpClient create(HttpConfig httpConfig) {
 
-    var sslContext = configureSsl(httpConfig.getSslConfig());
+    var sslContext = configureSsl(httpConfig.getSslConfig(), httpConfig.skipSystemTruststore());
 
     OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
       .connectTimeout(httpConfig.getConnectTimeout().toMillis(), TimeUnit.MILLISECONDS)
@@ -112,10 +113,14 @@ public class OkHttpClientFactory {
     return okHttpClientBuilder.build();
   }
 
-  private static SSLFactory configureSsl(SslConfig sslConfig) {
+  private static SSLFactory configureSsl(SslConfig sslConfig, boolean skipSystemTrustMaterial) {
     var sslFactoryBuilder = SSLFactory.builder()
-      .withDefaultTrustMaterial()
-      .withSystemTrustMaterial();
+      .withDefaultTrustMaterial();
+    if (!skipSystemTrustMaterial) {
+      LOG.debug("Loading OS trusted SSL certificates...");
+      LOG.debug("This operation might be slow or even get stuck. You can skip it by passing the scanner property '{}=true'", SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE);
+      sslFactoryBuilder.withSystemTrustMaterial();
+    }
     if (System.getProperties().containsKey("javax.net.ssl.keyStore")) {
       sslFactoryBuilder.withSystemPropertyDerivedIdentityMaterial();
     }
