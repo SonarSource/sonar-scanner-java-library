@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -78,6 +79,8 @@ public class IsolatedLauncherFactory {
       tempCleaning.clean();
 
       return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::isCacheHit));
+    } catch (IllegalStateException e) {
+      throw new ScannerException("Unable to execute SonarScanner analysis: " + Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
     } catch (Exception e) {
       // Catch all other exceptions, which relates to reflection
       throw new ScannerException("Unable to execute SonarScanner analysis", e);

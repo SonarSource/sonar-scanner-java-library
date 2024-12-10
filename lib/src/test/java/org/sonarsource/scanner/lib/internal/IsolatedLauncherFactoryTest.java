@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
+import java.net.ConnectException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -27,8 +28,9 @@ import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.batch.LogOutput;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class IsolatedLauncherFactoryTest {
   IsolatedLauncherFactory factory;
@@ -37,7 +39,7 @@ class IsolatedLauncherFactoryTest {
   LegacyScannerEngineDownloader legacyScannerEngineDownloader;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     tempCleaning = mock(TempCleaning.class);
     factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning);
     props = new Properties();
@@ -46,10 +48,19 @@ class IsolatedLauncherFactoryTest {
 
   @Test
   void should_use_isolated_classloader() {
-    var rules = new ClassloadRules(new HashSet<String>(), new HashSet<String>());
-    assertThrows(ScannerException.class, () -> {
-      factory.createLauncher(legacyScannerEngineDownloader, rules);
-    });
+    var rules = new ClassloadRules(new HashSet<>(), new HashSet<>());
+    assertThatThrownBy(() -> factory.createLauncher(legacyScannerEngineDownloader, rules))
+      .isInstanceOf(ScannerException.class);
+  }
+
+  @Test
+  void should_omit_connection_error_exceptions_and_return_error_message() {
+    when(legacyScannerEngineDownloader.getOrDownload()).thenThrow(
+      new IllegalStateException("Fail to get bootstrap index from server", new ConnectException("Failed to connect to localhost/127.0.0.1:9000"))
+    );
+    assertThatThrownBy(() -> factory.createLauncher(legacyScannerEngineDownloader, new ClassloadRules(new HashSet<>(), new HashSet<>())))
+      .isInstanceOf(ScannerException.class)
+      .hasMessage("Unable to execute SonarScanner analysis: Failed to connect to localhost/127.0.0.1:9000");
   }
 
   public static class FakeIsolatedLauncher implements IsolatedLauncher {
