@@ -43,12 +43,12 @@ public class ScannerHttpClient {
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
 
-  private OkHttpClient httpClient;
+  private OkHttpClient sharedHttpClient;
   private HttpConfig httpConfig;
 
   public void init(HttpConfig httpConfig) {
     this.httpConfig = httpConfig;
-    this.httpClient = OkHttpClientFactory.create(httpConfig);
+    this.sharedHttpClient = OkHttpClientFactory.create(httpConfig);
   }
 
 
@@ -82,9 +82,6 @@ public class ScannerHttpClient {
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
   private void downloadFile(String url, Path toFile, boolean authentication) throws IOException {
-    if (httpClient == null) {
-      throw new IllegalStateException("ServerConnection must be initialized");
-    }
     LOG.debug("Download {} to {}", url, toFile.toAbsolutePath());
 
     try (ResponseBody responseBody = callUrl(url, authentication, "application/octet-stream");
@@ -120,9 +117,6 @@ public class ScannerHttpClient {
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
   private String callApi(String url) throws IOException {
-    if (httpClient == null) {
-      throw new IllegalStateException("ServerConnection must be initialized");
-    }
     try (ResponseBody responseBody = callUrl(url, true, null)) {
       return responseBody.string();
     }
@@ -137,21 +131,8 @@ public class ScannerHttpClient {
    * @throws IllegalStateException if HTTP code is different than 2xx
    */
   private ResponseBody callUrl(String url, boolean authentication, @Nullable String acceptHeader) {
-    var requestBuilder = new Request.Builder()
-      .get()
-      .url(url)
-      .addHeader("User-Agent", httpConfig.getUserAgent());
-    if (authentication) {
-      if (httpConfig.getToken() != null) {
-        requestBuilder.header("Authorization", "Bearer " + httpConfig.getToken());
-      } else if (httpConfig.getLogin() != null) {
-        requestBuilder.header("Authorization", Credentials.basic(httpConfig.getLogin(), httpConfig.getPassword() != null ? httpConfig.getPassword() : ""));
-      }
-    }
-    if (acceptHeader != null) {
-      requestBuilder.header("Accept", acceptHeader);
-    }
-    Request request = requestBuilder.build();
+    var httpClient = buildHttpClient(authentication);
+    var request = prepareRequest(url, acceptHeader);
     Response response;
     try {
       response = httpClient.newCall(request).execute();
@@ -163,5 +144,38 @@ public class ScannerHttpClient {
       throw new IllegalStateException(format("Error status returned by url [%s]: %s", response.request().url(), response.code()));
     }
     return response.body();
+  }
+
+  private Request prepareRequest(String url, @org.jetbrains.annotations.Nullable String acceptHeader) {
+    var requestBuilder = new Request.Builder()
+      .get()
+      .url(url)
+      .addHeader("User-Agent", httpConfig.getUserAgent());
+    if (acceptHeader != null) {
+      requestBuilder.header("Accept", acceptHeader);
+    }
+    return requestBuilder.build();
+  }
+
+  private OkHttpClient buildHttpClient(boolean authentication) {
+    if (authentication) {
+      return sharedHttpClient.newBuilder()
+        .addNetworkInterceptor(chain -> {
+          Request request = chain.request();
+          if (httpConfig.getToken() != null) {
+            request = request.newBuilder()
+              .header("Authorization", "Bearer " + httpConfig.getToken())
+              .build();
+          } else if (httpConfig.getLogin() != null) {
+            request = request.newBuilder()
+              .header("Authorization", Credentials.basic(httpConfig.getLogin(), httpConfig.getPassword() != null ? httpConfig.getPassword() : ""))
+              .build();
+          }
+          return chain.proceed(request);
+        })
+        .build();
+    } else {
+      return sharedHttpClient;
+    }
   }
 }

@@ -29,6 +29,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 
@@ -48,6 +50,11 @@ class ScannerHttpClientTest {
 
   @RegisterExtension
   static WireMockExtension sonarqube = WireMockExtension.newInstance()
+    .options(wireMockConfig().dynamicPort())
+    .build();
+
+  @RegisterExtension
+  static WireMockExtension redirectProxy = WireMockExtension.newInstance()
     .options(wireMockConfig().dynamicPort())
     .build();
 
@@ -166,6 +173,28 @@ class ScannerHttpClientTest {
 
     sonarqube.verify(getRequestedFor(anyUrl())
       .withoutHeader("Authorization"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {301, 302, 303, 307, 308})
+  void should_follow_redirects_and_preserve_authentication(int code) throws Exception {
+    Map<String, String> props = new HashMap<>();
+    props.put("sonar.login", "some_username");
+    props.put("sonar.password", "some_password");
+    ScannerHttpClient connection = create(redirectProxy.baseUrl(), props);
+
+    redirectProxy.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse()
+        .withHeader("Location", sonarqube.baseUrl() + "/batch/index.txt")
+        .withStatus(code)));
+
+    answer(HELLO_WORLD);
+    String content = connection.callWebApi("/batch/index.txt");
+    assertThat(content).isEqualTo(HELLO_WORLD);
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("Authorization",
+        equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
   }
 
   private ScannerHttpClient create() {
