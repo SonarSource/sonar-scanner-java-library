@@ -312,40 +312,64 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
-  void should_set_ssl_properties_from_cacerts() {
-    var httpConfig = mock(HttpConfig.class);
-    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+  void should_set_ssl_properties_from_default_jvm_location() {
+    Map<String, String> properties = new HashMap<>();
 
-    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+    ScannerEngineBootstrapper.adaptJvmSslPropertiesToScannerProperties(properties, system);
 
-    assertThat(adapted).contains(
+    assertThat(properties).contains(
       entry("sonar.scanner.truststorePath", Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts").toString()),
       entry("sonar.scanner.truststorePassword", "changeit"));
   }
 
   @Test
-  void should_not_set_ssl_properties_from_cacerts_if_already_set_as_scanner_props(@TempDir Path tempDir) throws IOException {
-    var cacerts = tempDir.resolve("truststore.p12");
-    Files.createFile(cacerts);
-    var httpConfig = mock(HttpConfig.class);
-    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, new CertificateStore(cacerts, "something")));
+  void should_set_ssl_properties_from_jvm_system_properties(@TempDir Path tempDir) throws IOException {
+    var jvmTruststore = tempDir.resolve("jvmTrust.p12");
+    Files.createFile(jvmTruststore);
+    var jvmKeyStore = tempDir.resolve("jvmKey.p12");
+    Files.createFile(jvmKeyStore);
+    when(system.getProperty("javax.net.ssl.trustStore")).thenReturn(jvmTruststore.toString());
+    when(system.getProperty("javax.net.ssl.trustStorePassword")).thenReturn("jvmTrustPassword");
+    when(system.getProperty("javax.net.ssl.keyStore")).thenReturn(jvmKeyStore.toString());
+    when(system.getProperty("javax.net.ssl.keyStorePassword")).thenReturn("jvmKeyPassword");
 
-    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+    Map<String, String> properties = new HashMap<>();
 
-    assertThat(adapted).isEmpty();
+    ScannerEngineBootstrapper.adaptJvmSslPropertiesToScannerProperties(properties, system);
+
+    assertThat(properties).containsOnly(
+      entry("sonar.scanner.truststorePath", jvmTruststore.toString()),
+      entry("sonar.scanner.truststorePassword", "jvmTrustPassword"),
+      entry("sonar.scanner.keystorePath", jvmKeyStore.toString()),
+      entry("sonar.scanner.keystorePassword", "jvmKeyPassword"));
   }
 
   @Test
-  void should_not_set_ssl_properties_from_cacerts_if_already_set_as_JVM_props(@TempDir Path tempDir) throws IOException {
-    var cacerts = tempDir.resolve("truststore.p12");
-    Files.createFile(cacerts);
-    var httpConfig = mock(HttpConfig.class);
-    when(httpConfig.getSslConfig()).thenReturn(new SslConfig(null, null));
+  void should_not_change_ssl_properties_if_already_set_as_scanner_props(@TempDir Path tempDir) throws IOException {
+    var jvmTruststore = tempDir.resolve("jvmTrust.p12");
+    Files.createFile(jvmTruststore);
+    var jvmKeyStore = tempDir.resolve("jvmKey.p12");
+    Files.createFile(jvmKeyStore);
+    when(system.getProperty("javax.net.ssl.trustStore")).thenReturn(jvmTruststore.toString());
+    when(system.getProperty("javax.net.ssl.trustStorePassword")).thenReturn("jvmTrustPassword");
+    when(system.getProperty("javax.net.ssl.keyStore")).thenReturn(jvmKeyStore.toString());
+    when(system.getProperty("javax.net.ssl.keyStorePassword")).thenReturn("jvmKeyPassword");
 
-    when(system.getProperty("javax.net.ssl.trustStore")).thenReturn(cacerts.toString());
+    var scannerTruststore = tempDir.resolve("truststore.p12");
+    Files.createFile(scannerTruststore);
+    var scannerKeystore = tempDir.resolve("keystore.p12");
+    Files.createFile(scannerKeystore);
 
-    var adapted = underTest.adaptDeprecatedPropertiesForForkedBootstrapping(Map.of(), httpConfig);
+    var properties = Map.of("sonar.scanner.truststorePath", scannerTruststore.toString(),
+      "sonar.scanner.truststorePassword", "scannerTrustPassword",
+      "sonar.scanner.keystorePath", scannerTruststore.toString(),
+      "sonar.scanner.keystorePassword", "scannerKeyPassword");
 
-    assertThat(adapted).isEmpty();
+    var mutableProps = new HashMap<>(properties);
+
+    ScannerEngineBootstrapper.adaptJvmSslPropertiesToScannerProperties(mutableProps, system);
+
+    assertThat(mutableProps).containsExactlyInAnyOrderEntriesOf(properties);
   }
+
 }

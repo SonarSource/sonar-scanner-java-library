@@ -45,8 +45,13 @@ import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
+import static java.util.Optional.ofNullable;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -58,6 +63,10 @@ public class ScannerEngineBootstrapper {
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private static final String SONARCLOUD_REST_API = "https://api.sonarcloud.io";
   static final String SQ_VERSION_NEW_BOOTSTRAPPING = "10.6";
+  private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
+  private static final String JAVAX_NET_SSL_TRUST_STORE_PASSWORD = "javax.net.ssl.trustStorePassword";
+  private static final String JAVAX_NET_SSL_KEY_STORE = "javax.net.ssl.keyStore";
+  private static final String JAVAX_NET_SSL_KEY_STORE_PASSWORD = "javax.net.ssl.keyStorePassword";
 
   private final IsolatedLauncherFactory launcherFactory;
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory;
@@ -106,48 +115,31 @@ public class ScannerEngineBootstrapper {
       LOG.debug("Scanner max available memory: {}", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
     }
     initBootstrapDefaultValues();
-    var properties = Map.copyOf(bootstrapProperties);
-    var isSonarCloud = isSonarCloud(properties);
-    var isSimulation = properties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
-    var sonarUserHome = resolveSonarUserHome(properties);
+    adaptJvmSslPropertiesToScannerProperties(bootstrapProperties, system);
+    var immutableProperties = Map.copyOf(bootstrapProperties);
+    var isSonarCloud = isSonarCloud(immutableProperties);
+    var isSimulation = immutableProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
+    var sonarUserHome = resolveSonarUserHome(immutableProperties);
     var fileCache = FileCache.create(sonarUserHome);
-    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome);
+    var httpConfig = new HttpConfig(immutableProperties, sonarUserHome);
     scannerHttpClient.init(httpConfig);
     String serverVersion = null;
     if (!isSonarCloud) {
-      serverVersion = getServerVersion(scannerHttpClient, isSimulation, properties);
+      serverVersion = getServerVersion(scannerHttpClient, isSimulation, immutableProperties);
     }
 
     if (isSimulation) {
-      return new SimulationScannerEngineFacade(properties, isSonarCloud, serverVersion);
+      return new SimulationScannerEngineFacade(immutableProperties, isSonarCloud, serverVersion);
     } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, properties);
-      var adaptedProperties = adaptDeprecatedPropertiesForForkedBootstrapping(properties, httpConfig);
-      return new NewScannerEngineFacade(adaptedProperties, launcher, isSonarCloud, serverVersion);
+      var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
+      return new NewScannerEngineFacade(immutableProperties, launcher, isSonarCloud, serverVersion);
     } else {
       var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
-      var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(properties, httpConfig);
+      var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
       return new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
     }
   }
 
-  /**
-   * New versions of SonarQube/SonarCloud will run on a separate VM. For people who used to rely on configuring SSL
-   * by inserting the trusted certificate in the Scanner JVM truststore,
-   * we need to adapt the properties to read from the truststore of the scanner JVM.
-   */
-  Map<String, String> adaptDeprecatedPropertiesForForkedBootstrapping(Map<String, String> properties, HttpConfig httpConfig) {
-    var adaptedProperties = new HashMap<>(properties);
-    if (system.getProperty("javax.net.ssl.trustStore") == null && httpConfig.getSslConfig().getTrustStore() == null) {
-      var defaultJvmTrustStoreLocation = Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts");
-      if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
-        LOG.debug("Mapping default scanner JVM truststore location '{}' to new properties", defaultJvmTrustStoreLocation);
-        adaptedProperties.put("sonar.scanner.truststorePath", defaultJvmTrustStoreLocation.toString());
-        adaptedProperties.put("sonar.scanner.truststorePassword", System.getProperty("javax.net.ssl.trustStorePassword", "changeit"));
-      }
-    }
-    return Map.copyOf(adaptedProperties);
-  }
 
   /**
    * Older SonarQube versions used to rely on some different properties, or even {@link System} properties.
@@ -170,13 +162,13 @@ public class ScannerEngineBootstrapper {
 
     var keyStore = httpConfig.getSslConfig().getKeyStore();
     if (keyStore != null) {
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStore", keyStore.getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.keyStorePassword", keyStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
+      setSystemPropertyIfNotAlreadySet(JAVAX_NET_SSL_KEY_STORE, keyStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet(JAVAX_NET_SSL_KEY_STORE_PASSWORD, keyStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
     }
     var trustStore = httpConfig.getSslConfig().getTrustStore();
     if (trustStore != null) {
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStore", trustStore.getPath().toString());
-      setSystemPropertyIfNotAlreadySet("javax.net.ssl.trustStorePassword", trustStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
+      setSystemPropertyIfNotAlreadySet(JAVAX_NET_SSL_TRUST_STORE, trustStore.getPath().toString());
+      setSystemPropertyIfNotAlreadySet(JAVAX_NET_SSL_TRUST_STORE_PASSWORD, trustStore.getKeyStorePassword().orElse(CertificateStore.DEFAULT_PASSWORD));
     }
 
     return Map.copyOf(adaptedProperties);
@@ -226,6 +218,37 @@ public class ScannerEngineBootstrapper {
     }
     if (!bootstrapProperties.containsKey(SCANNER_ARCH)) {
       setBootstrapProperty(SCANNER_ARCH, new ArchResolver().getCpuArch());
+    }
+  }
+
+  /**
+   * New versions of SonarQube/SonarCloud will run on a separate VM. For people who used to rely on configuring SSL
+   * by inserting the trusted certificate in the Scanner JVM truststore, or passing JVM SSL properties
+   * we need to adapt the properties, at least temporarily, until we have helped most users to migrate.
+   */
+  static void adaptJvmSslPropertiesToScannerProperties(Map<String, String> bootstrapProperties, System2 system) {
+    if (!bootstrapProperties.containsKey(SONAR_SCANNER_TRUSTSTORE_PATH)) {
+      var jvmTrustStoreProp = system.getProperty(JAVAX_NET_SSL_TRUST_STORE);
+      if (StringUtils.isBlank(jvmTrustStoreProp)) {
+        var defaultJvmTrustStoreLocation = Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts");
+        if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
+          LOG.debug("Mapping default scanner JVM truststore location '{}' to new properties", defaultJvmTrustStoreLocation);
+          bootstrapProperties.put(SONAR_SCANNER_TRUSTSTORE_PATH, defaultJvmTrustStoreLocation.toString());
+          bootstrapProperties.putIfAbsent(SONAR_SCANNER_TRUSTSTORE_PASSWORD, System.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD, "changeit"));
+        }
+      } else {
+        bootstrapProperties.putIfAbsent(SONAR_SCANNER_TRUSTSTORE_PATH, jvmTrustStoreProp);
+        ofNullable(system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD))
+          .ifPresent(password -> bootstrapProperties.putIfAbsent(SONAR_SCANNER_TRUSTSTORE_PASSWORD, password));
+      }
+    }
+    if (!bootstrapProperties.containsKey(SONAR_SCANNER_KEYSTORE_PATH)) {
+      var keystoreProp = system.getProperty(JAVAX_NET_SSL_KEY_STORE);
+      if (!StringUtils.isBlank(keystoreProp)) {
+        bootstrapProperties.put(SONAR_SCANNER_KEYSTORE_PATH, keystoreProp);
+        ofNullable(system.getProperty(JAVAX_NET_SSL_KEY_STORE_PASSWORD))
+          .ifPresent(password -> bootstrapProperties.putIfAbsent(SONAR_SCANNER_KEYSTORE_PASSWORD, password));
+      }
     }
   }
 
