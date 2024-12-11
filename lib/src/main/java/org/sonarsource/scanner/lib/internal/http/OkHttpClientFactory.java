@@ -121,18 +121,15 @@ public class OkHttpClientFactory {
       LOG.debug("This operation might be slow or even get stuck. You can skip it by passing the scanner property '{}=true'", SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE);
       sslFactoryBuilder.withSystemTrustMaterial();
     }
-    if (System.getProperties().containsKey("javax.net.ssl.keyStore")) {
-      sslFactoryBuilder.withSystemPropertyDerivedIdentityMaterial();
-    }
     var keyStoreConfig = sslConfig.getKeyStore();
-    if (keyStoreConfig != null && Files.exists(keyStoreConfig.getPath())) {
+    if (keyStoreConfig != null) {
       keyStoreConfig.getKeyStorePassword()
         .ifPresentOrElse(
           password -> sslFactoryBuilder.withIdentityMaterial(keyStoreConfig.getPath(), password.toCharArray(), keyStoreConfig.getKeyStoreType()),
           () -> loadIdentityMaterialWithDefaultPassword(sslFactoryBuilder, keyStoreConfig.getPath()));
     }
     var trustStoreConfig = sslConfig.getTrustStore();
-    if (trustStoreConfig != null && Files.exists(trustStoreConfig.getPath())) {
+    if (trustStoreConfig != null) {
       KeyStore trustStore;
       try {
         trustStore = loadTrustStoreWithBouncyCastle(
