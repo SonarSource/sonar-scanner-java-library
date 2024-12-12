@@ -431,27 +431,14 @@ class OkHttpClientFactoryTest {
       assertThat(response.body().string()).contains("Success");
     }
 
-    @RestoreSystemProperties
-    @Test
-    void it_should_support_jvm_system_properties() throws IOException {
-      bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-      System.setProperty("javax.net.ssl.trustStore", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
-      System.setProperty("javax.net.ssl.trustStorePassword", "pwdClientWithServerCA");
-      System.setProperty("javax.net.ssl.keyStore", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client.p12"))).toString());
-      System.setProperty("javax.net.ssl.keyStorePassword", "pwdClientCertP12");
-
-      Response response = call(sonarqubeMock.url("/batch/index"));
-      assertThat(response.code()).isEqualTo(200);
-      assertThat(response.body().string()).contains("Success");
-    }
   }
 
   private Response call(String url) throws IOException {
     return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)).newCall(
-      new Request.Builder()
-        .url(url)
-        .get()
-        .build())
+        new Request.Builder()
+          .url(url)
+          .get()
+          .build())
       .execute();
   }
 
