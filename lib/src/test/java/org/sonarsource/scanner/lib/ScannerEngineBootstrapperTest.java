@@ -43,6 +43,7 @@ import org.sonarsource.scanner.lib.internal.http.HttpConfig;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
+import org.sonarsource.scanner.lib.internal.util.System2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

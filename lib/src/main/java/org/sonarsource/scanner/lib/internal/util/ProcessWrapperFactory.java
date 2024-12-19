@@ -17,16 +17,32 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.util;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
+import java.io.InputStream;
 
-/**
- * A proxy class for {@link java.nio.file.Paths} (for mocking).
- */
-public class Paths2 {
-  public Path get(String first, String... more) {
-    return Paths.get(first, more);
+public class ProcessWrapperFactory {
+
+  public ProcessWrapper create(String... command) throws IOException {
+    return new ProcessWrapper(new ProcessBuilder()
+      .command(command)
+      .start());
+  }
+
+  public static class ProcessWrapper {
+    private final Process process;
+
+    public ProcessWrapper(Process process) {
+      this.process = process;
+    }
+
+    public InputStream getInputStream() {
+      return process.getInputStream();
+    }
+
+    public int waitFor() throws InterruptedException {
+      return process.waitFor();
+    }
   }
 }

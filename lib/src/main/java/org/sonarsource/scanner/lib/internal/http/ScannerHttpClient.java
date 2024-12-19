@@ -32,7 +32,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.Utils;
+import org.sonarsource.scanner.lib.internal.util.Utils;
 
 import static java.lang.String.format;
 

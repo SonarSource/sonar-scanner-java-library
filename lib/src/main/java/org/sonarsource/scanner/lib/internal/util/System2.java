@@ -17,32 +17,22 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.util;
 
-import java.io.IOException;
-import java.io.InputStream;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
-public class ProcessWrapperFactory {
-
-  public ProcessWrapper create(String... command) throws IOException {
-    return new ProcessWrapper(new ProcessBuilder()
-      .command(command)
-      .start());
+/**
+ * A proxy class for {@link java.lang.System} (for mocking).
+ */
+public class System2 {
+  @CheckForNull
+  public String getEnvironmentVariable(@Nonnull String key) {
+    return System.getenv(key);
   }
 
-  public static class ProcessWrapper {
-    private final Process process;
-
-    public ProcessWrapper(Process process) {
-      this.process = process;
-    }
-
-    public InputStream getInputStream() {
-      return process.getInputStream();
-    }
-
-    public int waitFor() throws InterruptedException {
-      return process.waitFor();
-    }
+  @CheckForNull
+  public String getProperty(@Nonnull String key) {
+    return System.getProperty(key);
   }
 }

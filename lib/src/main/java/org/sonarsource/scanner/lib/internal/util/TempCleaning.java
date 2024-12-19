@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.util;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,13 +26,13 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.Utils;
+import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
 
 /**
  * The file sonar-runner-batch.jar is locked by the classloader on Windows and can't be dropped at the end of the execution.
  * See {@link IsolatedLauncherFactory}
  */
-class TempCleaning {
+public class TempCleaning {
 
   private static final Logger LOG = LoggerFactory.getLogger(TempCleaning.class);
 
@@ -40,7 +40,7 @@ class TempCleaning {
 
   final Path tempDir;
 
-  TempCleaning() {
+  public TempCleaning() {
     this(Paths.get(System.getProperty("java.io.tmpdir")));
   }
 
@@ -51,7 +51,7 @@ class TempCleaning {
     this.tempDir = tempDir;
   }
 
-  void clean() {
+  public void clean() {
     LOG.debug("Start temp cleaning...");
     long cutoff = System.currentTimeMillis() - ONE_DAY_IN_MILLISECONDS;
 

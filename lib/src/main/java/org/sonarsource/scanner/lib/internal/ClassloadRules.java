@@ -19,11 +19,10 @@
  */
 package org.sonarsource.scanner.lib.internal;
 
-import javax.annotation.concurrent.Immutable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class ClassloadRules {

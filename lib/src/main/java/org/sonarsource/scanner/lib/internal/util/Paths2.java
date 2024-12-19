@@ -17,22 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.util;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
- * A proxy class for {@link java.lang.System} (for mocking).
+ * A proxy class for {@link java.nio.file.Paths} (for mocking).
  */
-public class System2 {
-  @CheckForNull
-  public String getEnvironmentVariable(@Nonnull String key) {
-    return System.getenv(key);
-  }
-
-  @CheckForNull
-  public String getProperty(@Nonnull String key) {
-    return System.getProperty(key);
+public class Paths2 {
+  public Path get(String first, String... more) {
+    return Paths.get(first, more);
   }
 }

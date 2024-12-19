@@ -17,20 +17,43 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.util;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ProcessWrapperFactoryTest {
+class UtilsTest {
 
   @Test
-  void create() throws IOException, InterruptedException {
-    ProcessWrapperFactory.ProcessWrapper process = new ProcessWrapperFactory().create("java", "--version");
-    assertThat(process.getInputStream()).asString(StandardCharsets.UTF_8).isNotNull();
-    assertThat(process.waitFor()).isZero();
+  void delete_non_empty_directory(@TempDir Path tmp) throws IOException {
+    /*-
+     * Create test structure:
+     * tmp
+     *   |-folder1
+     *        |- file1
+     *        |- folder2
+     *             |- file2
+     */
+    Path tmpDir = Files.createTempDirectory(tmp, "junit");
+    Path folder1 = tmpDir.resolve("folder1");
+    Files.createDirectories(folder1);
+    Path file1 = folder1.resolve("file1");
+    Files.write(file1, "test1".getBytes());
+
+    Path folder2 = folder1.resolve("folder2");
+    Files.createDirectories(folder2);
+    Path file2 = folder1.resolve("file2");
+    Files.write(file2, "test2".getBytes());
+
+    // delete it
+    assertThat(tmpDir.toFile()).exists();
+    Utils.deleteQuietly(tmpDir);
+    assertThat(tmpDir.toFile()).doesNotExist();
   }
+
 }

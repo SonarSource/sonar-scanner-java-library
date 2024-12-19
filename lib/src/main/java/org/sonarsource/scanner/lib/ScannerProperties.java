@@ -19,6 +19,8 @@
  */
 package org.sonarsource.scanner.lib;
 
+import org.sonarsource.scanner.lib.internal.util.OsResolver;
+
 /**
  * Properties used by the scanner bootstrapper.
  * See <a href="https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/analysis-parameters/">documentation</a>
@@ -102,7 +104,7 @@ public final class ScannerProperties {
 
   /**
    * Name of the operating system to be used for JRE provisioning.
-   * See {@link org.sonarsource.scanner.lib.internal.OsResolver.OperatingSystem} for possible values.
+   * See {@link OsResolver.OperatingSystem} for possible values.
    */
   public static final String SCANNER_OS = "sonar.scanner.os";
 
