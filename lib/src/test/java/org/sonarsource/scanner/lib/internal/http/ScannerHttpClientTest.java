@@ -40,7 +40,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -104,14 +103,14 @@ class ScannerHttpClientTest {
   }
 
   @Test
-  void should_throw_ISE_if_response_not_successful(@TempDir Path tmpFolder) {
+  void should_throw_HttpException_if_response_not_successful(@TempDir Path tmpFolder) {
     var toFile = tmpFolder.resolve("index.txt");
-    answer(HELLO_WORLD, 400);
+    answer(HELLO_WORLD, 403);
 
     ScannerHttpClient underTest = create();
     assertThatThrownBy(() -> underTest.downloadFromWebApi("/batch/index.txt", toFile))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessage(format("Error status returned by url [http://%s:%d/batch/index.txt]: 400", "localhost", sonarqube.getPort()));
+      .isInstanceOf(HttpException.class)
+      .hasMessage("Forbidden");
   }
 
   @Test

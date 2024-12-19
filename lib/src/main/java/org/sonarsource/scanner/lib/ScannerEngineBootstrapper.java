@@ -33,16 +33,23 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.internal.ArchResolver;
+import org.sonarsource.scanner.lib.internal.FailedBootstrap;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.lib.internal.OsResolver;
-import org.sonarsource.scanner.lib.internal.Paths2;
-import org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory;
+import org.sonarsource.scanner.lib.internal.SuccessfulBootstrap;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.facade.forked.NewScannerEngineFacade;
+import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
+import org.sonarsource.scanner.lib.internal.facade.inprocess.InProcessScannerEngineFacade;
+import org.sonarsource.scanner.lib.internal.facade.inprocess.IsolatedLauncherFactory;
+import org.sonarsource.scanner.lib.internal.facade.simulation.SimulationScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.http.HttpConfig;
+import org.sonarsource.scanner.lib.internal.http.HttpException;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
+import org.sonarsource.scanner.lib.internal.util.ArchResolver;
+import org.sonarsource.scanner.lib.internal.util.OsResolver;
+import org.sonarsource.scanner.lib.internal.util.Paths2;
+import org.sonarsource.scanner.lib.internal.util.System2;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static java.util.Optional.ofNullable;
@@ -107,10 +114,7 @@ public class ScannerEngineBootstrapper {
     return this;
   }
 
-  /**
-   * Bootstrap the scanner-engine.
-   */
-  public ScannerEngineFacade bootstrap() {
+  public ScannerEngineBootstrapResult bootstrap() {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Scanner max available memory: {}", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
     }
@@ -121,22 +125,52 @@ public class ScannerEngineBootstrapper {
     var isSimulation = immutableProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var sonarUserHome = resolveSonarUserHome(immutableProperties);
     var fileCache = FileCache.create(sonarUserHome);
-    var httpConfig = new HttpConfig(immutableProperties, sonarUserHome);
-    scannerHttpClient.init(httpConfig);
-    String serverVersion = null;
-    if (!isSonarCloud) {
-      serverVersion = getServerVersion(scannerHttpClient, isSimulation, immutableProperties);
-    }
 
     if (isSimulation) {
-      return new SimulationScannerEngineFacade(immutableProperties, isSonarCloud, serverVersion);
-    } else if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
-      return new NewScannerEngineFacade(immutableProperties, launcher, isSonarCloud, serverVersion);
+      var serverVersion = immutableProperties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "9.9");
+      return new SuccessfulBootstrap(new SimulationScannerEngineFacade(immutableProperties, isSonarCloud, serverVersion));
+    }
+
+    // No HTTP call should be made before this point
+    try {
+      var httpConfig = new HttpConfig(immutableProperties, sonarUserHome);
+      scannerHttpClient.init(httpConfig);
+
+      var serverVersion = !isSonarCloud ? getServerVersion(scannerHttpClient) : null;
+      if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
+        var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
+        return new SuccessfulBootstrap(new NewScannerEngineFacade(immutableProperties, launcher, isSonarCloud, serverVersion));
+      } else {
+        var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
+        var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
+        return new SuccessfulBootstrap(new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion));
+      }
+    } catch (RuntimeException e) {
+      return handleException(e);
+    }
+  }
+
+  private static ScannerEngineBootstrapResult handleException(RuntimeException e) {
+    if (e instanceof HttpException) {
+      var httpEx = (HttpException) e;
+      if (httpEx.getCode() == 401 || httpEx.getCode() == 403) {
+        var message = httpEx.getMessage() + ". Please check the property " + ScannerProperties.SONAR_TOKEN +
+          " or the environment variable " + EnvironmentConfig.TOKEN_ENV_VARIABLE + ".";
+        logWithStacktraceOnlyIfDebug(message, e);
+        return new FailedBootstrap();
+      }
+    }
+    throw e;
+  }
+
+  /**
+   * For functional errors, the stacktrace is not necessary. It is only useful for debugging.
+   */
+  private static void logWithStacktraceOnlyIfDebug(String message, Throwable t) {
+    if (LOG.isDebugEnabled()) {
+      LOG.error(message, t);
     } else {
-      var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
-      var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
-      return new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
+      LOG.error(message);
     }
   }
 
@@ -191,14 +225,14 @@ public class ScannerEngineBootstrapper {
     return Paths.get(sonarUserHome);
   }
 
-  private static String getServerVersion(ScannerHttpClient scannerHttpClient, boolean isSimulation, Map<String, String> properties) {
-    if (isSimulation) {
-      return properties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "5.6");
-    }
-
+  private static String getServerVersion(ScannerHttpClient scannerHttpClient) {
     try {
       return scannerHttpClient.callRestApi("/analysis/version");
     } catch (Exception e) {
+      if (e instanceof HttpException && (((HttpException) e).getCode() == 401 || ((HttpException) e).getCode() == 403)) {
+        throw (HttpException) e;
+      }
+
       try {
         return scannerHttpClient.callWebApi("/api/server/version");
       } catch (Exception e2) {

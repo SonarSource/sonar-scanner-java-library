@@ -21,11 +21,13 @@ package com.sonar.scanner.lib.it;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sonarsource.scanner.lib.EnvironmentConfig;
 import org.sonarsource.scanner.lib.ScannerEngineBootstrapper;
 
 public class Main {
   public static void main(String[] args) {
+    AtomicBoolean success = new AtomicBoolean(false);
     try {
 
       Map<String, String> props = new HashMap<>(EnvironmentConfig.load());
@@ -36,20 +38,25 @@ public class Main {
         }
       }
 
-      runProject(props);
+      success.set(runScanner(props));
     } catch (Exception e) {
       e.printStackTrace();
-      System.exit(1);
+      System.exit(2);
     }
-    System.exit(0);
+    System.exit(success.get() ? 0 : 1);
   }
 
-  private static void runProject(Map<String, String> props) throws Exception {
+  private static boolean runScanner(Map<String, String> props) throws Exception {
 
-    try (var scannerEngine = ScannerEngineBootstrapper.create("Simple Scanner", "1.0")
+    try (var bootstrapResult = ScannerEngineBootstrapper.create("Simple Scanner", "1.0")
       .addBootstrapProperties(props)
       .bootstrap()) {
-      scannerEngine.analyze(props);
+      if (bootstrapResult.isSuccessful()) {
+        bootstrapResult.getEngineFacade().analyze(props);
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 }
