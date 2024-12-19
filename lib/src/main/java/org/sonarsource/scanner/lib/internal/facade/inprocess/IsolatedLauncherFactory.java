@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -33,7 +33,6 @@ import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
-import org.sonarsource.scanner.lib.internal.util.TempCleaning;
 
 public class IsolatedLauncherFactory {
 

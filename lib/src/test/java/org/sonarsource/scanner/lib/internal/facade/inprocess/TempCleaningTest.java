@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.util;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

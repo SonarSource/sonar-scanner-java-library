@@ -17,31 +17,28 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
+import java.nio.file.StandardCopyOption;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+public class JarExtractor {
 
-class JarExtractorTest {
-
-  private final JarExtractor underTest = new JarExtractor();
-
-  @Test
-  void test_extract() throws Exception {
-    Path jarFile = underTest.extractToTemp("fake");
-    assertThat(jarFile).exists();
-    assertThat(Files.readString(jarFile)).isEqualTo("Fake jar for unit tests");
-    assertThat(jarFile.toUri().toURL().toString()).doesNotContain("jar:file");
-  }
-
-  @Test
-  void should_fail_to_extract() {
-    assertThatThrownBy(() -> underTest.extractToTemp("unknown"))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Fail to extract unknown.jar");
+  public Path extractToTemp(String filenameWithoutSuffix) {
+    String filename = filenameWithoutSuffix + ".jar";
+    URL url = getClass().getResource("/" + filename);
+    try {
+      Path copy = Files.createTempFile(filenameWithoutSuffix, ".jar");
+      copy.toFile().deleteOnExit();
+      try (InputStream in = url.openStream()) {
+        Files.copy(in, copy, StandardCopyOption.REPLACE_EXISTING);
+      }
+      return copy;
+    } catch (Exception e) {
+      throw new IllegalStateException("Fail to extract " + filename, e);
+    }
   }
 }

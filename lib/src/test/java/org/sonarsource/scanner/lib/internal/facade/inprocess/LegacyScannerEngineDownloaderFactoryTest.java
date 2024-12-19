@@ -17,24 +17,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
+import org.junit.jupiter.api.Test;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
-class LegacyScannerEngineDownloaderFactory {
-  private final ScannerHttpClient scannerHttpClient;
-  private final FileCache fileCache;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
-  LegacyScannerEngineDownloaderFactory(ScannerHttpClient conn, FileCache fileCache) {
-    this.scannerHttpClient = conn;
-    this.fileCache = fileCache;
-  }
-
-  LegacyScannerEngineDownloader create() {
-    BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(scannerHttpClient);
-    LegacyScannerEngineDownloader.ScannerFileDownloader scannerFileDownloader = new LegacyScannerEngineDownloader.ScannerFileDownloader(scannerHttpClient);
-    JarExtractor jarExtractor = new JarExtractor();
-    return new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor);
+class LegacyScannerEngineDownloaderFactoryTest {
+  @Test
+  void should_create() {
+    ScannerHttpClient conn = mock(ScannerHttpClient.class);
+    FileCache cache = mock(FileCache.class);
+    assertThat(new LegacyScannerEngineDownloaderFactory(conn, cache).create()).isNotNull();
   }
 }

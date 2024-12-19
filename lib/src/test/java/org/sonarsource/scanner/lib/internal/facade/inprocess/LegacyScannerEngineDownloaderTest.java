@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,9 +25,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
-import org.sonarsource.scanner.lib.internal.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.facade.inprocess.BootstrapIndexDownloader.JarEntry;
+import org.sonarsource.scanner.lib.internal.facade.inprocess.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;

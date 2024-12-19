@@ -17,18 +17,17 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.lib.internal.Slf4jLogOutputAdapter;
+import org.sonarsource.scanner.lib.ScannerEngineFacade;
 
-class InProcessScannerEngineFacade extends ScannerEngineFacade {
+public class InProcessScannerEngineFacade extends ScannerEngineFacade {
 
   private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
 
-  InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,
+  public InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,
     boolean isSonarCloud, @Nullable String serverVersion) {
     super(bootstrapProperties, isSonarCloud, serverVersion, launcherAndCl.wasEngineCacheHit(), null);
     this.launcherAndCl = launcherAndCl;

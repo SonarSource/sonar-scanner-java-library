@@ -17,14 +17,14 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.io.IOException;
 import java.util.Collection;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sonarsource.scanner.lib.internal.BootstrapIndexDownloader.JarEntry;
+import org.sonarsource.scanner.lib.internal.facade.inprocess.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
