@@ -72,7 +72,7 @@ class JavaRunnerTest {
   void execute_shouldReturnFalseWhenNonZeroExitCode() {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
-    assertThat(runner.execute(command, "test", stdOut::add)).isFalse();
+    assertThat(runner.execute(command, null, stdOut::add)).isFalse();
   }
 
 }
