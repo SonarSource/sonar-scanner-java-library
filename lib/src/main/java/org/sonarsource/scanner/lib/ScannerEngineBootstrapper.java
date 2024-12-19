@@ -39,6 +39,7 @@ import org.sonarsource.scanner.lib.internal.facade.forked.NewScannerEngineFacade
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.InProcessScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.IsolatedLauncherFactory;
+import org.sonarsource.scanner.lib.internal.facade.simulation.SimulationScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.http.HttpConfig;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;

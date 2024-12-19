@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade.simulation;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -31,13 +31,14 @@ import java.util.TreeSet;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.ScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 
-class SimulationScannerEngineFacade extends ScannerEngineFacade {
+public class SimulationScannerEngineFacade extends ScannerEngineFacade {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimulationScannerEngineFacade.class);
 
-  SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud,
+  public SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud,
     @Nullable String serverVersion) {
     super(bootstrapProperties, isSonarCloud, serverVersion, false, null);
   }
