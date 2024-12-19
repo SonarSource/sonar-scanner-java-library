@@ -17,13 +17,15 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.sonarsource.scanner.lib.AnalysisProperties;
+import org.sonarsource.scanner.lib.ScannerProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

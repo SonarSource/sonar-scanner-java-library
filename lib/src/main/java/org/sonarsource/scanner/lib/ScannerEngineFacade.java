@@ -19,62 +19,34 @@
  */
 package org.sonarsource.scanner.lib;
 
-import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.facade.forked.JreCacheHit;
 
-public abstract class ScannerEngineFacade implements AutoCloseable {
 
-  private final Map<String, String> bootstrapProperties;
-  private final boolean isSonarCloud;
-  private final String serverVersion;
-  private final boolean wasEngineCacheHit;
-  private final JreCacheHit wasJreCacheHit;
+public interface ScannerEngineFacade extends AutoCloseable {
 
-  protected ScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud, @Nullable String serverVersion,
-    boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
-    this.bootstrapProperties = bootstrapProperties;
-    this.isSonarCloud = isSonarCloud;
-    this.serverVersion = serverVersion;
-    this.wasEngineCacheHit = wasEngineCacheHit;
-    this.wasJreCacheHit = wasJreCacheHit;
-  }
+  /**
+   * Get the properties that will be passed to the bootstrapped scanner engine.
+   */
+  Map<String, String> getBootstrapProperties();
 
-  public String getServerVersion() {
-    if (isSonarCloud) {
-      throw new UnsupportedOperationException("Server version is not available for SonarCloud.");
-    }
-    return serverVersion;
-  }
+  /**
+   * Get the version of the SonarQube Server that the scanner is connected to. Don't call this method if the scanner is connected to SonarQube Cloud.
+   *
+   * @return the version of the SonarQube Server
+   * @throws UnsupportedOperationException if the scanner is connected to SonarQube Cloud
+   */
+  String getServerVersion();
 
-  public boolean isSonarCloud() {
-    return isSonarCloud;
-  }
+  /**
+   * @return true if the scanner is connected to SonarQube Cloud, false otherwise
+   */
+  boolean isSonarCloud();
 
-  public boolean analyze(Map<String, String> analysisProps) {
-    Map<String, String> allProps = new HashMap<>();
-    allProps.putAll(bootstrapProperties);
-    allProps.putAll(analysisProps);
-    initAnalysisProperties(allProps);
-    addStatsProperties(allProps);
-    return doAnalyze(allProps);
-  }
 
-  private void addStatsProperties(Map<String, String> allProps) {
-    if (wasJreCacheHit != null) {
-      allProps.put("sonar.scanner.wasJreCacheHit", wasJreCacheHit.name());
-    }
-    allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
-  }
-
-  protected abstract boolean doAnalyze(Map<String, String> allProps);
-
-  private static void initAnalysisProperties(Map<String, String> p) {
-    new Dirs().init(p);
-  }
-
-  public Map<String, String> getBootstrapProperties() {
-    return bootstrapProperties;
-  }
+  /**
+   * Run the analysis. In case of failure, a log message should have been emitted.
+   *
+   * @return true if the analysis succeeded, false otherwise.
+   */
+  boolean analyze(Map<String, String> analysisProps);
 }

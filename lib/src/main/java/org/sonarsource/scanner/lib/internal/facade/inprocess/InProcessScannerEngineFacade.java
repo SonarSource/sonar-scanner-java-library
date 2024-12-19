@@ -21,9 +21,9 @@ package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.ScannerEngineFacade;
+import org.sonarsource.scanner.lib.internal.facade.AbstractScannerEngineFacade;
 
-public class InProcessScannerEngineFacade extends ScannerEngineFacade {
+public class InProcessScannerEngineFacade extends AbstractScannerEngineFacade {
 
   private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
 

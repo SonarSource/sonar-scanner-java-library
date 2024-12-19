@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.AnalysisProperties;
+import org.sonarsource.scanner.lib.ScannerProperties;
 
 class Dirs {
 

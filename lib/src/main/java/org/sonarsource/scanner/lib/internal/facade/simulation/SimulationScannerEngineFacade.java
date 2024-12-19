@@ -31,10 +31,10 @@ import java.util.TreeSet;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.ScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
+import org.sonarsource.scanner.lib.internal.facade.AbstractScannerEngineFacade;
 
-public class SimulationScannerEngineFacade extends ScannerEngineFacade {
+public class SimulationScannerEngineFacade extends AbstractScannerEngineFacade {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimulationScannerEngineFacade.class);
 
