@@ -22,7 +22,7 @@ package org.sonarsource.scanner.lib;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.JreCacheHit;
+import org.sonarsource.scanner.lib.internal.facade.forked.JreCacheHit;
 
 public abstract class ScannerEngineFacade implements AutoCloseable {
 
@@ -32,7 +32,7 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
   private final boolean wasEngineCacheHit;
   private final JreCacheHit wasJreCacheHit;
 
-  ScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud, @Nullable String serverVersion,
+  protected ScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud, @Nullable String serverVersion,
     boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
     this.isSonarCloud = isSonarCloud;
@@ -68,7 +68,7 @@ public abstract class ScannerEngineFacade implements AutoCloseable {
     allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
   }
 
-  abstract boolean doAnalyze(Map<String, String> allProps);
+  protected abstract boolean doAnalyze(Map<String, String> allProps);
 
   private static void initAnalysisProperties(Map<String, String> p) {
     new Dirs().init(p);

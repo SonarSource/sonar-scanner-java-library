@@ -17,28 +17,34 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade.forked;
 
-import java.util.Map;
+import com.google.gson.annotations.SerializedName;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.ScannerEngineLauncher;
 
-class NewScannerEngineFacade extends ScannerEngineFacade {
-  private final ScannerEngineLauncher launcher;
+public abstract class ResourceMetadata {
+  @SerializedName("filename")
+  private final String filename;
+  @SerializedName("sha256")
+  private final String sha256;
+  @SerializedName("downloadUrl")
+  private final String downloadUrl;
 
-  NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher,
-    boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, isSonarCloud, serverVersion, launcher.isEngineCacheHit(), launcher.getJreCacheHit());
-    this.launcher = launcher;
+  ResourceMetadata(String filename, String sha256, @Nullable String downloadUrl) {
+    this.filename = filename;
+    this.sha256 = sha256;
+    this.downloadUrl = downloadUrl;
   }
 
-  @Override
-  boolean doAnalyze(Map<String, String> allProps) {
-    return launcher.execute(allProps);
+  public String getFilename() {
+    return filename;
   }
 
-  @Override
-  public void close() throws Exception {
-    // nothing to do
+  public String getSha256() {
+    return sha256;
+  }
+
+  public String getDownloadUrl() {
+    return downloadUrl;
   }
 }

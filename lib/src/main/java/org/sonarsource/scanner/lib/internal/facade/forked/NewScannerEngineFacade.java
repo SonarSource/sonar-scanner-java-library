@@ -17,31 +17,28 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib;
+package org.sonarsource.scanner.lib.internal.facade.forked;
 
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.sonarsource.scanner.lib.internal.IsolatedLauncherFactory;
-import org.sonarsource.scanner.lib.internal.Slf4jLogOutputAdapter;
+import org.sonarsource.scanner.lib.ScannerEngineFacade;
 
-class InProcessScannerEngineFacade extends ScannerEngineFacade {
+public class NewScannerEngineFacade extends ScannerEngineFacade {
+  private final ScannerEngineLauncher launcher;
 
-  private final IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl;
-
-  InProcessScannerEngineFacade(Map<String, String> bootstrapProperties, IsolatedLauncherFactory.IsolatedLauncherAndClassloader launcherAndCl,
+  public NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher,
     boolean isSonarCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, isSonarCloud, serverVersion, launcherAndCl.wasEngineCacheHit(), null);
-    this.launcherAndCl = launcherAndCl;
+    super(bootstrapProperties, isSonarCloud, serverVersion, launcher.isEngineCacheHit(), launcher.getJreCacheHit());
+    this.launcher = launcher;
   }
 
   @Override
   protected boolean doAnalyze(Map<String, String> allProps) {
-    launcherAndCl.getLauncher().execute(allProps, new Slf4jLogOutputAdapter());
-    return true;
+    return launcher.execute(allProps);
   }
 
   @Override
   public void close() throws Exception {
-    launcherAndCl.close();
+    // nothing to do
   }
 }

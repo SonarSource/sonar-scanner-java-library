@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.forked;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +50,7 @@ import static org.sonarsource.scanner.lib.ScannerProperties.JAVA_EXECUTABLE_PATH
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
 import static org.sonarsource.scanner.lib.ScannerProperties.SKIP_JRE_PROVISIONING;
-import static org.sonarsource.scanner.lib.internal.JavaRunnerFactory.API_PATH_JRE;
+import static org.sonarsource.scanner.lib.internal.facade.forked.JavaRunnerFactory.API_PATH_JRE;
 
 class JavaRunnerFactoryTest {
 

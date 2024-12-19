@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal;
+package org.sonarsource.scanner.lib.internal.facade.forked;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sonarsource.scanner.lib.internal.ScannerEngineLauncherFactory.API_PATH_ENGINE;
+import static org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory.API_PATH_ENGINE;
 
 class ScannerEngineLauncherFactoryTest {
 
