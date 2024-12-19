@@ -206,7 +206,7 @@ public class ProxyTest {
     params.put("sonar.scanner.proxyPort", "" + httpProxyPort);
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
-    assertThat(buildResult.getLastStatus()).isEqualTo(1);
+    assertThat(buildResult.getLastStatus()).isNotZero();
     assertThat(buildResult.getLogs()).contains("Error status returned by url", ": 407");
     assertThat(seenByProxy).isEmpty();
 

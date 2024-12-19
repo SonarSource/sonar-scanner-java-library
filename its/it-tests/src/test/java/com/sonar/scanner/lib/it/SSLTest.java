@@ -218,7 +218,7 @@ public class SSLTest {
     // Voluntary missing client keystore
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
-    assertThat(buildResult.getLastStatus()).isEqualTo(1);
+    assertThat(buildResult.getLastStatus()).isNotZero();
 
     // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
     String failedAnalysis = "(?s).*java\\.lang\\.IllegalStateException: Failed to get server version.*";

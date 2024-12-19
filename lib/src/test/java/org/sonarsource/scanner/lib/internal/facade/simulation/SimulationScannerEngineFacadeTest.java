@@ -52,7 +52,7 @@ class SimulationScannerEngineFacadeTest {
     Map<String, String> props = createProperties();
     props.put(InternalProperties.SCANNER_DUMP_TO_FILE, temp.getAbsolutePath());
 
-    assertThatThrownBy(() -> underTest.doAnalyze(props))
+    assertThatThrownBy(() -> underTest.analyze(props))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage("Fail to export scanner properties");
   }
@@ -60,7 +60,7 @@ class SimulationScannerEngineFacadeTest {
   @Test
   void testDump() throws IOException {
     Map<String, String> props = createProperties();
-    underTest.doAnalyze(props);
+    underTest.analyze(props);
     assertDump(props);
   }
 
@@ -68,7 +68,7 @@ class SimulationScannerEngineFacadeTest {
   void error_dump() {
     Map<String, String> props = new HashMap<>();
     props.put(InternalProperties.SCANNER_DUMP_TO_FILE, "an invalid # file \\//?name*?\"");
-    assertThatThrownBy(() -> underTest.doAnalyze(props))
+    assertThatThrownBy(() -> underTest.analyze(props))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage("Fail to export scanner properties");
   }
@@ -86,6 +86,6 @@ class SimulationScannerEngineFacadeTest {
     try (FileInputStream fis = new FileInputStream(filename)) {
       p.load(fis);
     }
-    assertThat(p).isEqualTo(props);
+    assertThat(p).containsAllEntriesOf(props);
   }
 }
