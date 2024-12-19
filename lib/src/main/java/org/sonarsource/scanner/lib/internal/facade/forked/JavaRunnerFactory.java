@@ -42,6 +42,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
@@ -162,8 +163,8 @@ public class JavaRunnerFactory {
       }.getType();
       List<JreMetadata> jres = new Gson().fromJson(response, listType);
       return jres.stream().findFirst();
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to get JRE metadata", e);
+    } catch (Exception e) {
+      throw new MessageException("Failed to query JRE metadata: " + e.getMessage(), e);
     }
   }
 
