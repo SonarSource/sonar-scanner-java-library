@@ -39,7 +39,6 @@ import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
-import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_CONNECT_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
@@ -48,6 +47,7 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PORT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_USER;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_RESPONSE_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;

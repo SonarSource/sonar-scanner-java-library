@@ -64,9 +64,14 @@ public class LogTester implements BeforeEachCallback, AfterEachCallback {
    * a given level
    */
   public List<String> logs(Level level) {
+    return logEvents(level).stream()
+      .map(LoggingEvent::getFormattedMessage)
+      .collect(Collectors.toList());
+  }
+
+  public List<LoggingEvent> logEvents(Level level) {
     return listAppender.list.stream().map(e -> (LoggingEvent) e)
       .filter(e -> e.getLevel().equals(ch.qos.logback.classic.Level.fromLocationAwareLoggerInteger(level.toInt())))
-      .map(LoggingEvent::getFormattedMessage)
       .collect(Collectors.toList());
   }
 

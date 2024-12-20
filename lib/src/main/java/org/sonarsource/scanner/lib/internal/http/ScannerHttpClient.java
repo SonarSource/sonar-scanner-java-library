@@ -32,9 +32,10 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.Utils;
+import org.sonarsource.scanner.lib.internal.util.Utils;
 
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 public class ScannerHttpClient {
 
@@ -52,7 +53,7 @@ public class ScannerHttpClient {
   }
 
 
-  public void downloadFromRestApi(String urlPath, Path toFile) throws IOException {
+  public void downloadFromRestApi(String urlPath, Path toFile) {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
@@ -60,7 +61,7 @@ public class ScannerHttpClient {
     downloadFile(url, toFile, true);
   }
 
-  public void downloadFromWebApi(String urlPath, Path toFile) throws IOException {
+  public void downloadFromWebApi(String urlPath, Path toFile) {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
@@ -68,7 +69,7 @@ public class ScannerHttpClient {
     downloadFile(url, toFile, true);
   }
 
-  public void downloadFromExternalUrl(String url, Path toFile) throws IOException {
+  public void downloadFromExternalUrl(String url, Path toFile) {
     downloadFile(url, toFile, false);
   }
 
@@ -81,16 +82,18 @@ public class ScannerHttpClient {
    * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  private void downloadFile(String url, Path toFile, boolean authentication) throws IOException {
+  private void downloadFile(String url, Path toFile, boolean authentication) {
     LOG.debug("Download {} to {}", url, toFile.toAbsolutePath());
 
-    try (ResponseBody responseBody = callUrl(url, authentication, "application/octet-stream");
-         InputStream in = responseBody.byteStream()) {
-      Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException | RuntimeException e) {
-      Utils.deleteQuietly(toFile);
-      throw e;
-    }
+    callUrl(url, authentication, "application/octet-stream", responseBody -> {
+      try (InputStream in = responseBody.byteStream()) {
+        Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
+        return null;
+      } catch (IOException | RuntimeException e) {
+        Utils.deleteQuietly(toFile);
+        throw e;
+      }
+    });
   }
 
   public String callRestApi(String urlPath) throws IOException {
@@ -116,10 +119,8 @@ public class ScannerHttpClient {
    * @throws IOException           if connectivity problem or timeout (network)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
-  private String callApi(String url) throws IOException {
-    try (ResponseBody responseBody = callUrl(url, true, null)) {
-      return responseBody.string();
-    }
+  private String callApi(String url) {
+    return callUrl(url, true, null, ResponseBody::string);
   }
 
   /**
@@ -128,25 +129,28 @@ public class ScannerHttpClient {
    * @param url            the URL to call
    * @param authentication if true, the request will be authenticated with the token
    * @param acceptHeader   the value of the Accept header
-   * @throws IllegalStateException if HTTP code is different than 2xx
    */
-  private ResponseBody callUrl(String url, boolean authentication, @Nullable String acceptHeader) {
+  private <G> G callUrl(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler) {
     var httpClient = buildHttpClient(authentication);
     var request = prepareRequest(url, acceptHeader);
-    Response response;
-    try {
-      response = httpClient.newCall(request).execute();
+    try (Response response = httpClient.newCall(request).execute()) {
+      var body = response.body();
+      if (!response.isSuccessful()) {
+        throw new HttpException(response.request().url().url(), response.code(), response.message(), body != null ? body.string() : null);
+      }
+      return responseHandler.apply(requireNonNull(body, "Response body is empty"));
+    } catch (HttpException e) {
+      throw e;
     } catch (Exception e) {
-      throw new IllegalStateException(format("Call to URL [%s] failed", url), e);
+      throw new IllegalStateException(format("Call to URL [%s] failed: %s", url, e.getMessage()), e);
     }
-    if (!response.isSuccessful()) {
-      response.close();
-      throw new IllegalStateException(format("Error status returned by url [%s]: %s", response.request().url(), response.code()));
-    }
-    return response.body();
   }
 
-  private Request prepareRequest(String url, @org.jetbrains.annotations.Nullable String acceptHeader) {
+  private interface ResponseHandler<G> {
+    G apply(ResponseBody responseBody) throws IOException;
+  }
+
+  private Request prepareRequest(String url, @Nullable String acceptHeader) {
     var requestBuilder = new Request.Builder()
       .get()
       .url(url)

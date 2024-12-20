@@ -19,33 +19,23 @@
  */
 package org.sonarsource.scanner.lib;
 
-import java.util.Map;
-
-public interface ScannerEngineFacade extends AutoCloseable {
-
-  /**
-   * Get the properties that will be passed to the bootstrapped scanner engine.
-   */
-  Map<String, String> getBootstrapProperties();
+/**
+ * Closing this will automatically close the {@link ScannerEngineFacade} that it contains, if any.
+ */
+public interface ScannerEngineBootstrapResult extends AutoCloseable {
 
   /**
-   * Get the version of the SonarQube Server that the scanner is connected to. Don't call this method if the scanner is connected to SonarQube Cloud.
+   * Allow to test if the bootstrapping has been successful. If not, the {@link ScannerEngineFacade} should not be used.
+   * A log message should have been emitted in case of failure.
    *
-   * @return the version of the SonarQube Server
-   * @throws UnsupportedOperationException if the scanner is connected to SonarQube Cloud
+   * @return true if the bootstrapping has been successful, false otherwise
    */
-  String getServerVersion();
+  boolean isSuccessful();
 
   /**
-   * @return true if the scanner is connected to SonarQube Cloud, false otherwise
-   */
-  boolean isSonarCloud();
-
-
-  /**
-   * Run the analysis. In case of failure, a log message should have been emitted.
+   * Get the facade to interact with the engine. Only call this method if {@link #isSuccessful()} returns true.
    *
-   * @return true if the analysis succeeded, false otherwise.
+   * @return the facade to interact with the engine
    */
-  boolean analyze(Map<String, String> analysisProps);
+  ScannerEngineFacade getEngineFacade();
 }

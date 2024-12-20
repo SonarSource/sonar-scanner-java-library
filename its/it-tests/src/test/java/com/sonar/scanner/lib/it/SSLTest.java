@@ -115,7 +115,7 @@ public class SSLTest {
 
     // Handler Structure
     HandlerCollection handlers = new HandlerCollection();
-    handlers.setHandlers(new Handler[] {proxyHandler(), new DefaultHandler()});
+    handlers.setHandlers(new Handler[]{proxyHandler(), new DefaultHandler()});
     server.setHandler(handlers);
 
     ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
@@ -178,7 +178,7 @@ public class SSLTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
+    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -204,7 +204,7 @@ public class SSLTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
+    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -218,16 +218,14 @@ public class SSLTest {
     // Voluntary missing client keystore
 
     buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort, params, Map.of());
-    assertThat(buildResult.getLastStatus()).isEqualTo(1);
+    assertThat(buildResult.getLastStatus()).isNotZero();
 
-    // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
-    String failedAnalysis = "(?s).*java\\.lang\\.IllegalStateException: Failed to get server version.*";
+    var commonMessage = "Failed to query server version: Call to URL [https://localhost:" + httpsPort + "/api/v2/analysis/version] failed: ";
     assertThat(buildResult.getLogs())
-      .matches(p -> p.matches(failedAnalysis + "Caused by: javax\\.net\\.ssl\\.SSLException: Broken pipe \\(Write failed\\).*") ||
-        p.matches(failedAnalysis + "Caused by: javax\\.net\\.ssl\\.SSLProtocolException: Broken pipe \\(Write failed\\).*") ||
-        p.matches(failedAnalysis + "Caused by: javax\\.net\\.ssl\\.SSLHandshakeException: Received fatal alert: bad_certificate.*") ||
-        p.matches(failedAnalysis + "Caused by: java\\.net\\.SocketException: Broken pipe.*") ||
-        p.matches(failedAnalysis + "Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target.*"));
+      .containsAnyOf(
+        // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
+        commonMessage + "Received fatal alert: bad_certificate",
+        commonMessage + "Broken pipe");
   }
 
   private static Path project(String projectName) {
@@ -244,7 +242,7 @@ public class SSLTest {
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("javax.net.ssl.SSLHandshakeException");
+    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(clientTrustStore).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -265,7 +263,7 @@ public class SSLTest {
 
   @DataProvider()
   public static Object[][] variousClientTrustStores() {
-    return new Object[][] {
+    return new Object[][]{
       {KEYSTORE_CLIENT_WITH_CA_KEYTOOL, CLIENT_WITH_CA_KEYSTORE_PASSWORD, true},
       {KEYSTORE_CLIENT_WITH_CA_OPENSSL, CLIENT_WITH_CA_KEYSTORE_PASSWORD, false},
       {KEYSTORE_CLIENT_WITH_CERTIFICATE_KEYTOOL, CLIENT_WITH_CERTIFICATE_KEYSTORE_PASSWORD, true},
