@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.ScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.facade.forked.JreCacheHit;
+import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade {
 
@@ -81,5 +82,18 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
   @Override
   public Map<String, String> getBootstrapProperties() {
     return bootstrapProperties;
+  }
+
+  @Override
+  public String getServerLabel() {
+    if (isSonarCloud()) {
+      return "SonarQube Cloud";
+    }
+
+    String version = getServerVersion();
+    if (VersionUtils.compareMajor(version, 10) <= 0 || VersionUtils.compareMajor(version, 2025) >= 0) {
+      return "SonarQube Server";
+    }
+    return "SonarQube Community Build";
   }
 }

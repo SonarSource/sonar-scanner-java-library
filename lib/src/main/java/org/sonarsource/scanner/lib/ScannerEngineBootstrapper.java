@@ -138,14 +138,18 @@ public class ScannerEngineBootstrapper {
       scannerHttpClient.init(httpConfig);
 
       var serverVersion = !isSonarCloud ? getServerVersion(scannerHttpClient) : null;
+      ScannerEngineFacade scannerFacade;
       if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
         var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
-        return new SuccessfulBootstrap(new NewScannerEngineFacade(immutableProperties, launcher, isSonarCloud, serverVersion));
+        scannerFacade = new NewScannerEngineFacade(immutableProperties, launcher, isSonarCloud, serverVersion);
       } else {
         var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
         var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
-        return new SuccessfulBootstrap(new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion));
+        scannerFacade = new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
       }
+
+      logServerType(scannerFacade);
+      return new SuccessfulBootstrap(scannerFacade);
     } catch (MessageException e) {
       return handleException(e);
     }
@@ -182,6 +186,13 @@ public class ScannerEngineBootstrapper {
     }
   }
 
+  private static void logServerType(ScannerEngineFacade engine) {
+    if (engine.isSonarCloud()) {
+      LOG.info("Communicating with SonarQube Cloud");
+    } else {
+      LOG.info("Communicating with {} {}", engine.getServerLabel(), engine.getServerVersion());
+    }
+  }
 
   /**
    * Older SonarQube versions used to rely on some different properties, or even {@link System} properties.
