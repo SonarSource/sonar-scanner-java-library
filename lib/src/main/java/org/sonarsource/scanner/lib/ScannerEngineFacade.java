@@ -48,4 +48,11 @@ public interface ScannerEngineFacade extends AutoCloseable {
    * @return true if the analysis succeeded, false otherwise.
    */
   boolean analyze(Map<String, String> analysisProps);
+
+  /**
+   * Get the label of the server that the scanner is connected to. Distinguishes SonarQube Cloud, SonarQube Server and SonarQube Community Build.
+   *
+   * @return whether scanner is connected to SonarQube Cloud, Server or Community Build.
+   */
+  String getServerLabel();
 }
