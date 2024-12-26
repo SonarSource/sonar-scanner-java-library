@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -99,6 +100,7 @@ class ScannerEngineBootstrapperTest {
     try (var bootstrapResult = underTest.bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
+      verifyCloudServerTypeLogged();
     }
   }
 
@@ -108,6 +110,7 @@ class ScannerEngineBootstrapperTest {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.isSuccessful()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
+      verifyCloudServerTypeLogged();
     }
   }
 
@@ -117,7 +120,20 @@ class ScannerEngineBootstrapperTest {
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      verifySonarQubeServerTypeLogged(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
+    }
+  }
+
+  @Test
+  void should_log_cb_server_type() throws Exception {
+    String testCBVersion = "24.12.0.23452";
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(testCBVersion);
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Community Build ".concat(testCBVersion));
+      assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(testCBVersion);
     }
   }
 
@@ -136,6 +152,7 @@ class ScannerEngineBootstrapperTest {
       verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
       assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("10.5");
+      verifySonarQubeServerTypeLogged("10.5");
     }
   }
 
@@ -155,7 +172,9 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and sonar.scanner.proxyPassword.");
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and " +
+      "sonar.scanner.proxyPassword.");
+    assertThatNoServerTypeIsLogged();
   }
 
   @Test
@@ -182,6 +201,7 @@ class ScannerEngineBootstrapperTest {
       .containsSubsequence(
         "Suppressed: org.sonarsource.scanner.lib.internal.http.HttpException: Not Found",
         "Caused by: org.sonarsource.scanner.lib.internal.http.HttpException: Server Error");
+    assertThatNoServerTypeIsLogged();
   }
 
 
@@ -201,7 +221,9 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
+      ".");
+    assertThatNoServerTypeIsLogged();
   }
 
   @Test
@@ -428,6 +450,18 @@ class ScannerEngineBootstrapperTest {
     ScannerEngineBootstrapper.adaptJvmSslPropertiesToScannerProperties(mutableProps, system);
 
     assertThat(mutableProps).containsExactlyInAnyOrderEntriesOf(properties);
+  }
+
+  private void verifyCloudServerTypeLogged() {
+    assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud");
+  }
+
+  private void verifySonarQubeServerTypeLogged(String version) {
+    assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Server ".concat(version));
+  }
+
+  private void assertThatNoServerTypeIsLogged() {
+    assertThat(logTester.logs(Level.INFO).stream().filter(logMessage -> logMessage.startsWith("Communicating with")).collect(Collectors.toList())).isEmpty();
   }
 
 }

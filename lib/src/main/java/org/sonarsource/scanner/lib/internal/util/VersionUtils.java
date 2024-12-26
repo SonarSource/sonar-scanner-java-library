@@ -20,10 +20,19 @@
 package org.sonarsource.scanner.lib.internal.util;
 
 import java.lang.module.ModuleDescriptor.Version;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
+import static org.apache.commons.lang3.StringUtils.substringAfter;
+import static org.apache.commons.lang3.StringUtils.substringBefore;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
 public class VersionUtils {
+
+  private static final String SEQUENCE_SEPARATOR = ".";
+  private static final String QUALIFIER_SEPARATOR = "-";
+
   private VersionUtils() {
     // only util static methods
   }
@@ -36,9 +45,32 @@ public class VersionUtils {
    * @return true if the version is at least the target version
    */
   public static boolean isAtLeastIgnoringQualifier(@Nullable String version, String targetVersion) {
-    if (StringUtils.isBlank(version) || String.valueOf(version.charAt(0)).matches("\\D")) {
+    if (isOfUnexpectedFormat(version)) {
       return false;
     }
     return Version.parse(StringUtils.substringBefore(version, "-")).compareTo(Version.parse(targetVersion)) >= 0;
+  }
+
+  public static int compareMajor(@Nullable String version, int number) {
+    if (isOfUnexpectedFormat(version)) {
+      return Integer.compare(0, number);
+    }
+
+    String s = trimToEmpty(version);
+    String qualifier = substringAfter(s, QUALIFIER_SEPARATOR);
+    if (!qualifier.isEmpty()) {
+      s = substringBefore(s, QUALIFIER_SEPARATOR);
+    }
+
+    String[] fields = s.split(Pattern.quote(SEQUENCE_SEPARATOR));
+    try {
+      return Integer.compare(Integer.parseInt(fields[0]), number);
+    } catch (NumberFormatException e) {
+      return Integer.compare(0, number);
+    }
+  }
+
+  private static boolean isOfUnexpectedFormat(@Nullable String version) {
+    return StringUtils.isBlank(version) || String.valueOf(version.trim().charAt(0)).matches("\\D");
   }
 }
