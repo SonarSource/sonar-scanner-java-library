@@ -42,4 +42,32 @@ class VersionUtilsTest {
     assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.6-SNAPSHOT", "10.5")).isTrue();
     assertThat(VersionUtils.isAtLeastIgnoringQualifier("10.5.0.1234", "10.5")).isTrue();
   }
+
+  @Test
+  void compareMajor_shouldCompareMajorCorrectly() {
+    assertThat(VersionUtils.compareMajor(null, 10)).isNegative();
+    assertThat(VersionUtils.compareMajor("fhk10.5.0.1234", 10)).isNegative();
+
+    assertThat(VersionUtils.compareMajor("10.5.0.1234", 10)).isZero();
+    assertThat(VersionUtils.compareMajor("11.5.0.1234", 10)).isPositive();
+    assertThat(VersionUtils.compareMajor("8.5.0.1234", 10)).isNegative();
+
+    assertThat(VersionUtils.compareMajor("10.0-SNAPSHOT", 10)).isZero();
+    assertThat(VersionUtils.compareMajor(" 10.5.0.1234", 10)).isZero();
+    assertThat(VersionUtils.compareMajor("", 10)).isNegative();
+
+    assertThat(VersionUtils.compareMajor("2025.1.0.1234", 10)).isPositive();
+    assertThat(VersionUtils.compareMajor("2025.1-SNAPSHOT", 10)).isPositive();
+    assertThat(VersionUtils.compareMajor("klf2025.1-SNAPSHOT", 10)).isNegative();
+    assertThat(VersionUtils.compareMajor(" 2025.1-SNAPSHOT", 10)).isPositive();
+
+    assertThat(VersionUtils.compareMajor("25.1.0.1234", 10)).isPositive();
+    assertThat(VersionUtils.compareMajor("25.1-SNAPSHOT", 10)).isPositive();
+    assertThat(VersionUtils.compareMajor("fko25.1-SNAPSHOT", 10)).isNegative();
+    assertThat(VersionUtils.compareMajor(" 25.1-SNAPSHOT", 10)).isPositive();
+
+    assertThat(VersionUtils.compareMajor("25.1.0.1234", 26)).isNegative();
+    assertThat(VersionUtils.compareMajor("25.1-SNAPSHOT", 26)).isNegative();
+    assertThat(VersionUtils.compareMajor(" 25.1.0.1234", 26)).isNegative();
+  }
 }
