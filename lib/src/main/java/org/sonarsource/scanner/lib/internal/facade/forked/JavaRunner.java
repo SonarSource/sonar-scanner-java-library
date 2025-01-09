@@ -36,6 +36,10 @@ import org.slf4j.LoggerFactory;
 public class JavaRunner {
   private static final Logger LOG = LoggerFactory.getLogger(JavaRunner.class);
 
+  private static final String JRE_VERSION_ERROR = "The version of the custom JRE provided to the SonarScanner using the 'sonar.scanner.javaExePath' parameter is incompatible " +
+    "with your SonarQube target. You may need to upgrade the version of Java that executes the scanner. " +
+    "Refer to https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/scanner-environment/general-requirements/ for more details.";
+
   private final Path javaExecutable;
   private final JreCacheHit jreCacheHit;
 
@@ -68,6 +72,11 @@ public class JavaRunner {
       var exitCode = process.waitFor();
       stdoutConsummer.join();
       stdErrConsummer.join();
+
+      if (stdErrConsummer.hasUnsupportedClassVersionError()) {
+        LOG.error(JRE_VERSION_ERROR);
+      }
+
       if (exitCode != 0) {
         LOG.debug("Java command exited with code {}", process.exitValue());
         return false;
@@ -86,6 +95,7 @@ public class JavaRunner {
   private static class StreamGobbler extends Thread {
     private final InputStream inputStream;
     private final Consumer<String> consumer;
+    private boolean unsupportedClassVersionError = false;
 
     public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
       this.inputStream = inputStream;
@@ -95,7 +105,17 @@ public class JavaRunner {
     @Override
     public void run() {
       new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).lines()
-        .forEach(consumer);
+        .forEach(line -> {
+          if (line.contains("UnsupportedClassVersionError")) {
+            unsupportedClassVersionError = true;
+          }
+          consumer.accept(line);
+        });
     }
+
+    public boolean hasUnsupportedClassVersionError() {
+      return unsupportedClassVersionError;
+    }
+
   }
 }
