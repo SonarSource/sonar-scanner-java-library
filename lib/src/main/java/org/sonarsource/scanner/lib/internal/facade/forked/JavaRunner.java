@@ -56,15 +56,15 @@ public class JavaRunner {
         LOG.debug("Executing: {}", String.join(" ", command));
       }
       Process process = new ProcessBuilder(command).start();
-      if (input != null) {
-        try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {
-          osw.write(input);
-        }
-      }
       var stdoutConsummer = new StreamGobbler(process.getInputStream(), stdOutConsummer);
       var stdErrConsummer = new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr));
       stdErrConsummer.start();
       stdoutConsummer.start();
+      if (input != null && process.isAlive()) {
+        try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {
+          osw.write(input);
+        }
+      }
       var exitCode = process.waitFor();
       stdoutConsummer.join();
       stdErrConsummer.join();
