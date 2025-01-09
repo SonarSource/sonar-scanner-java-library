@@ -60,6 +60,15 @@ class JavaRunnerTest {
   }
 
   @Test
+  void execute_shouldLogProcessStdError_and_skip_writing_to_stdin_when_process_fails_early() {
+    JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
+    List<String> command = List.of("-xyz");
+    assertThat(runner.execute(command, "test", stdOut::add)).isFalse();
+
+    assertThat(logTester.logs(Level.ERROR)).anyMatch(s -> s.startsWith("[stderr] Unrecognized option: -xyz"));
+  }
+
+  @Test
   void execute_whenInvalidRunner_shouldFail() {
     JavaRunner runner = new JavaRunner(Paths.get("invalid-runner"), JreCacheHit.DISABLED);
     List<String> command = List.of("--version");
