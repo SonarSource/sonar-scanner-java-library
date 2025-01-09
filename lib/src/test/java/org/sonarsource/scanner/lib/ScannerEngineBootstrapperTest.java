@@ -65,11 +65,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scanner.lib.ScannerEngineBootstrapper.SQ_VERSION_NEW_BOOTSTRAPPING;
+import static org.sonarsource.scanner.lib.ScannerEngineBootstrapper.SQ_VERSION_TOKEN_AUTHENTICATION;
 
 class ScannerEngineBootstrapperTest {
 
   @RegisterExtension
-  private LogTester logTester = new LogTester();
+  private final LogTester logTester = new LogTester();
 
   private final ScannerHttpClient scannerHttpClient = mock(ScannerHttpClient.class);
   private final ScannerEngineLauncherFactory scannerEngineLauncherFactory = mock(ScannerEngineLauncherFactory.class);
@@ -122,6 +123,29 @@ class ScannerEngineBootstrapperTest {
       assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
       verifySonarQubeServerTypeLogged(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
+      assertThat(logTester.logs(Level.WARN)).isEmpty();
+    }
+  }
+
+  @Test
+  void should_issue_deprecation_warning_for_sonar_login_property_sonarqube_10_0() throws Exception {
+    IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+      .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
+
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
+      launcherFactory, scannerEngineLauncherFactory);
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 404, "Not Found", null));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn(SQ_VERSION_TOKEN_AUTHENTICATION);
+
+    try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").setBootstrapProperty(ScannerProperties.SONAR_LOGIN,
+      "mockTokenValue").bootstrap()) {
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
+      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(logTester.logs(Level.WARN)).contains("Use of 'sonar.login' property has been deprecated in favor of 'sonar.token' (or the env variable alternative " +
+        "'SONAR_TOKEN'). Please use the latter when passing a token.");
+      verifySonarQubeServerTypeLogged(SQ_VERSION_TOKEN_AUTHENTICATION);
+      assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_TOKEN_AUTHENTICATION);
     }
   }
 

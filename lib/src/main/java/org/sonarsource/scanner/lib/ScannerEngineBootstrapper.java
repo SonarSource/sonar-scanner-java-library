@@ -54,12 +54,15 @@ import org.sonarsource.scanner.lib.internal.util.System2;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 import static java.util.Optional.ofNullable;
+import static org.sonarsource.scanner.lib.EnvironmentConfig.TOKEN_ENV_VARIABLE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_LOGIN;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_TOKEN;
 
 /**
  * Entry point to run a Sonar analysis programmatically.
@@ -71,6 +74,7 @@ public class ScannerEngineBootstrapper {
   private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
   private static final String SONARCLOUD_REST_API = "https://api.sonarcloud.io";
   static final String SQ_VERSION_NEW_BOOTSTRAPPING = "10.6";
+  static final String SQ_VERSION_TOKEN_AUTHENTICATION = "10.0";
   private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
   private static final String JAVAX_NET_SSL_TRUST_STORE_PASSWORD = "javax.net.ssl.trustStorePassword";
   private static final String JAVAX_NET_SSL_KEY_STORE = "javax.net.ssl.keyStore";
@@ -138,6 +142,12 @@ public class ScannerEngineBootstrapper {
       scannerHttpClient.init(httpConfig);
 
       var serverVersion = !isSonarCloud ? getServerVersion(scannerHttpClient) : null;
+
+      if (!isSonarCloud && VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
+        LOG.warn("Use of '{}' property has been deprecated in favor of '{}' (or the env variable alternative '{}'). Please use the latter when passing a token.", SONAR_LOGIN,
+          SONAR_TOKEN, TOKEN_ENV_VARIABLE);
+      }
+
       ScannerEngineFacade scannerFacade;
       if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
         var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
@@ -162,7 +172,7 @@ public class ScannerEngineBootstrapper {
       var code = httpEx.getCode();
       if (code == 401 || code == 403) {
         var helpMessage = "Please check the property " + ScannerProperties.SONAR_TOKEN +
-          " or the environment variable " + EnvironmentConfig.TOKEN_ENV_VARIABLE + ".";
+          " or the environment variable " + TOKEN_ENV_VARIABLE + ".";
         message.append(". ").append(helpMessage);
       }
       if (code == 407) {

@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -39,6 +40,8 @@ import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static org.sonarsource.scanner.lib.EnvironmentConfig.TOKEN_ENV_VARIABLE;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_LOGIN;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_CONNECT_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_KEYSTORE_PATH;
@@ -51,6 +54,7 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_S
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_TOKEN;
 
 public class HttpConfig {
 
@@ -87,6 +91,10 @@ public class HttpConfig {
     this.restApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.API_BASE_URL), "/");
     this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
     this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
+    if (Objects.nonNull(this.login) && Objects.nonNull(this.token)) {
+      LOG.warn("Both '{}' and '{}' (or the '{}' env variable) are set, but only the latter will be used.", SONAR_LOGIN, SONAR_TOKEN, TOKEN_ENV_VARIABLE);
+    }
+
     this.password = bootstrapProperties.get(ScannerProperties.SONAR_PASSWORD);
     this.userAgent = format("%s/%s", bootstrapProperties.get(InternalProperties.SCANNER_APP), bootstrapProperties.get(InternalProperties.SCANNER_APP_VERSION));
     this.socketTimeout = loadDuration(bootstrapProperties, SONAR_SCANNER_SOCKET_TIMEOUT, READ_TIMEOUT_SEC_PROPERTY, DEFAULT_READ_TIMEOUT_SEC);
