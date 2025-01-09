@@ -26,7 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.event.Level;
+import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,6 +39,9 @@ class HttpConfigTest {
   private static final String SONAR_WS_TIMEOUT = "sonar.ws.timeout";
 
   private final Map<String, String> bootstrapProperties = new HashMap<>();
+
+  @RegisterExtension
+  private final LogTester logTester = new LogTester();
 
   @TempDir
   private Path sonarUserHomeDir;
@@ -74,5 +80,14 @@ class HttpConfigTest {
       .hasMessage("sonar.scanner.proxyPort is not a valid integer: not_a_number");
   }
 
+  @Test
+  void should_warn_if_both_login_and_token_properties_set() {
+    bootstrapProperties.put("sonar.login", "mockTokenValue");
+    bootstrapProperties.put("sonar.token", "mockTokenValue");
+
+    new HttpConfig(bootstrapProperties, sonarUserHome);
+
+    assertThat(logTester.logs(Level.WARN)).contains("Both 'sonar.login' and 'sonar.token' (or the 'SONAR_TOKEN' env variable) are set, but only the latter will be used.");
+  }
 
 }
