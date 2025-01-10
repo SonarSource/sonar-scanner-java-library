@@ -403,15 +403,15 @@ class ScannerEngineBootstrapperTest {
 
     when(httpConfig.getSslConfig())
       .thenReturn(new SslConfig(
-        new CertificateStore(Paths.get("some/keystore.p12"), "keystorePass"),
-        new CertificateStore(Paths.get("some/truststore.p12"), "truststorePass")));
+        new CertificateStore(Paths.get("some", "keystore.p12"), "keystorePass"),
+        new CertificateStore(Paths.get("some", "truststore.p12"), "truststorePass")));
 
     underTest.adaptDeprecatedPropertiesForInProcessBootstrapping(Map.of(), httpConfig);
 
     assertThat(System.getProperties()).contains(
-      entry("javax.net.ssl.keyStore", "some/keystore.p12"),
+      entry("javax.net.ssl.keyStore", Paths.get("some", "keystore.p12").toString()),
       entry("javax.net.ssl.keyStorePassword", "keystorePass"),
-      entry("javax.net.ssl.trustStore", "some/truststore.p12"),
+      entry("javax.net.ssl.trustStore", Paths.get("some", "truststore.p12").toString()),
       entry("javax.net.ssl.trustStorePassword", "truststorePass"));
   }
 
