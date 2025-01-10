@@ -73,10 +73,6 @@ public class JavaRunner {
       stdoutConsummer.join();
       stdErrConsummer.join();
 
-      if (stdErrConsummer.hasUnsupportedClassVersionError()) {
-        LOG.error(JRE_VERSION_ERROR);
-      }
-
       if (exitCode != 0) {
         LOG.debug("Java command exited with code {}", process.exitValue());
         return false;
@@ -95,7 +91,6 @@ public class JavaRunner {
   private static class StreamGobbler extends Thread {
     private final InputStream inputStream;
     private final Consumer<String> consumer;
-    private boolean unsupportedClassVersionError = false;
 
     public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
       this.inputStream = inputStream;
@@ -106,15 +101,11 @@ public class JavaRunner {
     public void run() {
       new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).lines()
         .forEach(line -> {
-          if (line.contains("UnsupportedClassVersionError")) {
-            unsupportedClassVersionError = true;
-          }
           consumer.accept(line);
+          if (line.contains("UnsupportedClassVersionError")) {
+            LOG.error(JRE_VERSION_ERROR);
+          }
         });
-    }
-
-    public boolean hasUnsupportedClassVersionError() {
-      return unsupportedClassVersionError;
     }
 
   }
