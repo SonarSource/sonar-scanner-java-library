@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class JavaRunner {
   private static final Logger LOG = LoggerFactory.getLogger(JavaRunner.class);
 
-  private static final String JRE_VERSION_ERROR = "The version of the custom JRE provided to the SonarScanner using the 'sonar.scanner.javaExePath' parameter is incompatible " +
+  static final String JRE_VERSION_ERROR = "The version of the custom JRE provided to the SonarScanner using the 'sonar.scanner.javaExePath' parameter is incompatible " +
     "with your SonarQube target. You may need to upgrade the version of Java that executes the scanner. " +
     "Refer to https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/scanner-environment/general-requirements/ for more details.";
 

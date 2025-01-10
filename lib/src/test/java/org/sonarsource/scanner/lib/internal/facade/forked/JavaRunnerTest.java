@@ -23,12 +23,15 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.event.Level;
 import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.sonarsource.scanner.lib.internal.facade.forked.JavaRunner.JRE_VERSION_ERROR;
 
 class JavaRunnerTest {
 
@@ -82,6 +85,26 @@ class JavaRunnerTest {
     JavaRunner runner = new JavaRunner(Paths.get("java"), JreCacheHit.DISABLED);
     List<String> command = List.of("unknown-command");
     assertThat(runner.execute(command, null, stdOut::add)).isFalse();
+  }
+
+  @Test
+  @EnabledOnOs(OS.WINDOWS)
+  void execute_shouldLogUnsupportedClassVersionError_whenOsIsWindows() {
+    JavaRunner runner = new JavaRunner(Paths.get("cmd.exe"), JreCacheHit.DISABLED);
+    List<String> command = List.of("/c", "echo UnsupportedClassVersionError 1>&2");
+
+    assertThat(runner.execute(command, null, stdOut::add)).isTrue();
+    assertThat(logTester.logs(Level.ERROR)).contains(JRE_VERSION_ERROR);
+  }
+
+  @Test
+  @EnabledOnOs(OS.LINUX)
+  void execute_shouldLogUnsupportedClassVersionError_whenOsIsLinux() {
+    JavaRunner runner = new JavaRunner(Paths.get("sh"), JreCacheHit.DISABLED);
+    List<String> command = List.of("-c", ">&2 echo UnsupportedClassVersionError");
+
+    assertThat(runner.execute(command, null, stdOut::add)).isTrue();
+    assertThat(logTester.logs(Level.ERROR)).contains(JRE_VERSION_ERROR);
   }
 
 }
