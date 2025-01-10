@@ -36,6 +36,10 @@ import org.slf4j.LoggerFactory;
 public class JavaRunner {
   private static final Logger LOG = LoggerFactory.getLogger(JavaRunner.class);
 
+  static final String JRE_VERSION_ERROR = "The version of the custom JRE provided to the SonarScanner using the 'sonar.scanner.javaExePath' parameter is incompatible " +
+    "with your SonarQube target. You may need to upgrade the version of Java that executes the scanner. " +
+    "Refer to https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/scanner-environment/general-requirements/ for more details.";
+
   private final Path javaExecutable;
   private final JreCacheHit jreCacheHit;
 
@@ -56,18 +60,19 @@ public class JavaRunner {
         LOG.debug("Executing: {}", String.join(" ", command));
       }
       Process process = new ProcessBuilder(command).start();
-      if (input != null) {
-        try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {
-          osw.write(input);
-        }
-      }
       var stdoutConsummer = new StreamGobbler(process.getInputStream(), stdOutConsummer);
       var stdErrConsummer = new StreamGobbler(process.getErrorStream(), stderr -> LOG.error("[stderr] {}", stderr));
       stdErrConsummer.start();
       stdoutConsummer.start();
+      if (input != null && process.isAlive()) {
+        try (var stdin = process.getOutputStream(); var osw = new OutputStreamWriter(stdin, StandardCharsets.UTF_8)) {
+          osw.write(input);
+        }
+      }
       var exitCode = process.waitFor();
       stdoutConsummer.join();
       stdErrConsummer.join();
+
       if (exitCode != 0) {
         LOG.debug("Java command exited with code {}", process.exitValue());
         return false;
@@ -95,7 +100,13 @@ public class JavaRunner {
     @Override
     public void run() {
       new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).lines()
-        .forEach(consumer);
+        .forEach(line -> {
+          consumer.accept(line);
+          if (line.contains("UnsupportedClassVersionError")) {
+            LOG.error(JRE_VERSION_ERROR);
+          }
+        });
     }
+
   }
 }
