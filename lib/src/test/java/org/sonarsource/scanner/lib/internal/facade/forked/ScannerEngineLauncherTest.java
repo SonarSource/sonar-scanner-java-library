@@ -59,7 +59,7 @@ class ScannerEngineLauncherTest {
     launcher.execute(properties);
 
     verify(javaRunner).execute(
-      eq(List.of("-Xmx4g", "-Xms1g", "-jar", scannerEngine.toAbsolutePath().toString())),
+      eq(List.of("-Xmx4g", "-Xms1g", "-Dorg.bouncycastle.pkcs12.ignore_useless_passwd=true", "-jar", scannerEngine.toAbsolutePath().toString())),
       eq("{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}"),
       any());
   }
@@ -76,7 +76,7 @@ class ScannerEngineLauncherTest {
     launcher.execute(properties);
 
     verify(javaRunner).execute(
-      eq(List.of("-jar", scannerEngine.toAbsolutePath().toString())),
+      eq(List.of("-Dorg.bouncycastle.pkcs12.ignore_useless_passwd=true", "-jar", scannerEngine.toAbsolutePath().toString())),
       eq("{\"scannerProperties\":[{\"key\":\"sonar.myProp\",\"value\":\"\"}]}"),
       any());
   }

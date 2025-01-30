@@ -105,6 +105,7 @@ public class ScannerEngineLauncher {
     if (javaOpts != null) {
       args.addAll(split(javaOpts));
     }
+    args.add("-Dorg.bouncycastle.pkcs12.ignore_useless_passwd=true");
     args.add("-jar");
     args.add(scannerEngineJar.getPathInCache().toAbsolutePath().toString());
     return args;

@@ -42,6 +42,7 @@ import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
@@ -158,6 +159,7 @@ public class OkHttpClientFactory {
 
   static KeyStore loadTrustStoreWithBouncyCastle(Path keystorePath, @Nullable String keystorePassword, String keystoreType) throws IOException,
     KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    Properties.setThreadOverride("org.bouncycastle.pkcs12.ignore_useless_passwd", true);
     KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
     if (keystorePassword != null) {
       loadKeyStoreWithPassword(keystorePath, keystore, keystorePassword);
