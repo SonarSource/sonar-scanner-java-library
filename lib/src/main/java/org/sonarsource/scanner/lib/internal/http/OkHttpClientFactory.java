@@ -42,6 +42,7 @@ import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
@@ -60,6 +61,8 @@ public class OkHttpClientFactory {
   private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
   // use the same cookie jar for all instances
   private static final JavaNetCookieJar COOKIE_JAR;
+  // This property tells Bouncycastle to not fail on empty keystore passwords
+  public static final String BC_IGNORE_USELESS_PASSWD = "org.bouncycastle.pkcs12.ignore_useless_passwd";
 
   private OkHttpClientFactory() {
     // only statics
@@ -158,6 +161,7 @@ public class OkHttpClientFactory {
 
   static KeyStore loadTrustStoreWithBouncyCastle(Path keystorePath, @Nullable String keystorePassword, String keystoreType) throws IOException,
     KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    Properties.setThreadOverride(BC_IGNORE_USELESS_PASSWD, true);
     KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
     if (keystorePassword != null) {
       loadKeyStoreWithPassword(keystorePath, keystore, keystorePassword);

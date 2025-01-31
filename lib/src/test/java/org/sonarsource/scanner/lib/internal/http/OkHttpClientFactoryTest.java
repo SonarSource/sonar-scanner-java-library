@@ -32,6 +32,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLHandshakeException;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
+import nl.altindag.ssl.exception.GenericSecurityException;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,15 +86,17 @@ class OkHttpClientFactoryTest {
 
   @ParameterizedTest
   @CsvSource({
-    "keystore_changeit.p12, wrong,        false",
-    "keystore_changeit.p12, changeit,     true",
-    "keystore_changeit.p12,,              true",
-    "keystore_sonar.p12,    wrong,        false",
-    "keystore_sonar.p12,    sonar,        true",
-    "keystore_sonar.p12,,                 true",
-    "keystore_anotherpwd.p12, wrong,      false",
-    "keystore_anotherpwd.p12, anotherpwd, true",
-    "keystore_anotherpwd.p12,,            false"})
+    "keystore_changeit.p12,   wrong,        false",
+    "keystore_changeit.p12,   changeit,     true",
+    "keystore_changeit.p12,,                true",
+    "keystore_sonar.p12,      wrong,        false",
+    "keystore_sonar.p12,      sonar,        true",
+    "keystore_sonar.p12,,                   true",
+    "keystore_anotherpwd.p12, wrong,        false",
+    "keystore_anotherpwd.p12, anotherpwd,   true",
+    "keystore_anotherpwd.p12,,              false",
+    "keystore_emptypwd.p12,   wrong,        true",
+    "keystore_emptypwd.p12,,                true"})
   void it_should_fail_if_invalid_truststore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
     bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
     if (password != null) {
@@ -106,21 +109,23 @@ class OkHttpClientFactoryTest {
       assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
         .isInstanceOf(GenericKeyStoreException.class)
         .hasMessageContaining("Unable to read truststore from")
-        .hasStackTraceContaining("wrong password or corrupted file");
+        .hasStackTraceContaining("password");
     }
   }
 
   @ParameterizedTest
   @CsvSource({
-    "keystore_changeit.p12, wrong,        false",
-    "keystore_changeit.p12, changeit,     true",
-    "keystore_changeit.p12,,              true",
-    "keystore_sonar.p12,    wrong,        false",
-    "keystore_sonar.p12,    sonar,        true",
-    "keystore_sonar.p12,,                 true",
-    "keystore_anotherpwd.p12, wrong,      false",
-    "keystore_anotherpwd.p12, anotherpwd, true",
-    "keystore_anotherpwd.p12,,            false"})
+    "keystore_changeit.p12,   wrong,        false",
+    "keystore_changeit.p12,   changeit,     true",
+    "keystore_changeit.p12,,                true",
+    "keystore_sonar.p12,      wrong,        false",
+    "keystore_sonar.p12,      sonar,        true",
+    "keystore_sonar.p12,,                   true",
+    "keystore_anotherpwd.p12, wrong,        false",
+    "keystore_anotherpwd.p12, anotherpwd,   true",
+    "keystore_anotherpwd.p12,,              false",
+    "keystore_emptypwd.p12,   wrong,        true",
+    "keystore_emptypwd.p12,,                true"})
   void it_should_fail_if_invalid_keystore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
     bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
     if (password != null) {
@@ -131,7 +136,7 @@ class OkHttpClientFactoryTest {
       assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)));
     } else {
       assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
-        .isInstanceOf(GenericKeyStoreException.class)
+        .isInstanceOf(GenericSecurityException.class)
         .hasMessageContaining("keystore password was incorrect");
     }
   }
