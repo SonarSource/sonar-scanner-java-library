@@ -33,11 +33,13 @@ public class CertificateStore {
   public static final String DEFAULT_STORE_TYPE = "PKCS12";
   private final Path path;
   private final String keyStorePassword;
+  private final boolean fromJvm;
   private final String keyStoreType;
 
-  public CertificateStore(Path path, @Nullable String keyStorePassword) {
+  public CertificateStore(Path path, @Nullable String keyStorePassword, boolean fromJvm) {
     this.path = path;
     this.keyStorePassword = keyStorePassword;
+    this.fromJvm = fromJvm;
     this.keyStoreType = DEFAULT_STORE_TYPE;
   }
 
@@ -51,5 +53,9 @@ public class CertificateStore {
 
   public String getKeyStoreType() {
     return keyStoreType;
+  }
+
+  public boolean isFromJvm() {
+    return fromJvm;
   }
 }

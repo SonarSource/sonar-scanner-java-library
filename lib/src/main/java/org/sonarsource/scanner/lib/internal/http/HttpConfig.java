@@ -28,6 +28,8 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
+import org.sonarsource.scanner.lib.internal.util.System2;
 
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
@@ -55,6 +58,10 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PATH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_TOKEN;
+import static org.sonarsource.scanner.lib.internal.JvmProperties.JAVAX_NET_SSL_KEY_STORE;
+import static org.sonarsource.scanner.lib.internal.JvmProperties.JAVAX_NET_SSL_KEY_STORE_PASSWORD;
+import static org.sonarsource.scanner.lib.internal.JvmProperties.JAVAX_NET_SSL_TRUST_STORE;
+import static org.sonarsource.scanner.lib.internal.JvmProperties.JAVAX_NET_SSL_TRUST_STORE_PASSWORD;
 
 public class HttpConfig {
 
@@ -72,6 +79,7 @@ public class HttpConfig {
   private final String token;
   @Nullable
   private final String login;
+  private final System2 system;
   @Nullable
   private final String password;
 
@@ -81,16 +89,19 @@ public class HttpConfig {
   private final Duration responseTimeout;
   @Nullable
   private final Proxy proxy;
+  @Nullable
   private final String proxyUser;
+  @Nullable
   private final String proxyPassword;
   private final String userAgent;
   private final boolean skipSystemTrustMaterial;
 
-  public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome, System2 system) {
     this.webApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/");
     this.restApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.API_BASE_URL), "/");
     this.token = bootstrapProperties.get(ScannerProperties.SONAR_TOKEN);
     this.login = bootstrapProperties.get(ScannerProperties.SONAR_LOGIN);
+    this.system = system;
     if (Objects.nonNull(this.login) && Objects.nonNull(this.token)) {
       LOG.warn("Both '{}' and '{}' (or the '{}' env variable) are set, but only the latter will be used.", SONAR_LOGIN, SONAR_TOKEN, TOKEN_ENV_VARIABLE);
     }
@@ -107,14 +118,16 @@ public class HttpConfig {
     this.skipSystemTrustMaterial = Boolean.parseBoolean(defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE), "false"));
   }
 
-  private static String loadProxyPassword(Map<String, String> bootstrapProperties) {
+  @CheckForNull
+  private String loadProxyPassword(Map<String, String> bootstrapProperties) {
     var scannerProxyPwd = bootstrapProperties.get(SONAR_SCANNER_PROXY_PASSWORD);
-    return scannerProxyPwd != null ? scannerProxyPwd : System.getProperty("http.proxyPassword", "");
+    return scannerProxyPwd != null ? scannerProxyPwd : system.getProperty("http.proxyPassword");
   }
 
-  private static String loadProxyUser(Map<String, String> bootstrapProperties) {
+  @CheckForNull
+  private String loadProxyUser(Map<String, String> bootstrapProperties) {
     var scannerProxyUser = bootstrapProperties.get(SONAR_SCANNER_PROXY_USER);
-    return scannerProxyUser != null ? scannerProxyUser : System.getProperty("http.proxyUser", "");
+    return scannerProxyUser != null ? scannerProxyUser : system.getProperty("http.proxyUser");
   }
 
   private static Duration loadDuration(Map<String, String> bootstrapProperties, String propKey, @Nullable String deprecatedPropKey, Duration defaultValue) {
@@ -130,7 +143,7 @@ public class HttpConfig {
 
   @Nullable
   private static Proxy loadProxy(Map<String, String> bootstrapProperties) {
-    // OkHttp detects 'http.proxyHost' java property already, so just focus on sonar properties
+    // OkHttp detects 'http.proxyHost' java property already, so just focus on sonar-specific properties
     String proxyHost = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_HOST), null);
     if (proxyHost != null) {
       int proxyPort;
@@ -165,28 +178,44 @@ public class HttpConfig {
     }
   }
 
-  private static SslConfig loadSslConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  private SslConfig loadSslConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
     var keyStore = loadKeyStoreConfig(bootstrapProperties, sonarUserHome);
     var trustStore = loadTrustStoreConfig(bootstrapProperties, sonarUserHome);
     return new SslConfig(keyStore, trustStore);
   }
 
   @Nullable
-  private static CertificateStore loadTrustStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  private CertificateStore loadTrustStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
     var trustStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_TRUSTSTORE_PATH, "truststore", sonarUserHome.resolve("ssl/truststore.p12"));
     if (trustStorePath != null) {
-      LOG.debug("Using truststore: {}", trustStorePath);
-      return new CertificateStore(trustStorePath, bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD));
+      LOG.debug("Using scanner truststore: {}", trustStorePath);
+      return new CertificateStore(trustStorePath, bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD), false);
+    }
+    var jvmTrustStoreProp = system.getProperty(JAVAX_NET_SSL_TRUST_STORE);
+    if (StringUtils.isNotBlank(jvmTrustStoreProp)) {
+      LOG.debug("Using JVM truststore: {}", jvmTrustStoreProp);
+      return new CertificateStore(Paths.get(jvmTrustStoreProp), system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD), true);
+    } else {
+      var defaultJvmTrustStoreLocation = Paths.get(Objects.requireNonNull(system.getProperty("java.home")), "lib", "security", "cacerts");
+      if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
+        LOG.debug("Using JVM default truststore: {}", defaultJvmTrustStoreLocation);
+        return new CertificateStore(defaultJvmTrustStoreLocation, Optional.ofNullable(system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD)).orElse("changeit"), true);
+      }
     }
     return null;
   }
 
   @Nullable
-  private static CertificateStore loadKeyStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  private CertificateStore loadKeyStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
     var keyStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_KEYSTORE_PATH, "keystore", sonarUserHome.resolve("ssl/keystore.p12"));
     if (keyStorePath != null) {
-      LOG.debug("Using keystore: {}", keyStorePath);
-      return new CertificateStore(keyStorePath, bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD));
+      LOG.debug("Using scanner keystore: {}", keyStorePath);
+      return new CertificateStore(keyStorePath, bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD), false);
+    }
+    var jvmKeystoreProp = system.getProperty(JAVAX_NET_SSL_KEY_STORE);
+    if (StringUtils.isNotBlank(jvmKeystoreProp)) {
+      LOG.debug("Using JVM keystore: {}", jvmKeystoreProp);
+      return new CertificateStore(Paths.get(jvmKeystoreProp), system.getProperty(JAVAX_NET_SSL_KEY_STORE_PASSWORD), true);
     }
     return null;
   }
@@ -253,10 +282,12 @@ public class HttpConfig {
     return proxy;
   }
 
+  @CheckForNull
   public String getProxyUser() {
     return proxyUser;
   }
 
+  @CheckForNull
   public String getProxyPassword() {
     return proxyPassword;
   }

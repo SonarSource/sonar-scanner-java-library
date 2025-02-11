@@ -31,6 +31,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import nl.altindag.ssl.SSLFactory;
@@ -102,7 +103,7 @@ public class OkHttpClientFactory {
           return null;
         }
         if (HttpURLConnection.HTTP_PROXY_AUTH == response.code()) {
-          String credential = Credentials.basic(httpConfig.getProxyUser(), httpConfig.getProxyPassword(), UTF_8);
+          String credential = Credentials.basic(httpConfig.getProxyUser(), Optional.ofNullable(httpConfig.getProxyPassword()).orElse(""), UTF_8);
           return response.request().newBuilder().header(PROXY_AUTHORIZATION, credential).build();
         }
         return null;
@@ -138,7 +139,8 @@ public class OkHttpClientFactory {
         trustStore = loadTrustStoreWithBouncyCastle(
           trustStoreConfig.getPath(),
           trustStoreConfig.getKeyStorePassword().orElse(null),
-          trustStoreConfig.getKeyStoreType());
+          trustStoreConfig.getKeyStoreType(),
+          trustStoreConfig.isFromJvm());
         LOG.debug("Loaded truststore from '{}' containing {} certificates", trustStoreConfig.getPath(), trustStore.size());
       } catch (KeyStoreException | IOException | CertificateException | NoSuchAlgorithmException e) {
         throw new GenericKeyStoreException("Unable to read truststore from '" + trustStoreConfig.getPath() + "'", e);
@@ -159,7 +161,7 @@ public class OkHttpClientFactory {
     }
   }
 
-  static KeyStore loadTrustStoreWithBouncyCastle(Path keystorePath, @Nullable String keystorePassword, String keystoreType) throws IOException,
+  static KeyStore loadTrustStoreWithBouncyCastle(Path keystorePath, @Nullable String keystorePassword, String keystoreType, boolean fromJvm) throws IOException,
     KeyStoreException, CertificateException, NoSuchAlgorithmException {
     Properties.setThreadOverride(BC_IGNORE_USELESS_PASSWD, true);
     KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
@@ -169,8 +171,10 @@ public class OkHttpClientFactory {
       try {
         loadKeyStoreWithPassword(keystorePath, keystore, CertificateStore.DEFAULT_PASSWORD);
       } catch (Exception e) {
-        loadKeyStoreWithPassword(keystorePath, keystore, CertificateStore.OLD_DEFAULT_PASSWORD);
-        LOG.warn("Using deprecated default password for truststore '{}'.", keystorePath);
+        if (!fromJvm) {
+          loadKeyStoreWithPassword(keystorePath, keystore, CertificateStore.OLD_DEFAULT_PASSWORD);
+          LOG.warn("Using deprecated default password for truststore '{}'.", keystorePath);
+        }
       }
     }
     return keystore;
