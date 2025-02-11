@@ -33,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
+import org.sonarsource.scanner.lib.internal.util.System2;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -213,7 +214,7 @@ class ScannerHttpClientTest {
     props.putAll(additionalProps);
 
     ScannerHttpClient connection = new ScannerHttpClient();
-    connection.init(new HttpConfig(props, sonarUserHome));
+    connection.init(new HttpConfig(props, sonarUserHome, new System2()));
     return connection;
   }
 
