@@ -87,7 +87,7 @@ public final class ScannerProperties {
   public static final String SONAR_SCANNER_TRUSTSTORE_PATH = "sonar.scanner.truststorePath";
   public static final String SONAR_SCANNER_TRUSTSTORE_PASSWORD = "sonar.scanner.truststorePassword";
   public static final String SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE = "sonar.scanner.skipSystemTruststore";
-
+  public static final String SONAR_SCANNER_SKIP_JVM_SSL_CONFIG = "sonar.scanner.skipJvmSslConfig";
   /**
    * Skip analysis.
    */
