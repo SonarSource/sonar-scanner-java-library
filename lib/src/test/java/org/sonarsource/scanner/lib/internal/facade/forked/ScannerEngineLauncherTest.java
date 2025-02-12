@@ -62,6 +62,22 @@ class ScannerEngineLauncherTest {
       eq(List.of("-Xmx4g", "-Xms1g", "-Dorg.bouncycastle.pkcs12.ignore_useless_passwd=true", "-jar", scannerEngine.toAbsolutePath().toString())),
       eq("{\"scannerProperties\":[{\"key\":\"sonar.host.url\",\"value\":\"http://localhost:9000\"},{\"key\":\"sonar.scanner.javaOpts\",\"value\":\"-Xmx4g -Xms1g\"}]}"),
       any());
+
+    assertThat(logTester.logs(Level.INFO)).containsOnly("SONAR_SCANNER_JAVA_OPTS=-Xmx4g -Xms1g");
+  }
+
+  @Test
+  void execute_log_info_when_java_opts_provided_obfuscating_sensitive_values() {
+    var scannerEngine = temp.resolve("scanner-engine.jar");
+
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
+
+    Map<String, String> properties = Map.of(
+      ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g -Dsonar.login=secret1 -Dsonar.password=secret2 -Dsonar.token=secret3 -Djava.net.ssl.trustStorePassword=secret4",
+      ScannerProperties.HOST_URL, "http://localhost:9000");
+    launcher.execute(properties);
+
+    assertThat(logTester.logs(Level.INFO)).containsOnly("SONAR_SCANNER_JAVA_OPTS=-Xmx4g -Xms1g -Dsonar.login=* -Dsonar.password=* -Dsonar.token=* -Djava.net.ssl.trustStorePassword=*");
   }
 
   @Test
