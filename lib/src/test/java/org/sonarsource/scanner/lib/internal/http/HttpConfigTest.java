@@ -115,6 +115,17 @@ class HttpConfigTest {
   }
 
   @Test
+  void should_skip_ssl_config_from_jvm_if_property_set() {
+    logTester.setLevel(Level.DEBUG);
+    bootstrapProperties.put("sonar.scanner.skipJvmSslConfig", "true");
+
+    var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+    assertThat(underTest.getSslConfig().getTrustStore()).isNull();
+    assertThat(underTest.getSslConfig().getKeyStore()).isNull();
+  }
+
+  @Test
   void should_set_ssl_config_from_jvm_system_properties(@TempDir Path tempDir) throws IOException {
     var jvmTruststore = tempDir.resolve("jvmTrust.p12");
     Files.createFile(jvmTruststore);

@@ -53,6 +53,7 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PORT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_USER;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_RESPONSE_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_JVM_SSL_CONFIG;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_TRUSTSTORE_PASSWORD;
@@ -179,43 +180,48 @@ public class HttpConfig {
   }
 
   private SslConfig loadSslConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
-    var keyStore = loadKeyStoreConfig(bootstrapProperties, sonarUserHome);
-    var trustStore = loadTrustStoreConfig(bootstrapProperties, sonarUserHome);
+    var skipJvmSslConfig = Boolean.parseBoolean(defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SKIP_JVM_SSL_CONFIG), "false"));
+    var keyStore = loadKeyStoreConfig(bootstrapProperties, sonarUserHome, skipJvmSslConfig);
+    var trustStore = loadTrustStoreConfig(bootstrapProperties, sonarUserHome, skipJvmSslConfig);
     return new SslConfig(keyStore, trustStore);
   }
 
   @Nullable
-  private CertificateStore loadTrustStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  private CertificateStore loadTrustStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome, boolean skipJvmSslConfig) {
     var trustStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_TRUSTSTORE_PATH, "truststore", sonarUserHome.resolve("ssl/truststore.p12"));
     if (trustStorePath != null) {
       LOG.debug("Using scanner truststore: {}", trustStorePath);
       return new CertificateStore(trustStorePath, bootstrapProperties.get(SONAR_SCANNER_TRUSTSTORE_PASSWORD), false);
     }
-    var jvmTrustStoreProp = system.getProperty(JAVAX_NET_SSL_TRUST_STORE);
-    if (StringUtils.isNotBlank(jvmTrustStoreProp)) {
-      LOG.debug("Using JVM truststore: {}", jvmTrustStoreProp);
-      return new CertificateStore(Paths.get(jvmTrustStoreProp), system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD), true);
-    } else {
-      var defaultJvmTrustStoreLocation = Paths.get(Objects.requireNonNull(system.getProperty("java.home")), "lib", "security", "cacerts");
-      if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
-        LOG.debug("Using JVM default truststore: {}", defaultJvmTrustStoreLocation);
-        return new CertificateStore(defaultJvmTrustStoreLocation, Optional.ofNullable(system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD)).orElse("changeit"), true);
+    if (!skipJvmSslConfig) {
+      var jvmTrustStoreProp = system.getProperty(JAVAX_NET_SSL_TRUST_STORE);
+      if (StringUtils.isNotBlank(jvmTrustStoreProp)) {
+        LOG.debug("Using JVM truststore: {}", jvmTrustStoreProp);
+        return new CertificateStore(Paths.get(jvmTrustStoreProp), system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD), true);
+      } else {
+        var defaultJvmTrustStoreLocation = Paths.get(Objects.requireNonNull(system.getProperty("java.home")), "lib", "security", "cacerts");
+        if (Files.isRegularFile(defaultJvmTrustStoreLocation)) {
+          LOG.debug("Using JVM default truststore: {}", defaultJvmTrustStoreLocation);
+          return new CertificateStore(defaultJvmTrustStoreLocation, Optional.ofNullable(system.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD)).orElse("changeit"), true);
+        }
       }
     }
     return null;
   }
 
   @Nullable
-  private CertificateStore loadKeyStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome) {
+  private CertificateStore loadKeyStoreConfig(Map<String, String> bootstrapProperties, Path sonarUserHome, boolean skipJvmSslConfig) {
     var keyStorePath = parseFileProperty(bootstrapProperties, SONAR_SCANNER_KEYSTORE_PATH, "keystore", sonarUserHome.resolve("ssl/keystore.p12"));
     if (keyStorePath != null) {
       LOG.debug("Using scanner keystore: {}", keyStorePath);
       return new CertificateStore(keyStorePath, bootstrapProperties.get(SONAR_SCANNER_KEYSTORE_PASSWORD), false);
     }
-    var jvmKeystoreProp = system.getProperty(JAVAX_NET_SSL_KEY_STORE);
-    if (StringUtils.isNotBlank(jvmKeystoreProp)) {
-      LOG.debug("Using JVM keystore: {}", jvmKeystoreProp);
-      return new CertificateStore(Paths.get(jvmKeystoreProp), system.getProperty(JAVAX_NET_SSL_KEY_STORE_PASSWORD), true);
+    if (!skipJvmSslConfig) {
+      var jvmKeystoreProp = system.getProperty(JAVAX_NET_SSL_KEY_STORE);
+      if (StringUtils.isNotBlank(jvmKeystoreProp)) {
+        LOG.debug("Using JVM keystore: {}", jvmKeystoreProp);
+        return new CertificateStore(Paths.get(jvmKeystoreProp), system.getProperty(JAVAX_NET_SSL_KEY_STORE_PASSWORD), true);
+      }
     }
     return null;
   }
