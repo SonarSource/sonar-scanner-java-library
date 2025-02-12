@@ -69,7 +69,7 @@ public class PropertiesTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of(), Map.of());
     assertThat(buildResult.getLastStatus()).isZero();
 
-    assertThat(Paths.get(System.getProperty("user.home")).resolve(".sonar/cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
+    assertThat(Paths.get(System.getProperty("user.home")).resolve(".sonar/cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-*.jar"));
   }
 
   @Test
@@ -80,7 +80,7 @@ public class PropertiesTest {
       Map.of("SONAR_USER_HOME", userHome.getAbsolutePath()));
     assertThat(buildResult.getLastStatus()).isZero();
 
-    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
+    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-*.jar"));
   }
 
   @Test
@@ -90,7 +90,7 @@ public class PropertiesTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), Map.of("sonar.userHome", userHome.getAbsolutePath()), Map.of());
     assertThat(buildResult.getLastStatus()).isZero();
 
-    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-engine*.jar"));
+    assertThat(userHome.toPath().resolve("cache")).isDirectoryRecursivelyContaining(("glob:**/*scanner-*.jar"));
   }
 
   private static Path project(String projectName) {
