@@ -26,8 +26,10 @@ import com.google.gson.annotations.SerializedName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +38,10 @@ import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.http.OkHttpClientFactory;
 
 public class ScannerEngineLauncher {
+  private static final Set<String> SENSITIVE_JVM_ARGUMENTS = Set.of(
+    "sonar.login",
+    "password",
+    "token");
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncher.class);
 
@@ -104,12 +110,28 @@ public class ScannerEngineLauncher {
     List<String> args = new ArrayList<>();
     String javaOpts = properties.get(ScannerProperties.SCANNER_JAVA_OPTS);
     if (javaOpts != null) {
-      args.addAll(split(javaOpts));
+      var split = split(javaOpts);
+      LOG.atInfo().addArgument(() -> redactSensitiveArguments(split)).log("SONAR_SCANNER_JAVA_OPTS={}");
+      args.addAll(split);
     }
     args.add("-D" + OkHttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
     args.add("-jar");
     args.add(scannerEngineJar.getPathInCache().toAbsolutePath().toString());
     return args;
+  }
+
+  private static String redactSensitiveArguments(List<String> scannerOpts) {
+    return scannerOpts.stream()
+      .map(ScannerEngineLauncher::redactArgumentIfSensistive)
+      .collect(Collectors.joining(" "));
+  }
+
+  private static String redactArgumentIfSensistive(String argument) {
+    String[] elems = argument.split("=");
+    if (elems.length > 0 && SENSITIVE_JVM_ARGUMENTS.stream().anyMatch(p -> elems[0].toLowerCase(Locale.ENGLISH).contains(p))) {
+      return elems[0] + "=*";
+    }
+    return argument;
   }
 
   private static List<String> split(String value) {
@@ -124,11 +146,11 @@ public class ScannerEngineLauncher {
     properties.entrySet().stream()
       .filter(prop -> prop.getKey() != null)
       .sorted(Map.Entry.comparingByKey()).forEach(prop -> {
-      JsonObject property = new JsonObject();
-      property.addProperty("key", prop.getKey());
-      property.addProperty("value", Optional.ofNullable(prop.getValue()).orElse(""));
-      propertiesArray.add(property);
-    });
+        JsonObject property = new JsonObject();
+        property.addProperty("key", prop.getKey());
+        property.addProperty("value", Optional.ofNullable(prop.getValue()).orElse(""));
+        propertiesArray.add(property);
+      });
     JsonObject jsonObject = new JsonObject();
     jsonObject.add(JSON_FIELD_SCANNER_PROPERTIES, propertiesArray);
     return new Gson().toJson(jsonObject);
