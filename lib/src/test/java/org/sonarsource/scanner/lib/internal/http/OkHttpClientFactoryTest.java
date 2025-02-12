@@ -45,8 +45,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -64,6 +64,8 @@ import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class OkHttpClientFactoryTest {
 
@@ -77,11 +79,13 @@ class OkHttpClientFactoryTest {
   @TempDir
   private Path sonarUserHomeDir;
   private Path sonarUserHome;
+  private System2 system2 = mock();
 
   @BeforeEach
   void prepareMocks() {
     this.sonarUserHome = sonarUserHomeDir;
     bootstrapProperties.clear();
+    when(system2.getProperty("java.home")).thenReturn(System.getProperty("java.home"));
   }
 
   @ParameterizedTest
@@ -103,10 +107,11 @@ class OkHttpClientFactoryTest {
       bootstrapProperties.put("sonar.scanner.truststorePassword", password);
     }
 
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
     if (shouldSucceed) {
-      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)));
+      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(httpConfig));
     } else {
-      assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
+      assertThatThrownBy(() -> OkHttpClientFactory.create(httpConfig))
         .isInstanceOf(GenericKeyStoreException.class)
         .hasMessageContaining("Unable to read truststore from")
         .hasStackTraceContaining("password");
@@ -132,10 +137,11 @@ class OkHttpClientFactoryTest {
       bootstrapProperties.put("sonar.scanner.keystorePassword", password);
     }
 
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
     if (shouldSucceed) {
-      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)));
+      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(httpConfig));
     } else {
-      assertThatThrownBy(() -> OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)))
+      assertThatThrownBy(() -> OkHttpClientFactory.create(httpConfig))
         .isInstanceOf(GenericSecurityException.class)
         .hasMessageContaining("keystore password was incorrect");
     }
@@ -145,7 +151,7 @@ class OkHttpClientFactoryTest {
   void should_load_os_certificates_by_default() {
     logTester.setLevel(Level.DEBUG);
 
-    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome));
+    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
 
     assertThat(logTester.logs(Level.DEBUG)).contains("Loading OS trusted SSL certificates...");
   }
@@ -155,7 +161,7 @@ class OkHttpClientFactoryTest {
     logTester.setLevel(Level.DEBUG);
     bootstrapProperties.put("sonar.scanner.skipSystemTruststore", "true");
 
-    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome));
+    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
 
     assertThat(logTester.logs(Level.DEBUG)).doesNotContain("Loading OS trusted SSL certificates...");
   }
@@ -178,7 +184,6 @@ class OkHttpClientFactoryTest {
         .willReturn(ok("OK").withHeader("Set-Cookie", COOKIE)));
     }
 
-    @RestoreSystemProperties
     @Test
     void test_with_cookie() throws Exception {
       try {
@@ -314,15 +319,14 @@ class OkHttpClientFactoryTest {
 
       @Test
       @Tag(PROXY_AUTH_ENABLED)
-      @RestoreSystemProperties
       void it_should_honor_old_jvm_proxy_auth_properties() throws IOException {
         var proxyLogin = "proxyLogin";
         var proxyPassword = "proxyPassword";
         bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
         bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
         bootstrapProperties.put("sonar.scanner.proxyPort", "" + proxyMock.getPort());
-        System.setProperty("http.proxyUser", proxyLogin);
-        System.setProperty("http.proxyPassword", proxyPassword);
+        when(system2.getProperty("http.proxyUser")).thenReturn(proxyLogin);
+        when(system2.getProperty("http.proxyPassword")).thenReturn(proxyPassword);
 
         sonarqubeMock.stubFor(get("/batch/index")
           .willReturn(aResponse().withStatus(200).withBody("Success")));
@@ -439,7 +443,7 @@ class OkHttpClientFactoryTest {
   }
 
   private Response call(String url) throws IOException {
-    return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome)).newCall(
+    return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2)).newCall(
         new Request.Builder()
           .url(url)
           .get()
