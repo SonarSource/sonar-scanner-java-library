@@ -20,7 +20,6 @@
 package com.sonar.scanner.lib.it.tools;
 
 import com.sonar.orchestrator.build.BuildResult;
-import com.sonar.orchestrator.container.Server;
 import com.sonar.scanner.lib.it.ScannerJavaLibraryTestSuite;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -55,8 +54,12 @@ public class SimpleScanner {
   }
 
   public BuildResult executeSimpleProject(Path baseDir, String host, Map<String, String> extraProps, Map<String, String> env) throws IOException {
+    return executeSimpleProject(baseDir, host, extraProps, env, true);
+  }
+
+  public BuildResult executeSimpleProject(Path baseDir, String host, Map<String, String> extraProps, Map<String, String> env, boolean configureAuth) throws IOException {
     List<String> params = new ArrayList<>();
-    Map<String, String> props = getSimpleProjectProperties(baseDir, host, extraProps);
+    Map<String, String> props = getSimpleProjectProperties(baseDir, host, extraProps, configureAuth);
 
     props.forEach((k, v) -> params.add("-D" + k + "=" + v));
     params.add("-jar");
@@ -70,19 +73,21 @@ public class SimpleScanner {
     return result;
   }
 
-  private Map<String, String> getSimpleProjectProperties(Path baseDir, String host, Map<String, String> extraProps) throws IOException {
+  private Map<String, String> getSimpleProjectProperties(Path baseDir, String host, Map<String, String> extraProps, boolean configureAuth) throws IOException {
     Properties analysisProperties = new Properties();
     Path propertiesFile = baseDir.resolve("sonar-project.properties");
     analysisProperties.load(Files.newInputStream(propertiesFile));
     analysisProperties.setProperty("sonar.projectBaseDir", baseDir.toAbsolutePath().toString());
     analysisProperties.setProperty("sonar.host.url", host);
-    if (ScannerJavaLibraryTestSuite.ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(10, 0)) {
-      analysisProperties.setProperty("sonar.token", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
-    } else {
-      analysisProperties.setProperty("sonar.login", Server.ADMIN_LOGIN);
-      analysisProperties.setProperty("sonar.password", Server.ADMIN_PASSWORD);
+    if (configureAuth) {
+      if (ScannerJavaLibraryTestSuite.ORCHESTRATOR.getServer().version().isGreaterThanOrEquals(10, 0)) {
+        analysisProperties.setProperty("sonar.token", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+      } else {
+        analysisProperties.setProperty("sonar.login", ScannerJavaLibraryTestSuite.ORCHESTRATOR.getDefaultAdminToken());
+      }
     }
     analysisProperties.putAll(extraProps);
     return (Map) analysisProperties;
   }
+
 }

@@ -262,20 +262,37 @@ public class ScannerEngineBootstrapper {
   private static String getServerVersion(ScannerHttpClient scannerHttpClient) {
     try {
       return scannerHttpClient.callRestApi("/analysis/version");
-    } catch (Exception e) {
-      if (e instanceof HttpException && ((HttpException) e).getCode() == 404) {
-        // Fallback to the old endpoint
-        try {
-          return scannerHttpClient.callWebApi("/api/server/version");
-        } catch (Exception e2) {
-          var ex = new MessageException("Failed to query server version: " + e2.getMessage(), e2);
-          ex.addSuppressed(e);
-          throw ex;
+    } catch (HttpException httpException) {
+      // Fallback to the old endpoint
+      try {
+        var serverVersion = scannerHttpClient.callWebApi("/api/server/version");
+        if (VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
+          // If version is greater than 10.6, we would have expected the first call to succeed, so it is better to throw the original exception than moving on
+          // and having the scanner failing later (usually because of authentication issues)
+          throw httpException;
         }
-      } else {
-        throw new MessageException("Failed to query server version: " + e.getMessage(), e);
+        return serverVersion;
+      } catch (Exception e2) {
+        var ex = new MessageException("Failed to query server version: " + formatMessage(e2), e2);
+        if (!e2.equals(httpException)) {
+          ex.addSuppressed(httpException);
+        }
+        throw ex;
       }
+    } catch (Exception e) {
+      throw new MessageException("Failed to query server version: " + formatMessage(e), e);
     }
+  }
+
+  private static String formatMessage(Exception e) {
+    if (e instanceof HttpException) {
+      String message = "HTTP " + ((HttpException) e).getCode();
+      if (StringUtils.isNotBlank(e.getMessage())) {
+        message += " " + e.getMessage();
+      }
+      return message;
+    }
+    return e.getMessage();
   }
 
   private void initBootstrapDefaultValues() {
