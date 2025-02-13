@@ -129,6 +129,27 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
+  void should_report_apiv2_error_with_sq_10_6_even_if_older_version_ws_succeeded() throws Exception {
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 401, "", null));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
+      assertThat(bootstrapResult.isSuccessful()).isFalse();
+    }
+
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
+  }
+
+  @Test
+  void should_report_technical_errors() throws Exception {
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new IOException("Socket closed"));
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
+      assertThat(bootstrapResult.isSuccessful()).isFalse();
+    }
+
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Socket closed");
+  }
+
+  @Test
   void should_issue_deprecation_warning_for_sonar_login_property_sonarqube_10_0() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
     when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
@@ -163,6 +184,25 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
+  void should_use_old_bootstrapping_with_sonarqube_9_9() throws Exception {
+    IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+      .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
+
+    ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
+      launcherFactory, scannerEngineLauncherFactory);
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 401, "Unauthorized", null));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("9.9");
+
+    try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
+      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("9.9");
+      verifySonarQubeServerTypeLogged("9.9");
+    }
+  }
+
+  @Test
   void should_use_old_bootstrapping_with_sonarqube_10_5() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
     when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
@@ -190,6 +230,7 @@ class ScannerEngineBootstrapperTest {
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
     when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 407, "Proxy Authentication Required", null));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 407, "Proxy Authentication Required", null));
 
     logTester.setLevel(Level.DEBUG);
 
@@ -197,7 +238,7 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and " +
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: HTTP 407 Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and " +
       "sonar.scanner.proxyPassword.");
     assertThatNoServerTypeIsLogged();
   }
@@ -221,7 +262,7 @@ class ScannerEngineBootstrapperTest {
 
     var loggedError = logTester.logEvents(Level.ERROR);
     assertThat(loggedError).hasSize(1);
-    assertThat(loggedError.get(0).getFormattedMessage()).contains("Failed to query server version: Server Error");
+    assertThat(loggedError.get(0).getFormattedMessage()).contains("Failed to query server version: HTTP 400 Server Error");
     assertThat(ThrowableProxyUtil.asString(loggedError.get(0).getThrowableProxy()))
       .containsSubsequence(
         "Suppressed: org.sonarsource.scanner.lib.internal.http.HttpException: Not Found",
@@ -246,7 +287,7 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: HTTP " + code + " Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
       ".");
     assertThatNoServerTypeIsLogged();
   }

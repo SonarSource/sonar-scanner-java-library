@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.lib.internal.http;
 
 import java.net.URL;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 public class HttpException extends RuntimeException {
@@ -46,5 +47,17 @@ public class HttpException extends RuntimeException {
   @Nullable
   public String getBody() {
     return body;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof HttpException)) return false;
+    HttpException that = (HttpException) o;
+    return code == that.code && Objects.equals(requestUrl, that.requestUrl) && Objects.equals(body, that.body) && Objects.equals(getMessage(), that.getMessage());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(requestUrl, code, body, getMessage());
   }
 }

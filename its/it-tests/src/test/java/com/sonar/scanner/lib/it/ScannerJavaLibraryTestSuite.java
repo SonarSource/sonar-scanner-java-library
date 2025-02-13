@@ -31,7 +31,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ProxyTest.class, SSLTest.class, PropertiesTest.class})
+@SuiteClasses({AuthenticationTest.class, ProxyTest.class, SSLTest.class, PropertiesTest.class})
 public class ScannerJavaLibraryTestSuite {
   private static final String SONAR_RUNTIME_VERSION = "sonar.runtimeVersion";
 
@@ -41,6 +41,7 @@ public class ScannerJavaLibraryTestSuite {
     .setSonarVersion(getServerVersion())
     .setEdition(getServerVersion().equals(LATEST_RELEASE) ? Edition.COMMUNITY : Edition.DEVELOPER)
     .useDefaultAdminCredentialsForBuilds(true)
+    .defaultForceAuthentication()
     .addBundledPluginToKeep("sonar-javascript")
     .build();
 
