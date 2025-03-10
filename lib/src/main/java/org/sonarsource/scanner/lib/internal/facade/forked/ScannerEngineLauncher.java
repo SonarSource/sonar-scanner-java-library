@@ -111,7 +111,7 @@ public class ScannerEngineLauncher {
     String javaOpts = properties.get(ScannerProperties.SCANNER_JAVA_OPTS);
     if (javaOpts != null) {
       var split = split(javaOpts);
-      LOG.atInfo().addArgument(() -> redactSensitiveArguments(split)).log("SONAR_SCANNER_JAVA_OPTS={}");
+      LOG.info("SONAR_SCANNER_JAVA_OPTS={}", redactSensitiveArguments(split));
       args.addAll(split);
     }
     args.add("-D" + OkHttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
