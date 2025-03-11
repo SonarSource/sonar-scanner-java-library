@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +38,9 @@ import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.SuccessfulBootstrap;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.endpoint.OfficialSonarQubeCloudInstance;
+import org.sonarsource.scanner.lib.internal.endpoint.ScannerEndpoint;
+import org.sonarsource.scanner.lib.internal.endpoint.SonarQubeServer;
 import org.sonarsource.scanner.lib.internal.facade.forked.NewScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.InProcessScannerEngineFacade;
@@ -52,6 +56,7 @@ import org.sonarsource.scanner.lib.internal.util.Paths2;
 import org.sonarsource.scanner.lib.internal.util.System2;
 import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
+import static java.lang.String.format;
 import static org.sonarsource.scanner.lib.EnvironmentConfig.TOKEN_ENV_VARIABLE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ARCH;
 import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_OS;
@@ -77,8 +82,7 @@ public class ScannerEngineBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineBootstrapper.class);
 
-  private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
-  private static final String SONARCLOUD_REST_API = "https://api.sonarcloud.io";
+
   static final String SQ_VERSION_NEW_BOOTSTRAPPING = "10.6";
   static final String SQ_VERSION_TOKEN_AUTHENTICATION = "10.0";
 
@@ -125,37 +129,38 @@ public class ScannerEngineBootstrapper {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Scanner max available memory: {}", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
     }
-    initBootstrapDefaultValues();
+    var endpoint = resolveEndpoint();
+    initBootstrapDefaultValues(endpoint);
     var immutableProperties = Map.copyOf(bootstrapProperties);
     var sonarUserHome = resolveSonarUserHome(immutableProperties);
     var httpConfig = new HttpConfig(immutableProperties, sonarUserHome, system);
-    var isSonarCloud = isSonarCloud(immutableProperties);
+    var isSonarQubeCloud = endpoint.isSonarQubeCloud();
     var isSimulation = immutableProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var fileCache = FileCache.create(sonarUserHome);
 
     if (isSimulation) {
       var serverVersion = immutableProperties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "9.9");
-      return new SuccessfulBootstrap(new SimulationScannerEngineFacade(immutableProperties, isSonarCloud, serverVersion));
+      return new SuccessfulBootstrap(new SimulationScannerEngineFacade(immutableProperties, isSonarQubeCloud, serverVersion));
     }
 
     // No HTTP call should be made before this point
     try {
       scannerHttpClient.init(httpConfig);
 
-      var serverVersion = !isSonarCloud ? getServerVersion(scannerHttpClient) : null;
+      var serverVersion = !isSonarQubeCloud ? getServerVersion(scannerHttpClient) : null;
 
-      if (!isSonarCloud && VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
+      if (!isSonarQubeCloud && VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
         LOG.warn("Use of '{}' property has been deprecated in favor of '{}' (or the env variable alternative '{}'). Please use the latter when passing a token.", SONAR_LOGIN,
           SONAR_TOKEN, TOKEN_ENV_VARIABLE);
       }
 
       ScannerEngineFacade scannerFacade;
-      if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
+      if (isSonarQubeCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
         var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
 
         var adaptedProperties = adaptSslPropertiesToScannerProperties(immutableProperties, httpConfig);
 
-        scannerFacade = new NewScannerEngineFacade(adaptedProperties, launcher, isSonarCloud, serverVersion);
+        scannerFacade = new NewScannerEngineFacade(adaptedProperties, launcher, isSonarQubeCloud, serverVersion);
       } else {
         var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
         var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
@@ -201,7 +206,7 @@ public class ScannerEngineBootstrapper {
   }
 
   private static void logServerType(ScannerEngineFacade engine) {
-    if (engine.isSonarCloud()) {
+    if (engine.isSonarQubeCloud()) {
       LOG.info("Communicating with SonarQube Cloud");
     } else {
       LOG.info("Communicating with {} {}", engine.getServerLabel(), engine.getServerVersion());
@@ -295,10 +300,9 @@ public class ScannerEngineBootstrapper {
     return e.getMessage();
   }
 
-  private void initBootstrapDefaultValues() {
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
-      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
+  private void initBootstrapDefaultValues(ScannerEndpoint endpoint) {
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, endpoint.getWebEndpoint());
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, endpoint.getApiEndpoint());
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
@@ -328,12 +332,70 @@ public class ScannerEngineBootstrapper {
     return Map.copyOf(result);
   }
 
-  private String getSonarCloudUrl() {
-    return bootstrapProperties.getOrDefault(ScannerProperties.SONARCLOUD_URL, SONARCLOUD_HOST);
+  private ScannerEndpoint resolveEndpoint() {
+    if (bootstrapProperties.containsKey(ScannerProperties.HOST_URL)) {
+      return resolveEndpointFromSonarHostUrl();
+    }
+    return resolveSonarQubeCloudEndpoint();
   }
 
-  private boolean isSonarCloud(Map<String, String> properties) {
-    return getSonarCloudUrl().equals(properties.get(ScannerProperties.HOST_URL));
+  private ScannerEndpoint resolveSonarQubeCloudEndpoint() {
+    var hasCloudUrl = bootstrapProperties.containsKey(ScannerProperties.SONARQUBE_CLOUD_URL);
+    if (hasCloudUrl) {
+      return resolveCustomSonarQubeCloudEndpoint();
+    }
+    failIfApiEndpointAloneDefined();
+    var regionCode = bootstrapProperties.get(ScannerProperties.SONAR_REGION);
+    return OfficialSonarQubeCloudInstance.fromRegionCode(regionCode)
+      .orElseThrow(() -> new MessageException(
+        format("Invalid region '%s'. Valid regions are: %s. Please check the '%s' property or the '%s' environment variable.",
+          regionCode, StringUtils.join(OfficialSonarQubeCloudInstance.getRegionCodes(), ", "), ScannerProperties.SONAR_REGION, EnvironmentConfig.REGION_ENV_VARIABLE)))
+      .getEndpoint();
+  }
+
+  private void failIfApiEndpointAloneDefined() {
+    var hasApiUrl = bootstrapProperties.containsKey(ScannerProperties.API_BASE_URL);
+    if (hasApiUrl) {
+      throw new MessageException(format("Defining '%s' without '%s' is not supported.", ScannerProperties.API_BASE_URL, ScannerProperties.SONARQUBE_CLOUD_URL));
+    }
+  }
+
+  private ScannerEndpoint resolveCustomSonarQubeCloudEndpoint() {
+    var hasApiUrl = bootstrapProperties.containsKey(ScannerProperties.API_BASE_URL);
+    var maybeCloudInstance = maybeResolveOfficialSonarQubeCloud(ScannerProperties.SONARQUBE_CLOUD_URL);
+    if (maybeCloudInstance.isPresent()) {
+      return maybeCloudInstance.get();
+    }
+    if (!hasApiUrl) {
+      throw new MessageException(format("Defining '%s' without '%s' is not supported.", ScannerProperties.SONARQUBE_CLOUD_URL, ScannerProperties.API_BASE_URL));
+    }
+    return new ScannerEndpoint(
+      bootstrapProperties.get(ScannerProperties.SONARQUBE_CLOUD_URL),
+      bootstrapProperties.get(ScannerProperties.API_BASE_URL), true);
+  }
+
+  private static MessageException defining2incompatiblePropertiesUnsupported(String prop1, String prop2) {
+    return new MessageException(format("Defining '%s' and '%s' at the same time is not supported.", prop1, prop2));
+  }
+
+  private ScannerEndpoint resolveEndpointFromSonarHostUrl() {
+    return maybeResolveOfficialSonarQubeCloud(ScannerProperties.HOST_URL)
+      .orElse(new SonarQubeServer(bootstrapProperties.get(ScannerProperties.HOST_URL)));
+  }
+
+  private Optional<ScannerEndpoint> maybeResolveOfficialSonarQubeCloud(String urlPropName) {
+    var maybeCloudInstance = OfficialSonarQubeCloudInstance.fromWebEndpoint(bootstrapProperties.get(urlPropName));
+    var hasRegion = bootstrapProperties.containsKey(ScannerProperties.SONAR_REGION);
+    if (maybeCloudInstance.isPresent()) {
+      if (hasRegion && !OfficialSonarQubeCloudInstance.fromRegionCode(bootstrapProperties.get(ScannerProperties.SONAR_REGION)).equals(maybeCloudInstance)) {
+        throw defining2incompatiblePropertiesUnsupported(ScannerProperties.SONAR_REGION, urlPropName);
+      }
+      return Optional.of(maybeCloudInstance.get().getEndpoint());
+    }
+    if (hasRegion) {
+      throw defining2incompatiblePropertiesUnsupported(ScannerProperties.SONAR_REGION, urlPropName);
+    }
+    return Optional.empty();
   }
 
   private void setBootstrapPropertyIfNotAlreadySet(String key, @Nullable String value) {

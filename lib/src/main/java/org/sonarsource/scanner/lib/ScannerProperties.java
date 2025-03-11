@@ -33,7 +33,7 @@ public final class ScannerProperties {
   }
 
   /**
-   * URL of the Sonar server, default to SonarCloud
+   * URL of the SonarQube Server, default to SonarQube Cloud if not set
    */
   public static final String HOST_URL = "sonar.host.url";
 
@@ -43,9 +43,14 @@ public final class ScannerProperties {
   public static final String API_BASE_URL = "sonar.scanner.apiBaseUrl";
 
   /**
-   * URL of the SonarCloud server, default to https://sonarcloud.io. Useful for testing purposes.
+   * URL of the SonarQube Cloud instance, default to https://sonarcloud.io. Useful for testing purposes.
    */
-  public static final String SONARCLOUD_URL = "sonar.scanner.sonarcloudUrl";
+  public static final String SONARQUBE_CLOUD_URL = "sonar.scanner.sonarcloudUrl";
+
+  /**
+   * SonarQube Cloud region.
+   */
+  public static final String SONAR_REGION = "sonar.region";
 
   /**
    * Working directory containing generated reports and temporary data.

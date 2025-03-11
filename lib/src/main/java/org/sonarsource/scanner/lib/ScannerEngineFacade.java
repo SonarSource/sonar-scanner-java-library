@@ -39,7 +39,7 @@ public interface ScannerEngineFacade extends AutoCloseable {
   /**
    * @return true if the scanner is connected to SonarQube Cloud, false otherwise
    */
-  boolean isSonarCloud();
+  boolean isSonarQubeCloud();
 
 
   /**
