@@ -37,6 +37,8 @@ import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.SuccessfulBootstrap;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.lib.internal.endpoint.ScannerEndpoint;
+import org.sonarsource.scanner.lib.internal.endpoint.ScannerEndpointResolver;
 import org.sonarsource.scanner.lib.internal.facade.forked.NewScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.InProcessScannerEngineFacade;
@@ -77,8 +79,7 @@ public class ScannerEngineBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineBootstrapper.class);
 
-  private static final String SONARCLOUD_HOST = "https://sonarcloud.io";
-  private static final String SONARCLOUD_REST_API = "https://api.sonarcloud.io";
+
   static final String SQ_VERSION_NEW_BOOTSTRAPPING = "10.6";
   static final String SQ_VERSION_TOKEN_AUTHENTICATION = "10.0";
 
@@ -125,37 +126,38 @@ public class ScannerEngineBootstrapper {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Scanner max available memory: {}", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
     }
-    initBootstrapDefaultValues();
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(bootstrapProperties);
+    initBootstrapDefaultValues(endpoint);
     var immutableProperties = Map.copyOf(bootstrapProperties);
     var sonarUserHome = resolveSonarUserHome(immutableProperties);
     var httpConfig = new HttpConfig(immutableProperties, sonarUserHome, system);
-    var isSonarCloud = isSonarCloud(immutableProperties);
+    var isSonarQubeCloud = endpoint.isSonarQubeCloud();
     var isSimulation = immutableProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
     var fileCache = FileCache.create(sonarUserHome);
 
     if (isSimulation) {
       var serverVersion = immutableProperties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "9.9");
-      return new SuccessfulBootstrap(new SimulationScannerEngineFacade(immutableProperties, isSonarCloud, serverVersion));
+      return new SuccessfulBootstrap(new SimulationScannerEngineFacade(immutableProperties, isSonarQubeCloud, serverVersion));
     }
 
     // No HTTP call should be made before this point
     try {
       scannerHttpClient.init(httpConfig);
 
-      var serverVersion = !isSonarCloud ? getServerVersion(scannerHttpClient) : null;
+      var serverVersion = !isSonarQubeCloud ? getServerVersion(scannerHttpClient) : null;
 
-      if (!isSonarCloud && VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
+      if (!isSonarQubeCloud && VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
         LOG.warn("Use of '{}' property has been deprecated in favor of '{}' (or the env variable alternative '{}'). Please use the latter when passing a token.", SONAR_LOGIN,
           SONAR_TOKEN, TOKEN_ENV_VARIABLE);
       }
 
       ScannerEngineFacade scannerFacade;
-      if (isSonarCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
+      if (isSonarQubeCloud || VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
         var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
 
         var adaptedProperties = adaptSslPropertiesToScannerProperties(immutableProperties, httpConfig);
 
-        scannerFacade = new NewScannerEngineFacade(adaptedProperties, launcher, isSonarCloud, serverVersion);
+        scannerFacade = new NewScannerEngineFacade(adaptedProperties, launcher, isSonarQubeCloud, serverVersion);
       } else {
         var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
         var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
@@ -201,7 +203,7 @@ public class ScannerEngineBootstrapper {
   }
 
   private static void logServerType(ScannerEngineFacade engine) {
-    if (engine.isSonarCloud()) {
+    if (engine.isSonarQubeCloud()) {
       LOG.info("Communicating with SonarQube Cloud");
     } else {
       LOG.info("Communicating with {} {}", engine.getServerLabel(), engine.getServerVersion());
@@ -295,10 +297,9 @@ public class ScannerEngineBootstrapper {
     return e.getMessage();
   }
 
-  private void initBootstrapDefaultValues() {
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, getSonarCloudUrl());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL,
-      isSonarCloud(bootstrapProperties) ? SONARCLOUD_REST_API : (StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/") + "/api/v2"));
+  private void initBootstrapDefaultValues(ScannerEndpoint endpoint) {
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, endpoint.getWebEndpoint());
+    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, endpoint.getApiEndpoint());
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
@@ -326,14 +327,6 @@ public class ScannerEngineBootstrapper {
       trustStore.getKeyStorePassword().ifPresent(password -> result.put(SONAR_SCANNER_TRUSTSTORE_PASSWORD, password));
     }
     return Map.copyOf(result);
-  }
-
-  private String getSonarCloudUrl() {
-    return bootstrapProperties.getOrDefault(ScannerProperties.SONARCLOUD_URL, SONARCLOUD_HOST);
-  }
-
-  private boolean isSonarCloud(Map<String, String> properties) {
-    return getSonarCloudUrl().equals(properties.get(ScannerProperties.HOST_URL));
   }
 
   private void setBootstrapPropertyIfNotAlreadySet(String key, @Nullable String value) {

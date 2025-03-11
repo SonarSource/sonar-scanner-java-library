@@ -52,7 +52,7 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
   }
 
   @Override
-  public boolean isSonarCloud() {
+  public boolean isSonarQubeCloud() {
     return isSonarCloud;
   }
 
@@ -86,7 +86,7 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
 
   @Override
   public String getServerLabel() {
-    if (isSonarCloud()) {
+    if (isSonarQubeCloud()) {
       return "SonarQube Cloud";
     }
 

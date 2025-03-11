@@ -98,20 +98,11 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
-  void should_use_new_bootstrapping_with_default_url() throws Exception {
+  void should_use_new_bootstrapping_on_sonarqube_cloud() throws Exception {
     try (var bootstrapResult = underTest.bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
-      verifyCloudServerTypeLogged();
-    }
-  }
-
-  @Test
-  void should_use_new_bootstrapping_with_sonarcloud_url() throws Exception {
-    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "https://sonarcloud.io").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.isSuccessful()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarcloud.io");
       verifyCloudServerTypeLogged();
     }
   }
@@ -121,7 +112,7 @@ class ScannerEngineBootstrapperTest {
     when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       verifySonarQubeServerTypeLogged(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(logTester.logs(Level.WARN)).isEmpty();
@@ -163,7 +154,7 @@ class ScannerEngineBootstrapperTest {
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").setBootstrapProperty(ScannerProperties.SONAR_LOGIN,
       "mockTokenValue").bootstrap()) {
       verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(logTester.logs(Level.WARN)).contains("Use of 'sonar.login' property has been deprecated in favor of 'sonar.token' (or the env variable alternative " +
         "'SONAR_TOKEN'). Please use the latter when passing a token.");
       verifySonarQubeServerTypeLogged(SQ_VERSION_TOKEN_AUTHENTICATION);
@@ -177,7 +168,7 @@ class ScannerEngineBootstrapperTest {
     when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(testCBVersion);
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Community Build ".concat(testCBVersion));
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(testCBVersion);
     }
@@ -196,7 +187,7 @@ class ScannerEngineBootstrapperTest {
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
       verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("9.9");
       verifySonarQubeServerTypeLogged("9.9");
     }
@@ -215,7 +206,7 @@ class ScannerEngineBootstrapperTest {
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
       verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("10.5");
       verifySonarQubeServerTypeLogged("10.5");
     }
@@ -322,28 +313,16 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
-  void should_set_sonarcloud_as_host_by_default() throws Exception {
-    try (var bootstrapResult = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .bootstrap()) {
-      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
-        entry("sonar.host.url", "https://sonarcloud.io"));
-
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
-      assertThrows(UnsupportedOperationException.class, bootstrapResult.getEngineFacade()::getServerVersion);
-    }
-  }
-
-  @Test
-  void should_use_sonarcloud_url_from_property() throws Exception {
+  void should_set_host_url_from_sqcloud_url() throws Exception {
     try (var bootstrapResult = underTest
       .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
       .setBootstrapProperty("sonar.scanner.sonarcloudUrl", "https://preprod.sonarcloud.io")
+      .setBootstrapProperty(ScannerProperties.API_BASE_URL, "https://api.preprod.sonarcloud.io")
       .bootstrap()) {
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
         entry("sonar.host.url", "https://preprod.sonarcloud.io"));
 
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThrows(UnsupportedOperationException.class, bootstrapResult.getEngineFacade()::getServerVersion);
     }
   }
@@ -357,7 +336,7 @@ class ScannerEngineBootstrapperTest {
 
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
         entry(ScannerProperties.API_BASE_URL, "http://localhost/api/v2"));
-      assertThat(bootstrapResult.getEngineFacade().isSonarCloud()).isFalse();
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
     }
   }
 
