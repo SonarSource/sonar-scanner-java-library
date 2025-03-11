@@ -42,7 +42,6 @@ import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
@@ -56,7 +55,6 @@ import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -100,104 +98,11 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
-  void should_use_new_bootstrapping_on_sonarqube_cloud_global_by_default() throws Exception {
+  void should_use_new_bootstrapping_on_sonarqube_cloud() throws Exception {
     try (var bootstrapResult = underTest.bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarcloud.io");
-      verifyCloudServerTypeLogged();
-    }
-  }
-
-  @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_host_url() throws Exception {
-    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "https://sonarcloud.io").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.isSuccessful()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      verifyCloudServerTypeLogged();
-    }
-  }
-
-  @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url() throws Exception {
-    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.us").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.isSuccessful()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      verifyCloudServerTypeLogged();
-    }
-  }
-
-  @Test
-  void should_fail_if_region_and_host_url_inconsistent() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(ScannerProperties.HOST_URL, "https://mysonarqube.mycompany.fr")
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "us");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.host.url' at the same time is not supported.");
-  }
-
-  @Test
-  void should_fail_if_region_and_cloud_url_inconsistent() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io")
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "us");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.scanner.sonarcloudUrl' at the same time is not supported.");
-  }
-
-  @Test
-  void should_fail_if_region_and_custom_url_defined() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(ScannerProperties.SONARQUBE_CLOUD_URL, "https://preprod.sonarcloud.io")
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "us");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.scanner.sonarcloudUrl' at the same time is not supported.");
-  }
-
-  @Test
-  void should_not_fail_if_region_and_url_consistent() throws Exception {
-    try (var bootstrapResult = underTest
-      .setBootstrapProperty(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.us")
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "us")
-      .bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
-      assertThat(bootstrapResult.isSuccessful()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      verifyCloudServerTypeLogged();
-    }
-  }
-
-  @Test
-  void should_fail_if_only_api_endpoint_defined() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(ScannerProperties.API_BASE_URL, "https://api.preprod.sonarcloud.io");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.scanner.apiBaseUrl' without 'sonar.scanner.sonarcloudUrl' is not supported.");
-  }
-
-  @Test
-  void should_fail_if_invalid_region() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "fr");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Invalid region 'fr'. Valid regions are: us. Please check the 'sonar.region' property or the 'SONAR_REGION' environment variable.");
-  }
-
-  @Test
-  void should_support_us_region() throws Exception {
-    try (var bootstrapResult = underTest
-      .setBootstrapProperty(ScannerProperties.SONAR_REGION, "us")
-      .bootstrap()) {
-      assertThat(bootstrapResult.isSuccessful()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarqube.us");
       verifyCloudServerTypeLogged();
     }
   }
@@ -405,29 +310,6 @@ class ScannerEngineBootstrapperTest {
         entry("sonar.scanner.app", "Gradle"),
         entry("sonar.scanner.appVersion", "3.1"));
     }
-  }
-
-  @Test
-  void should_set_sonarcloud_as_host_by_default() throws Exception {
-    try (var bootstrapResult = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .bootstrap()) {
-      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
-        entry("sonar.host.url", "https://sonarcloud.io"));
-
-      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      assertThrows(UnsupportedOperationException.class, bootstrapResult.getEngineFacade()::getServerVersion);
-    }
-  }
-
-  @Test
-  void should_throw_if__sqcloud_url_is_set_but_not_api_url() {
-    var scannerEngineBootstrapper = underTest
-      .setBootstrapProperty(InternalProperties.SCANNER_DUMP_TO_FILE, dumpFile.toString())
-      .setBootstrapProperty("sonar.scanner.sonarcloudUrl", "https://preprod.sonarcloud.io");
-    assertThatThrownBy(scannerEngineBootstrapper::bootstrap)
-      .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.scanner.sonarcloudUrl' without 'sonar.scanner.apiBaseUrl' is not supported.");
   }
 
   @Test
