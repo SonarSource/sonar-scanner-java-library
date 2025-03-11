@@ -27,6 +27,7 @@ import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 
 public class ScannerEndpointResolver {
 
@@ -50,7 +51,8 @@ public class ScannerEndpointResolver {
     return OfficialSonarQubeCloudInstance.fromRegionCode(regionCode)
       .orElseThrow(() -> new MessageException(
         format("Invalid region '%s'. Valid regions are: %s. Please check the '%s' property or the '%s' environment variable.",
-          regionCode, StringUtils.join(OfficialSonarQubeCloudInstance.getRegionCodes(), ", "), ScannerProperties.SONAR_REGION, EnvironmentConfig.REGION_ENV_VARIABLE)))
+          regionCode, StringUtils.join(OfficialSonarQubeCloudInstance.getRegionCodes().stream().map(r -> "'" + r + "'").collect(toList()), ", "),
+          ScannerProperties.SONAR_REGION, EnvironmentConfig.REGION_ENV_VARIABLE)))
       .getEndpoint();
   }
 
@@ -68,15 +70,15 @@ public class ScannerEndpointResolver {
       return maybeCloudInstance.get();
     }
     if (!hasApiUrl) {
-      throw new MessageException(format("Defining a custom '%s' without '%s' is not supported.", ScannerProperties.SONARQUBE_CLOUD_URL, ScannerProperties.API_BASE_URL));
+      throw new MessageException(format("Defining a custom '%s' without providing '%s' is not supported.", ScannerProperties.SONARQUBE_CLOUD_URL, ScannerProperties.API_BASE_URL));
     }
     return new ScannerEndpoint(
       properties.get(ScannerProperties.SONARQUBE_CLOUD_URL),
       properties.get(ScannerProperties.API_BASE_URL), true);
   }
 
-  private static MessageException defining2incompatiblePropertiesUnsupported(String prop1, String prop2) {
-    return new MessageException(format("Defining '%s' and '%s' at the same time is not supported.", prop1, prop2));
+  private static MessageException inconsistentUrlAndRegion(String prop2) {
+    return new MessageException(format("Inconsistent values for properties '%s' and '%s'. Please only specify one of the two properties.", ScannerProperties.SONAR_REGION, prop2));
   }
 
   private static ScannerEndpoint resolveEndpointFromSonarHostUrl(Map<String, String> properties) {
@@ -88,13 +90,13 @@ public class ScannerEndpointResolver {
     var maybeCloudInstance = OfficialSonarQubeCloudInstance.fromWebEndpoint(properties.get(urlPropName));
     var hasRegion = properties.containsKey(ScannerProperties.SONAR_REGION);
     if (maybeCloudInstance.isPresent()) {
-      if (hasRegion && !OfficialSonarQubeCloudInstance.fromRegionCode(properties.get(ScannerProperties.SONAR_REGION)).equals(maybeCloudInstance)) {
-        throw defining2incompatiblePropertiesUnsupported(ScannerProperties.SONAR_REGION, urlPropName);
+      if (hasRegion && OfficialSonarQubeCloudInstance.fromRegionCode(properties.get(ScannerProperties.SONAR_REGION)).filter(maybeCloudInstance.get()::equals).isEmpty()) {
+        throw inconsistentUrlAndRegion(urlPropName);
       }
       return Optional.of(maybeCloudInstance.get().getEndpoint());
     }
     if (hasRegion) {
-      throw defining2incompatiblePropertiesUnsupported(ScannerProperties.SONAR_REGION, urlPropName);
+      throw inconsistentUrlAndRegion(urlPropName);
     }
     return Optional.empty();
   }

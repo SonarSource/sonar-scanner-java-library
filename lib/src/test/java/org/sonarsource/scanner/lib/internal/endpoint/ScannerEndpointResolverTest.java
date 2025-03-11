@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ScannerEndpointResolverTest {
 
   @Test
-  void should_resolve_sonarqube_cloud_global_by_default() throws Exception {
+  void should_resolve_sonarqube_cloud_global_by_default() {
     var endpoint = ScannerEndpointResolver.resolveEndpoint(Map.of());
 
     assertThat(endpoint.isSonarQubeCloud()).isTrue();
@@ -39,7 +39,7 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_host_url() throws Exception {
+  void should_recognize_sonarqube_cloud_endpoint_passed_through_host_url() {
     var props = Map.of(ScannerProperties.HOST_URL, "https://sonarcloud.io");
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
@@ -50,7 +50,7 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url() throws Exception {
+  void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url() {
     var props = Map.of(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io");
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
@@ -69,7 +69,7 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.host.url' at the same time is not supported.");
+      .hasMessage("Inconsistent values for properties 'sonar.region' and 'sonar.host.url'. Please only specify one of the two properties.");
   }
 
   @Test
@@ -81,7 +81,7 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.scanner.sonarcloudUrl' at the same time is not supported.");
+      .hasMessage("Inconsistent values for properties 'sonar.region' and 'sonar.scanner.sonarcloudUrl'. Please only specify one of the two properties.");
   }
 
   @Test
@@ -93,11 +93,11 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Defining 'sonar.region' and 'sonar.scanner.sonarcloudUrl' at the same time is not supported.");
+      .hasMessage("Inconsistent values for properties 'sonar.region' and 'sonar.scanner.sonarcloudUrl'. Please only specify one of the two properties.");
   }
 
   @Test
-  void should_not_fail_if_region_and_url_consistent() throws Exception {
+  void should_not_fail_if_region_and_url_consistent() {
     var props = Map.of(
       ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.us",
       ScannerProperties.SONAR_REGION, "us"
@@ -125,11 +125,11 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Invalid region 'fr'. Valid regions are: us. Please check the 'sonar.region' property or the 'SONAR_REGION' environment variable.");
+      .hasMessage("Invalid region 'fr'. Valid regions are: 'us'. Please check the 'sonar.region' property or the 'SONAR_REGION' environment variable.");
   }
 
   @Test
-  void should_support_us_region() throws Exception {
+  void should_support_us_region() {
     var props = Map.of(ScannerProperties.SONAR_REGION, "us");
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
@@ -145,7 +145,7 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Defining a custom 'sonar.scanner.sonarcloudUrl' without 'sonar.scanner.apiBaseUrl' is not supported.");
+      .hasMessage("Defining a custom 'sonar.scanner.sonarcloudUrl' without providing 'sonar.scanner.apiBaseUrl' is not supported.");
   }
 
   @Test
