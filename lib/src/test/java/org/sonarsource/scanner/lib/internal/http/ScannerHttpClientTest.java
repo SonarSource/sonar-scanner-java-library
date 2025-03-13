@@ -31,9 +31,11 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.event.Level;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.util.System2;
+import testutils.LogTester;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -45,6 +47,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScannerHttpClientTest {
+
+  @RegisterExtension
+  private final LogTester logTester = new LogTester();
 
   private static final String HELLO_WORLD = "hello, world!";
 
@@ -105,13 +110,15 @@ class ScannerHttpClientTest {
 
   @Test
   void should_throw_HttpException_if_response_not_successful(@TempDir Path tmpFolder) {
+    logTester.setLevel(Level.DEBUG);
+
     var toFile = tmpFolder.resolve("index.txt");
     answer(HELLO_WORLD, 403);
 
     ScannerHttpClient underTest = create();
     assertThatThrownBy(() -> underTest.downloadFromWebApi("/batch/index.txt", toFile))
       .isInstanceOf(HttpException.class)
-      .hasMessageMatching("(?s)GET http://(.*)/batch/index.txt failed with HTTP 403 Forbidden(.*)");
+      .hasMessageMatching("(?s)GET http://(.*)/batch/index.txt failed with HTTP 403 Forbidden\nhello, world!");
   }
 
   @Test
