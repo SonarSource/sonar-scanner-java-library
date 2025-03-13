@@ -275,26 +275,15 @@ public class ScannerEngineBootstrapper {
         }
         return serverVersion;
       } catch (Exception e2) {
-        var ex = new MessageException("Failed to query server version: " + formatMessage(e2), e2);
+        var ex = new MessageException("Failed to query server version: " + e2.getMessage(), e2);
         if (!e2.equals(httpException)) {
           ex.addSuppressed(httpException);
         }
         throw ex;
       }
     } catch (Exception e) {
-      throw new MessageException("Failed to query server version: " + formatMessage(e), e);
+      throw new MessageException("Failed to query server version: " + e.getMessage(), e);
     }
-  }
-
-  private static String formatMessage(Exception e) {
-    if (e instanceof HttpException) {
-      String message = "HTTP " + ((HttpException) e).getCode();
-      if (StringUtils.isNotBlank(e.getMessage())) {
-        message += " " + e.getMessage();
-      }
-      return message;
-    }
-    return e.getMessage();
   }
 
   private void initBootstrapDefaultValues(ScannerEndpoint endpoint) {
