@@ -45,7 +45,7 @@ class ScannerEngineLauncherFactoryTest {
   private Path temp;
 
   @Test
-  void createLauncher() throws IOException {
+  void createLauncher() {
     when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenReturn("{\"filename\":\"scanner-engine.jar\",\"sha256\":\"123456\"}");
     when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
 

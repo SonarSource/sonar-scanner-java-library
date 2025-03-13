@@ -133,7 +133,7 @@ class ScannerEngineBootstrapperTest {
 
   @Test
   void should_report_technical_errors() throws Exception {
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new IOException("Socket closed"));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new IllegalStateException("Socket closed"));
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       assertThat(bootstrapResult.isSuccessful()).isFalse();
     }

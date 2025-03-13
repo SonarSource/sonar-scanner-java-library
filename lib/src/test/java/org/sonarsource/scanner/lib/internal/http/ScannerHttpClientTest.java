@@ -62,7 +62,7 @@ class ScannerHttpClientTest {
   private Path sonarUserHome;
 
   @Test
-  void download_success() throws Exception {
+  void download_success() {
     ScannerHttpClient connection = create();
     answer(HELLO_WORLD);
 
@@ -111,11 +111,11 @@ class ScannerHttpClientTest {
     ScannerHttpClient underTest = create();
     assertThatThrownBy(() -> underTest.downloadFromWebApi("/batch/index.txt", toFile))
       .isInstanceOf(HttpException.class)
-      .hasMessage("Forbidden");
+      .hasMessageMatching("(?s)GET http://(.*)/batch/index.txt failed with HTTP 403 Forbidden(.*)");
   }
 
   @Test
-  void should_support_server_url_without_trailing_slash() throws Exception {
+  void should_support_server_url_without_trailing_slash() {
     ScannerHttpClient connection = create(sonarqube.baseUrl().replaceAll("(/)+$", ""));
 
     answer(HELLO_WORLD);
@@ -124,7 +124,7 @@ class ScannerHttpClientTest {
   }
 
   @Test
-  void should_support_server_url_with_trailing_slash() throws Exception {
+  void should_support_server_url_with_trailing_slash() {
     ScannerHttpClient connection = create(sonarqube.baseUrl().replaceAll("(/)+$", "") + "/");
 
     answer(HELLO_WORLD);
@@ -133,7 +133,7 @@ class ScannerHttpClientTest {
   }
 
   @Test
-  void should_authenticate_with_token() throws Exception {
+  void should_authenticate_with_token() {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.token", "some_token");
     ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
@@ -147,7 +147,7 @@ class ScannerHttpClientTest {
   }
 
   @Test
-  void should_authenticate_with_username_password() throws Exception {
+  void should_authenticate_with_username_password() {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.login", "some_username");
     props.put("sonar.password", "some_password");
@@ -177,7 +177,7 @@ class ScannerHttpClientTest {
 
   @ParameterizedTest
   @ValueSource(ints = {301, 302, 303, 307, 308})
-  void should_follow_redirects_and_preserve_authentication(int code) throws Exception {
+  void should_follow_redirects_and_preserve_authentication(int code) {
     Map<String, String> props = new HashMap<>();
     props.put("sonar.login", "some_username");
     props.put("sonar.password", "some_password");

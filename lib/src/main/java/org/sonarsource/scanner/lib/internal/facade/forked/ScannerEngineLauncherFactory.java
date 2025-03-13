@@ -80,8 +80,8 @@ public class ScannerEngineLauncherFactory {
     try {
       String response = scannerHttpClient.callRestApi(API_PATH_ENGINE);
       return new Gson().fromJson(response, ScannerEngineMetadata.class);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to get scanner-engine metadata", e);
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to get the scanner-engine metadata", e);
     }
   }
 

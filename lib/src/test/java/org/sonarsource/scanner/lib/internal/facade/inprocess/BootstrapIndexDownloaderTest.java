@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
-import java.io.IOException;
 import java.util.Collection;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +44,7 @@ class BootstrapIndexDownloaderTest {
   }
 
   @Test
-  void should_download_jar_files() throws Exception {
+  void should_download_jar_files() {
     // index of the files to download
     when(connection.callWebApi("/batch/index")).thenReturn(
       "cpd.jar|CA124VADFSDS\n" +
@@ -59,16 +58,16 @@ class BootstrapIndexDownloaderTest {
   }
 
   @Test
-  void test_invalid_index() throws Exception {
+  void test_invalid_index() {
     when(connection.callWebApi("/batch/index")).thenReturn("cpd.jar\n");
 
     assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Fail to parse entry in bootstrap index: cpd.jar");
+      .hasMessage("Failed to parse the entry in the bootstrap index: cpd.jar");
   }
 
   @Test
-  void test_handles_empty_line_gracefully() throws Exception {
+  void test_handles_empty_line_gracefully() {
     when(connection.callWebApi("/batch/index")).thenReturn("\n");
 
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
@@ -77,20 +76,20 @@ class BootstrapIndexDownloaderTest {
   }
 
   @Test
-  void test_handles_empty_string_with_exception() throws Exception {
+  void test_handles_empty_string_with_exception() {
     when(connection.callWebApi("/batch/index")).thenReturn("");
 
     assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Fail to parse entry in bootstrap index: ");
+      .hasMessage("Failed to parse the entry in the bootstrap index: ");
   }
 
   @Test
-  void should_fail() throws IOException {
-    when(connection.callWebApi("/batch/index")).thenThrow(new IOException("io error"));
+  void should_fail() {
+    when(connection.callWebApi("/batch/index")).thenThrow(new IllegalStateException("io error"));
 
     assertThatThrownBy(() -> bootstrapIndexDownloader.getIndex())
       .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Fail to get bootstrap index from server");
+      .hasMessage("Failed to get the bootstrap index from the server");
   }
 }

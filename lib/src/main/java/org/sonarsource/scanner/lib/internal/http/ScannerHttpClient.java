@@ -79,7 +79,6 @@ public class ScannerHttpClient {
    * @param url            the URL of the file to download
    * @param toFile         the target file
    * @param authentication if true, the request will be authenticated with the token
-   * @throws IOException           if connectivity problem or timeout (network) or IO error (when writing to file)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
   private void downloadFile(String url, Path toFile, boolean authentication) {
@@ -96,7 +95,7 @@ public class ScannerHttpClient {
     });
   }
 
-  public String callRestApi(String urlPath) throws IOException {
+  public String callRestApi(String urlPath) {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
@@ -104,7 +103,7 @@ public class ScannerHttpClient {
     return callApi(url);
   }
 
-  public String callWebApi(String urlPath) throws IOException {
+  public String callWebApi(String urlPath) {
     if (!urlPath.startsWith("/")) {
       throw new IllegalArgumentException(format(EXCEPTION_MESSAGE_MISSING_SLASH, urlPath));
     }
@@ -116,7 +115,6 @@ public class ScannerHttpClient {
    * Call a server API and get the response as a string.
    *
    * @param url the url to call
-   * @throws IOException           if connectivity problem or timeout (network)
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
   private String callApi(String url) {
