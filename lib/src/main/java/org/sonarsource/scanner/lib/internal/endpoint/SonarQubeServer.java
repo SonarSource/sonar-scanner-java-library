@@ -19,7 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal.endpoint;
 
-import java.net.URI;
+import org.apache.commons.lang3.StringUtils;
 
 public class SonarQubeServer extends ScannerEndpoint {
 
@@ -28,7 +28,7 @@ public class SonarQubeServer extends ScannerEndpoint {
   }
 
   private static String buildApiEndpoint(String webEndpoint) {
-    return URI.create(webEndpoint).resolve("/api/v2").toString();
+    return StringUtils.removeEnd(webEndpoint, "/") + "/api/v2";
   }
 
 }

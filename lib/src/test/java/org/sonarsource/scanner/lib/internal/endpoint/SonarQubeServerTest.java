@@ -30,6 +30,7 @@ class SonarQubeServerTest {
     assertThat(new SonarQubeServer("http://localhost:9000").getApiEndpoint()).isEqualTo("http://localhost:9000/api/v2");
     assertThat(new SonarQubeServer("http://localhost:9000/").getApiEndpoint()).isEqualTo("http://localhost:9000/api/v2");
     assertThat(new SonarQubeServer("https://sq.mycompany.com").getApiEndpoint()).isEqualTo("https://sq.mycompany.com/api/v2");
+    assertThat(new SonarQubeServer("https://sq.mycompany.com/some/path").getApiEndpoint()).isEqualTo("https://sq.mycompany.com/some/path/api/v2");
   }
 
 }
