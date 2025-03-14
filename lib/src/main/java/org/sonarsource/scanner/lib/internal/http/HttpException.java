@@ -20,44 +20,31 @@
 package org.sonarsource.scanner.lib.internal.http;
 
 import java.net.URL;
-import java.util.Objects;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
 
 public class HttpException extends RuntimeException {
-  private final URL requestUrl;
   private final int code;
-  @Nullable
-  private final String body;
 
-  public HttpException(URL requestUrl, int code, String message, @Nullable String body) {
-    super(message);
-    this.requestUrl = requestUrl;
-    this.code = code;
-    this.body = body;
+  public HttpException(URL requestUrl, int statusCode, String statusText, @Nullable String body) {
+    super(formatMessage(requestUrl, statusCode, statusText, body));
+    this.code = statusCode;
   }
 
-  public URL getRequestUrl() {
-    return requestUrl;
+  private static String formatMessage(URL requestUrl, int code, String statusText, @Nullable String body) {
+    String message = "GET " + requestUrl + " failed with HTTP " + code;
+    if (StringUtils.isNotBlank(statusText)) {
+      message += " " + statusText;
+    }
+    if (LoggerFactory.getLogger(HttpException.class).isDebugEnabled() && StringUtils.isNotBlank(body)) {
+      message += "\n" + body;
+    }
+    return message;
   }
 
   public int getCode() {
     return code;
   }
 
-  @Nullable
-  public String getBody() {
-    return body;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (!(o instanceof HttpException)) return false;
-    HttpException that = (HttpException) o;
-    return code == that.code && Objects.equals(requestUrl, that.requestUrl) && Objects.equals(body, that.body) && Objects.equals(getMessage(), that.getMessage());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(requestUrl, code, body, getMessage());
-  }
 }

@@ -32,7 +32,7 @@ class IsolatedLauncherProxyTest {
   private ClassLoader cl = null;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     cl = new URLClassLoader(new URL[0], Thread.currentThread().getContextClassLoader());
   }
 

@@ -22,16 +22,19 @@ package org.sonarsource.scanner.lib.internal.facade.forked;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory.API_PATH_ENGINE;
 
@@ -45,7 +48,7 @@ class ScannerEngineLauncherFactoryTest {
   private Path temp;
 
   @Test
-  void createLauncher() throws IOException {
+  void createLauncher() {
     when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenReturn("{\"filename\":\"scanner-engine.jar\",\"sha256\":\"123456\"}");
     when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
@@ -54,6 +57,21 @@ class ScannerEngineLauncherFactoryTest {
 
     verify(fileCache).getOrDownload(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"),
       any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class));
+  }
+
+  @Test
+  void createLauncher_fail_to_download_engine_metadata() {
+    when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenThrow(new IllegalStateException());
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+
+    ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
+    Map<String, String> properties = Map.of();
+
+    assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, fileCache, properties))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("Failed to get the scanner-engine metadata");
+
+    verifyNoInteractions(fileCache);
   }
 
   @Test

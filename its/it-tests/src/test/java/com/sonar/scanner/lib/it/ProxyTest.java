@@ -207,7 +207,7 @@ public class ProxyTest {
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), ORCHESTRATOR.getServer().getUrl(), params, Map.of());
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("Failed to query server version: HTTP 407 Proxy Authentication Required.");
+    assertThat(buildResult.getLogs()).containsPattern("Failed to query server version: GET http://(.*)/api/server/version failed with HTTP 407 Proxy Authentication Required.");
     assertThat(seenByProxy).isEmpty();
 
     params.put("sonar.scanner.proxyUser", PROXY_USER);

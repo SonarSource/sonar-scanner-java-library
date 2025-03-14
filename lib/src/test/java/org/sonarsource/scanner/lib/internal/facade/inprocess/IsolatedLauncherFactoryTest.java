@@ -37,7 +37,7 @@ class IsolatedLauncherFactoryTest {
   LegacyScannerEngineDownloader legacyScannerEngineDownloader;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     tempCleaning = mock(TempCleaning.class);
     factory = new IsolatedLauncherFactory(FakeIsolatedLauncher.class.getName(), tempCleaning);
     props = new Properties();

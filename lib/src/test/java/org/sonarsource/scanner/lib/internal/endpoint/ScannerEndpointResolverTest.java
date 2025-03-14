@@ -50,6 +50,17 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
+  void should_recognize_sonarqube_server_endpoint_with_path() {
+    var props = Map.of(ScannerProperties.HOST_URL, "https://next.sonarqube.com/sonarqube");
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isFalse();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://next.sonarqube.com/sonarqube");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://next.sonarqube.com/sonarqube/api/v2");
+  }
+
+  @Test
   void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url() {
     var props = Map.of(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io");
 

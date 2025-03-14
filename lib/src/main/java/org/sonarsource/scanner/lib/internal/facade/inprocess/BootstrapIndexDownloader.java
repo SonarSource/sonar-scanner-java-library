@@ -42,12 +42,12 @@ class BootstrapIndexDownloader {
       index = conn.callWebApi("/batch/index");
       LOG.debug("Get bootstrap completed");
     } catch (Exception e) {
-      throw new IllegalStateException("Fail to get bootstrap index from server", e);
+      throw new IllegalStateException("Failed to get the bootstrap index from the server", e);
     }
     return parse(index);
   }
 
-  private Collection<JarEntry> parse(String index) {
+  private static Collection<JarEntry> parse(String index) {
     final Collection<JarEntry> entries = new ArrayList<>();
 
     String[] lines = index.split("[\r\n]+");
@@ -60,7 +60,7 @@ class BootstrapIndexDownloader {
         entries.add(new JarEntry(filename, hash));
       } catch (Exception e) {
         LOG.error("Failed bootstrap index response: {}", index);
-        throw new IllegalStateException("Fail to parse entry in bootstrap index: " + line);
+        throw new IllegalStateException("Failed to parse the entry in the bootstrap index: " + line);
       }
     }
 

@@ -85,7 +85,7 @@ class JavaRunnerFactoryTest {
   }
 
   @Test
-  void createRunner_jreProvisioning_noMatch_fallback_to_local() throws IOException {
+  void createRunner_jreProvisioning_noMatch_fallback_to_local() {
     when(scannerHttpClient.callRestApi(matches(API_PATH_JRE + ".*"))).thenReturn("[]");
     Map<String, String> props = Map.of(SCANNER_OS, "linux", SCANNER_ARCH, "x64");
 

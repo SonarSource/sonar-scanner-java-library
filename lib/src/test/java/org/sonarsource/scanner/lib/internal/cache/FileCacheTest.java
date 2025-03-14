@@ -44,7 +44,7 @@ class FileCacheTest {
   private Path temp;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     fileHashes = mock(FileHashes.class);
     cache = new FileCache(temp, fileHashes);
   }
