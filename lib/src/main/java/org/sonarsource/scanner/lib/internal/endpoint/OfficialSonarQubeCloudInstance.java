@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,8 +39,15 @@ public enum OfficialSonarQubeCloudInstance {
     this.endpoint = new ScannerEndpoint(webEndpoint, apiEndpoint, true);
   }
 
-  public static Set<String> getRegionCodes() {
-    return Arrays.stream(OfficialSonarQubeCloudInstance.values()).filter(r -> r != GLOBAL).map(Enum::name).map(s -> s.toLowerCase(Locale.ENGLISH)).collect(Collectors.toSet());
+  public static Set<String> getRegionCodesWithoutGlobal() {
+    return getRegionsWithoutGlobal().map(Enum::name).map(s -> s.toLowerCase(Locale.ENGLISH)).collect(Collectors.toSet());
+  }
+
+  /**
+   * For now, we are not sure the default region will be called "global" so don't let users use this enum value
+   */
+  private static Stream<OfficialSonarQubeCloudInstance> getRegionsWithoutGlobal() {
+    return Arrays.stream(OfficialSonarQubeCloudInstance.values()).filter(r -> r != GLOBAL);
   }
 
   public static Optional<OfficialSonarQubeCloudInstance> fromRegionCode(@Nullable String regionCode) {

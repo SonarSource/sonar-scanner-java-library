@@ -27,7 +27,7 @@ class OfficialSonarQubeCloudInstanceTest {
 
   @Test
   void shouldListRegionsCodes() {
-    assertThat(OfficialSonarQubeCloudInstance.getRegionCodes()).containsExactlyInAnyOrder("us");
+    assertThat(OfficialSonarQubeCloudInstance.getRegionCodesWithoutGlobal()).containsExactlyInAnyOrder("us");
   }
 
   @Test
@@ -37,6 +37,8 @@ class OfficialSonarQubeCloudInstanceTest {
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("")).contains(OfficialSonarQubeCloudInstance.GLOBAL);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode(null)).contains(OfficialSonarQubeCloudInstance.GLOBAL);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("foo")).isEmpty();
+    // For now, we are not sure the default region will be called "global" so don't let users use this enum value
+    assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("global")).isEmpty();
   }
 
   @Test
