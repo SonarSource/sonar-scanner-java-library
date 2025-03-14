@@ -51,7 +51,7 @@ public class ScannerEndpointResolver {
     return OfficialSonarQubeCloudInstance.fromRegionCode(regionCode)
       .orElseThrow(() -> new MessageException(
         format("Invalid region '%s'. Valid regions are: %s. Please check the '%s' property or the '%s' environment variable.",
-          regionCode, StringUtils.join(OfficialSonarQubeCloudInstance.getRegionCodes().stream().map(r -> "'" + r + "'").collect(toList()), ", "),
+          regionCode, StringUtils.join(OfficialSonarQubeCloudInstance.getRegionCodesWithoutGlobal().stream().map(r -> "'" + r + "'").collect(toList()), ", "),
           ScannerProperties.SONAR_REGION, EnvironmentConfig.REGION_ENV_VARIABLE)))
       .getEndpoint();
   }
