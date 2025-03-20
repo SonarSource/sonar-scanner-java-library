@@ -25,13 +25,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,26 +71,6 @@ class SimulationScannerEngineFacadeTest {
     assertThatThrownBy(() -> underTest.analyze(props))
       .isInstanceOf(IllegalStateException.class)
       .hasMessage("Fail to export scanner properties");
-  }
-
-  @Test
-  void test_get_type_cloud() {
-    assertThat(underTest.getServerLabel()).isEqualTo("SonarQube Cloud");
-  }
-
-  @ParameterizedTest
-  @MethodSource("provideServerVersionAndTypeArgumentPairs")
-  void test_get_types_server_and_community_build(String serverVersion, String serverType) {
-    assertThat(new SimulationScannerEngineFacade(new HashMap<>(), false, serverVersion).getServerLabel()).isEqualTo(serverType);
-  }
-
-  private static Stream<Arguments> provideServerVersionAndTypeArgumentPairs() {
-    return Stream.of(
-      Arguments.of("10.6", "SonarQube Server"),
-      Arguments.of("2025.1.0.1234", "SonarQube Server"),
-      Arguments.of("24.12", "SonarQube Community Build"),
-      Arguments.of("25.1.0.1234", "SonarQube Community Build")
-    );
   }
 
   private Map<String, String> createProperties() {

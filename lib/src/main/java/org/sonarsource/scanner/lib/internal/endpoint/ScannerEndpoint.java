@@ -19,16 +19,21 @@
  */
 package org.sonarsource.scanner.lib.internal.endpoint;
 
+import java.util.Optional;
+import javax.annotation.Nullable;
+
 public class ScannerEndpoint {
 
   private final String webEndpoint;
   private final String apiEndpoint;
   private final boolean isSonarQubeCloud;
+  private final String regionLabel;
 
-  public ScannerEndpoint(String webEndpoint, String apiEndpoint, boolean isSonarQubeCloud) {
+  public ScannerEndpoint(String webEndpoint, String apiEndpoint, boolean isSonarQubeCloud, @Nullable String regionLabel) {
     this.webEndpoint = webEndpoint;
     this.apiEndpoint = apiEndpoint;
     this.isSonarQubeCloud = isSonarQubeCloud;
+    this.regionLabel = regionLabel;
   }
 
   public boolean isSonarQubeCloud() {
@@ -41,5 +46,9 @@ public class ScannerEndpoint {
 
   public String getWebEndpoint() {
     return webEndpoint;
+  }
+
+  public Optional<String> getRegionLabel() {
+    return Optional.ofNullable(regionLabel);
   }
 }

@@ -32,11 +32,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.mockito.Mockito;
@@ -103,7 +106,17 @@ class ScannerEngineBootstrapperTest {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarcloud.io");
-      verifyCloudServerTypeLogged();
+      assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud");
+    }
+  }
+
+  @Test
+  void should_use_new_bootstrapping_on_sonarqube_cloud_us() throws Exception {
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.SONAR_REGION, "us").bootstrap()) {
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarqube.us");
+      assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud (US region)");
     }
   }
 
@@ -483,8 +496,19 @@ class ScannerEngineBootstrapperTest {
       entry("sonar.scanner.truststorePassword", "truststorePass"));
   }
 
-  private void verifyCloudServerTypeLogged() {
-    assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud");
+  @ParameterizedTest
+  @MethodSource("provideServerVersionAndTypeArgumentPairs")
+  void test_guessServerLabelFromVersion(String serverVersion, String serverType) {
+    assertThat(ScannerEngineBootstrapper.guessServerLabelFromVersion(serverVersion)).isEqualTo(serverType);
+  }
+
+  private static Stream<Arguments> provideServerVersionAndTypeArgumentPairs() {
+    return Stream.of(
+      Arguments.of("10.6", "SonarQube Server"),
+      Arguments.of("2025.1.0.1234", "SonarQube Server"),
+      Arguments.of("24.12", "SonarQube Community Build"),
+      Arguments.of("25.1.0.1234", "SonarQube Community Build")
+    );
   }
 
   private void verifySonarQubeServerTypeLogged(String version) {

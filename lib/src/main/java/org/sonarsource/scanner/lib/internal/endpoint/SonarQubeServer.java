@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 public class SonarQubeServer extends ScannerEndpoint {
 
   public SonarQubeServer(String webEndpoint) {
-    super(webEndpoint, buildApiEndpoint(webEndpoint), false);
+    super(webEndpoint, buildApiEndpoint(webEndpoint), false, null);
   }
 
   private static String buildApiEndpoint(String webEndpoint) {

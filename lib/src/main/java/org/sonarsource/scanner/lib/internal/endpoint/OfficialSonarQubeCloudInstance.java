@@ -29,14 +29,14 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
 public enum OfficialSonarQubeCloudInstance {
-  GLOBAL("https://sonarcloud.io", "https://api.sonarcloud.io"),
-  US("https://sonarqube.us", "https://api.sonarqube.us");
+  GLOBAL("https://sonarcloud.io", "https://api.sonarcloud.io", null),
+  US("https://sonarqube.us", "https://api.sonarqube.us", "US");
 
 
   private final ScannerEndpoint endpoint;
 
-  OfficialSonarQubeCloudInstance(String webEndpoint, String apiEndpoint) {
-    this.endpoint = new ScannerEndpoint(webEndpoint, apiEndpoint, true);
+  OfficialSonarQubeCloudInstance(String webEndpoint, String apiEndpoint, @Nullable String regionLabel) {
+    this.endpoint = new ScannerEndpoint(webEndpoint, apiEndpoint, true, regionLabel);
   }
 
   public static Set<String> getRegionCodesWithoutGlobal() {
