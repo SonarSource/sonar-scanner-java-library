@@ -24,20 +24,19 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonarsource.scanner.lib.ScannerEngineFacade;
 import org.sonarsource.scanner.lib.internal.facade.forked.JreCacheHit;
-import org.sonarsource.scanner.lib.internal.util.VersionUtils;
 
 public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade {
 
   private final Map<String, String> bootstrapProperties;
-  private final boolean isSonarCloud;
+  private final boolean isSonarQubeCloud;
   private final String serverVersion;
   private final boolean wasEngineCacheHit;
   private final JreCacheHit wasJreCacheHit;
 
-  protected AbstractScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud, @Nullable String serverVersion,
+  protected AbstractScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarQubeCloud, @Nullable String serverVersion,
     boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
-    this.isSonarCloud = isSonarCloud;
+    this.isSonarQubeCloud = isSonarQubeCloud;
     this.serverVersion = serverVersion;
     this.wasEngineCacheHit = wasEngineCacheHit;
     this.wasJreCacheHit = wasJreCacheHit;
@@ -45,15 +44,15 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
 
   @Override
   public String getServerVersion() {
-    if (isSonarCloud) {
-      throw new UnsupportedOperationException("Server version is not available for SonarCloud.");
+    if (isSonarQubeCloud) {
+      throw new UnsupportedOperationException("Server version is not available for SonarQube Cloud.");
     }
     return serverVersion;
   }
 
   @Override
   public boolean isSonarQubeCloud() {
-    return isSonarCloud;
+    return isSonarQubeCloud;
   }
 
   @Override
@@ -84,16 +83,4 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
     return bootstrapProperties;
   }
 
-  @Override
-  public String getServerLabel() {
-    if (isSonarQubeCloud()) {
-      return "SonarQube Cloud";
-    }
-
-    String version = getServerVersion();
-    if (VersionUtils.compareMajor(version, 10) <= 0 || VersionUtils.compareMajor(version, 2025) >= 0) {
-      return "SonarQube Server";
-    }
-    return "SonarQube Community Build";
-  }
 }
