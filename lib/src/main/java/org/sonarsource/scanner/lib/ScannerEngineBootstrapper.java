@@ -31,7 +31,6 @@ import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.FailedBootstrap;
@@ -147,7 +146,7 @@ public class ScannerEngineBootstrapper {
     try {
       scannerHttpClient.init(httpConfig);
       if (isSonarQubeCloud) {
-        return bootstrapCloud(fileCache, immutableProperties, httpConfig);
+        return bootstrapCloud(fileCache, immutableProperties, httpConfig, endpoint);
       }
       return bootstrapServer(fileCache, immutableProperties, httpConfig);
     } catch (MessageException e) {
@@ -155,28 +154,25 @@ public class ScannerEngineBootstrapper {
     }
   }
 
-  private ScannerEngineBootstrapResult bootstrapCloud(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig) {
-    ScannerEngineFacade scannerFacade;
-    LOG.info("Communicating with SonarQube Cloud");
-    scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
+  private ScannerEngineBootstrapResult bootstrapCloud(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig, ScannerEndpoint endpoint) {
+    endpoint.getRegionLabel().ifPresentOrElse(
+      region -> LOG.info("Communicating with SonarQube Cloud ({} region)", region),
+      () -> LOG.info("Communicating with SonarQube Cloud")
+    );
+    var scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
       (launcher, adaptedProperties) -> NewScannerEngineFacade.forSonarQubeCloud(adaptedProperties, launcher));
     return new SuccessfulBootstrap(scannerFacade);
   }
 
   private ScannerEngineBootstrapResult bootstrapServer(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig) {
-    ScannerEngineFacade scannerFacade;
     var serverVersion = getServerVersion(scannerHttpClient);
-    String serverLabel;
-    if (VersionUtils.compareMajor(serverVersion, 10) <= 0 || VersionUtils.compareMajor(serverVersion, 2025) >= 0) {
-      serverLabel = "SonarQube Server";
-    } else {
-      serverLabel = "SonarQube Community Build";
-    }
+    var serverLabel = guessServerLabelFromVersion(serverVersion);
     LOG.info("Communicating with {} {}", serverLabel, serverVersion);
     if (VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_TOKEN_AUTHENTICATION) && Objects.nonNull(httpConfig.getLogin())) {
       LOG.warn("Use of '{}' property has been deprecated in favor of '{}' (or the env variable alternative '{}'). Please use the latter when passing a token.", SONAR_LOGIN,
         SONAR_TOKEN, TOKEN_ENV_VARIABLE);
     }
+    ScannerEngineFacade scannerFacade;
     if (VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
       scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
         (launcher, adaptedProperties) -> NewScannerEngineFacade.forSonarQubeServer(adaptedProperties, launcher, serverVersion));
@@ -186,6 +182,14 @@ public class ScannerEngineBootstrapper {
       scannerFacade = new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
     }
     return new SuccessfulBootstrap(scannerFacade);
+  }
+
+  static String guessServerLabelFromVersion(String serverVersion) {
+    if (VersionUtils.compareMajor(serverVersion, 10) <= 0 || VersionUtils.compareMajor(serverVersion, 2025) >= 0) {
+      return "SonarQube Server";
+    } else {
+      return "SonarQube Community Build";
+    }
   }
 
   private ScannerEngineFacade buildNewFacade(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig,

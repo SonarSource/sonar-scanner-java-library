@@ -74,7 +74,7 @@ public class ScannerEndpointResolver {
     }
     return new ScannerEndpoint(
       properties.get(ScannerProperties.SONARQUBE_CLOUD_URL),
-      properties.get(ScannerProperties.API_BASE_URL), true);
+      properties.get(ScannerProperties.API_BASE_URL), true, null);
   }
 
   private static MessageException inconsistentUrlAndRegion(String prop2) {
