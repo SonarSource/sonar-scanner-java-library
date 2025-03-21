@@ -9,7 +9,7 @@
 
   <groupId>org.sonarsource.scanner.lib</groupId>
   <artifactId>sonar-scanner-java-library-parent</artifactId>
-  <version>3.3.1-SNAPSHOT</version>
+  <version>3.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>SonarScanner Java Library - Parent</name>
   <description>Common library used by all Java-based Scanners</description>
