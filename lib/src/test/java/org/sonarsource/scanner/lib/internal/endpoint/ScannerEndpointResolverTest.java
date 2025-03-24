@@ -50,6 +50,17 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
+  void should_recognize_sonarqube_cloud_us_endpoint_passed_through_host_url() {
+    var props = Map.of(ScannerProperties.HOST_URL, "https://sonarqube.us");
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isTrue();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarqube.us");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarqube.us");
+  }
+
+  @Test
   void should_recognize_sonarqube_server_endpoint_with_path() {
     var props = Map.of(ScannerProperties.HOST_URL, "https://next.sonarqube.com/sonarqube");
 
@@ -108,9 +119,23 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
-  void should_not_fail_if_region_and_url_consistent() {
+  void should_not_fail_if_region_and_cloud_url_consistent() {
     var props = Map.of(
       ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.us",
+      ScannerProperties.SONAR_REGION, "us"
+    );
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isTrue();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarqube.us");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarqube.us");
+  }
+
+  @Test
+  void should_not_fail_if_region_and_host_url_consistent() {
+    var props = Map.of(
+      ScannerProperties.HOST_URL, "https://sonarqube.us",
       ScannerProperties.SONAR_REGION, "us"
     );
 
