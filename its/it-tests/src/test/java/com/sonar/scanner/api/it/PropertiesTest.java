@@ -16,8 +16,8 @@
  */
 package com.sonar.scanner.api.it;
 
-import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.orchestrator.junit4.OrchestratorRule;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class PropertiesTest {
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
+  public static final OrchestratorRule ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
 
   @Test
   public void testRuntimeEnvironmentPassedAsUserAgent() throws IOException {

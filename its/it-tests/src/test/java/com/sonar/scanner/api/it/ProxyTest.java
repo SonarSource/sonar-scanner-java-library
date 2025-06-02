@@ -16,8 +16,8 @@
  */
 package com.sonar.scanner.api.it;
 
-import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.orchestrator.junit4.OrchestratorRule;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.ProxyAuthenticator;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
@@ -65,7 +65,7 @@ public class ProxyTest {
   private static int httpProxyPort;
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
+  public static final OrchestratorRule ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
 
   private static ConcurrentLinkedDeque<String> seenByProxy = new ConcurrentLinkedDeque<>();
 

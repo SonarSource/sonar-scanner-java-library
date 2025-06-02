@@ -16,8 +16,8 @@
  */
 package com.sonar.scanner.api.it;
 
-import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
+import com.sonar.orchestrator.junit4.OrchestratorRule;
 import com.sonar.orchestrator.util.NetworkUtils;
 import com.sonar.scanner.api.it.tools.SimpleScanner;
 import java.net.InetAddress;
@@ -70,7 +70,7 @@ public class SSLTest {
   private static int httpsPort;
 
   @ClassRule
-  public static final Orchestrator ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
+  public static final OrchestratorRule ORCHESTRATOR = ScannerApiTestSuite.ORCHESTRATOR;
 
   @Before
   public void deleteData() {

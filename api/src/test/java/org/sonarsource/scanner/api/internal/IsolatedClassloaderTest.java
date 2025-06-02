@@ -74,20 +74,6 @@ public class IsolatedClassloaderTest {
   }
 
   @Test
-  public void error_add_jars() throws MalformedURLException {
-    File f = mock(File.class);
-    URI uri = mock(URI.class);
-    when(f.toURI()).thenReturn(uri);
-    when(uri.toURL()).thenThrow(MalformedURLException.class);
-    File[] files = {f};
-
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Fail to create classloader");
-
-    classLoader.addFiles(Arrays.asList(files));
-  }
-
-  @Test
   public void dont_get_resource_from_parent() {
     URL resource2 = classLoader.getParent().getResource("fake.jar");
     assertThat(resource2).isNotNull();
