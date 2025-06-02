@@ -54,7 +54,8 @@
 
     <!-- used for deployment to SonarSource Artifactory -->
     <gitRepositoryName>sonar-scanner-java-library</gitRepositoryName>
-    <okhttp.version>3.14.2</okhttp.version>
+    <okhttp.version>3.14.9</okhttp.version>
+    <okio.version>1.17.6</okio.version>
     <mockito.version>2.23.4</mockito.version>
   </properties>
 
@@ -74,6 +75,11 @@
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
         <version>${okhttp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okio</groupId>
+        <artifactId>okio</artifactId>
+        <version>${okio.version}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
