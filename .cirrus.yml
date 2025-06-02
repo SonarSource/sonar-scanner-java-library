@@ -13,11 +13,6 @@ env:
 
   ### Project variables
   DEPLOY_PULL_REQUEST: true
-  ARTIFACTS: "\
-    org.sonarsource.scanner.api:sonar-scanner-api:jar,\
-    org.sonarsource.scanner.api:sonar-scanner-api-batch:jar,\
-    org.sonarsource.scanner.api:sonar-scanner-api-batch-interface:jar,\
-    org.sonarsource.scanner.api:sonar-scanner-api-parent:jar"
 
 #
 # RE-USABLE CONFIGS

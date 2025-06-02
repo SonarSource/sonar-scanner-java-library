@@ -7,13 +7,13 @@
     <version>83.0.0.2369</version>
   </parent>
 
-  <groupId>org.sonarsource.scanner.api</groupId>
-  <artifactId>sonar-scanner-api-parent</artifactId>
+  <groupId>org.sonarsource.scanner.lib</groupId>
+  <artifactId>sonar-scanner-java-library-parent</artifactId>
   <version>2.16.4-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>SonarQube Scanner API - Parent</name>
-  <description>API used by all SonarQube Scanners (Maven, Gradle, Ant, CLI)</description>
-  <url>https://github.com/SonarSource/sonar-scanner-api</url>
+  <name>SonarScanner Java Library - Parent</name>
+  <description>Common library used by all Java-based Scanners</description>
+  <url>https://github.com/SonarSource/sonar-scanner-java-library</url>
   <inceptionYear>2011</inceptionYear>
 
   <organization>
