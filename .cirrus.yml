@@ -18,7 +18,7 @@ env:
 # RE-USABLE CONFIGS
 #
 container_definition: &CONTAINER_DEFINITION
-  image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j11-m3-latest
+  image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j21-latest
   cluster_name: ${CIRRUS_CLUSTER_NAME}
   region: eu-central-1
   namespace: default
@@ -49,6 +49,11 @@ build_task:
     - regular_mvn_build_deploy_analyze
   cleanup_before_cache_script:
     - cleanup_maven_repository
+  on_failure:
+    junit_result_artifacts:
+      path: "**/target/surefire-reports/**.xml"
+      format: junit
+      type: text/xml
 
 qa_task:
   depends_on:
@@ -56,13 +61,14 @@ qa_task:
   <<: *ONLY_SONARSOURCE_QA
   eks_container:
     <<: *CONTAINER_DEFINITION
+    image: ${CIRRUS_AWS_ACCOUNT}.dkr.ecr.eu-central-1.amazonaws.com/base:j17-latest
     cpu: 2
     memory: 4G
   env:
     matrix:
-      - QA_CATEGORY: RELEASE-7-9
-      - QA_CATEGORY: RELEASE
-      - QA_CATEGORY: DEV
+      - SQ_VERSION: LATEST_RELEASE
+      - SQ_VERSION: LATEST_RELEASE[2025.1]
+      - SQ_VERSION: LATEST_RELEASE[9.9]
     JAVA_VERSION:
       - LATEST_RELEASE
     GITHUB_TOKEN: VAULT[development/github/token/licenses-ro token]
@@ -72,13 +78,16 @@ qa_task:
     - source cirrus-env QA
     - source set_maven_build_version $BUILD_NUMBER
     - cd its
-    - function get_sq_version() { case $QA_CATEGORY in "RELEASE-7-9") echo "LATEST_RELEASE[7.9]";; "RELEASE") echo "LATEST_RELEASE";; *) echo "$QA_CATEGORY";; esac }
-    - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$(get_sq_version) -DjavaVersion=$JAVA_VERSION
+    - mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=$SQ_VERSION -DjavaVersion=$JAVA_VERSION
   cleanup_before_cache_script:
     - cleanup_maven_repository
   on_failure:
-    reports_artifacts:
-      path: "**/target/**/logs/*"
+    server_logs_artifacts:
+      path: "**/target/**/logs/**.log"
+    junit_result_artifacts:
+      path: "**/target/surefire-reports/**.xml"
+      format: junit
+      type: text/xml
 
 promote_task:
   depends_on:
