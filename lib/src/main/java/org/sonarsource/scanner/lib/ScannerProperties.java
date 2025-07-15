@@ -104,6 +104,11 @@ public final class ScannerProperties {
   public static final String JAVA_EXECUTABLE_PATH = "sonar.scanner.javaExePath";
 
   /**
+   * Path of the Scanner Engine JAR to be used.
+   */
+  public static final String SCANNER_ENGINE_JAR_PATH = "sonar.scanner.engineJarPath";
+
+  /**
    * Flag to skip the JRE provisioning.
    */
   public static final String SKIP_JRE_PROVISIONING = "sonar.scanner.skipJreProvisioning";

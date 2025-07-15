@@ -77,7 +77,7 @@ public class IsolatedLauncherFactory {
       IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName);
       tempCleaning.clean();
 
-      return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::isCacheHit));
+      return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::getCacheHit));
     } catch (Exception e) {
       // Catch all other exceptions, which relates to reflection
       throw new ScannerException("Unable to execute SonarScanner analysis", e);

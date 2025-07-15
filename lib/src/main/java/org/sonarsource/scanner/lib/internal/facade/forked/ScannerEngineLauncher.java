@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.ScannerProperties;
@@ -156,8 +157,9 @@ public class ScannerEngineLauncher {
     return new Gson().toJson(jsonObject);
   }
 
-  public boolean isEngineCacheHit() {
-    return scannerEngineJar.isCacheHit();
+  @CheckForNull
+  public Boolean getEngineCacheHit() {
+    return scannerEngineJar.getCacheHit();
   }
 
   public JreCacheHit getJreCacheHit() {

@@ -21,7 +21,9 @@ package org.sonarsource.scanner.lib.internal.facade.forked;
 
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -34,6 +36,8 @@ import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.ProcessWrapperFactory;
 import org.sonarsource.scanner.lib.internal.util.System2;
+
+import static org.sonarsource.scanner.lib.ScannerProperties.SCANNER_ENGINE_JAR_PATH;
 
 public class ScannerEngineLauncherFactory {
 
@@ -53,7 +57,7 @@ public class ScannerEngineLauncherFactory {
   public ScannerEngineLauncher createLauncher(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
     JavaRunner javaRunner = javaRunnerFactory.createRunner(scannerHttpClient, fileCache, properties);
     jreSanityCheck(javaRunner);
-    var scannerEngine = getScannerEngine(scannerHttpClient, fileCache, true);
+    var scannerEngine = getScannerEngine(scannerHttpClient, fileCache, properties);
     return new ScannerEngineLauncher(javaRunner, scannerEngine);
   }
 
@@ -61,7 +65,20 @@ public class ScannerEngineLauncherFactory {
     javaRunner.execute(Collections.singletonList("--version"), null, LOG::debug);
   }
 
-  private static CachedFile getScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, boolean retry) {
+  private static CachedFile getScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
+    String scannerEngineJarPathPropValue = properties.get(SCANNER_ENGINE_JAR_PATH);
+    if (scannerEngineJarPathPropValue != null) {
+      var path = Paths.get(scannerEngineJarPathPropValue).toAbsolutePath();
+      if (!Files.isRegularFile(path)) {
+        throw new IllegalStateException("Scanner Engine jar path '" + scannerEngineJarPathPropValue + "' does not exist");
+      }
+      LOG.info("Using the configured Scanner Engine '{}'", path);
+      return new CachedFile(path, null);
+    }
+    return provisionScannerEngine(scannerHttpClient, fileCache, true);
+  }
+
+  private static CachedFile provisionScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, boolean retry) {
     try {
       var scannerEngineMetadata = getScannerEngineMetadata(scannerHttpClient);
       return fileCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
@@ -70,7 +87,7 @@ public class ScannerEngineLauncherFactory {
       if (retry) {
         // A new scanner-engine might have been published between the metadata fetch and the download
         LOG.warn("Failed to get the scanner-engine, retrying...");
-        return getScannerEngine(scannerHttpClient, fileCache, false);
+        return provisionScannerEngine(scannerHttpClient, fileCache, false);
       }
       throw e;
     }

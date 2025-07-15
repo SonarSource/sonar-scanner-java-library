@@ -20,13 +20,15 @@
 package org.sonarsource.scanner.lib.internal.cache;
 
 import java.nio.file.Path;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 
 public class CachedFile {
 
   private final Path pathInCache;
-  private final boolean cacheHit;
+  private final Boolean cacheHit;
 
-  public CachedFile(Path pathInCache, boolean cacheHit) {
+  public CachedFile(Path pathInCache, @Nullable Boolean cacheHit) {
     this.pathInCache = pathInCache;
     this.cacheHit = cacheHit;
   }
@@ -35,7 +37,8 @@ public class CachedFile {
     return pathInCache;
   }
 
-  public boolean isCacheHit() {
+  @CheckForNull
+  public Boolean getCacheHit() {
     return cacheHit;
   }
 }

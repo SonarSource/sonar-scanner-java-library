@@ -126,14 +126,14 @@ class FileCacheTest {
       .hasFileName("sonar-foo-plugin-1.5.jar");
     assertThat(cachedFile.getPathInCache().getParent()).hasParent(cache.getDir());
     assertThat(read(cachedFile.getPathInCache())).isEqualTo("body");
-    assertThat(cachedFile.isCacheHit()).isFalse();
+    assertThat(cachedFile.getCacheHit()).isFalse();
 
     var againFromCache = cache.getOrDownload("sonar-foo-plugin-1.5.jar", "ABCDE", HASH_ALGO, downloader);
     assertThat(againFromCache.getPathInCache()).isRegularFile()
       .hasFileName("sonar-foo-plugin-1.5.jar");
     assertThat(againFromCache.getPathInCache().getParent()).hasParent(cache.getDir());
     assertThat(read(againFromCache.getPathInCache())).isEqualTo("body");
-    assertThat(againFromCache.isCacheHit()).isTrue();
+    assertThat(againFromCache.getCacheHit()).isTrue();
   }
 
   @Test
