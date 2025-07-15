@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import testutils.LogTester;
@@ -86,21 +87,21 @@ class ScannerEngineLauncherFactoryTest {
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
     Map<String, String> properties = Map.of("sonar.scanner.engineJarPath", "dontexist.jar");
     assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, fileCache, properties))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Scanner Engine jar path 'dontexist.jar' does not exist");
+      .isInstanceOf(MessageException.class)
+      .hasMessage("Scanner Engine jar path 'dontexist.jar' does not exist. Please check property 'sonar.scanner.engineJarPath'.");
   }
 
   @Test
   void createLauncher_fail_to_download_engine_metadata() {
-    when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenThrow(new IllegalStateException());
+    when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenThrow(new IllegalStateException("Some error"));
     when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
     Map<String, String> properties = Map.of();
 
     assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, fileCache, properties))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessage("Failed to get the scanner-engine metadata");
+      .isInstanceOf(MessageException.class)
+      .hasMessage("Failed to get the scanner-engine metadata: Some error");
 
     verifyNoInteractions(fileCache);
   }

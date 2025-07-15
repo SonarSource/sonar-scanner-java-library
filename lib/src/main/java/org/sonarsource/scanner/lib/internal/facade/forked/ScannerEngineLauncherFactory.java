@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
@@ -70,7 +71,7 @@ public class ScannerEngineLauncherFactory {
     if (scannerEngineJarPathPropValue != null) {
       var path = Paths.get(scannerEngineJarPathPropValue).toAbsolutePath();
       if (!Files.isRegularFile(path)) {
-        throw new IllegalStateException("Scanner Engine jar path '" + scannerEngineJarPathPropValue + "' does not exist");
+        throw new MessageException("Scanner Engine jar path '" + scannerEngineJarPathPropValue + "' does not exist. Please check property '" + SCANNER_ENGINE_JAR_PATH + "'.");
       }
       LOG.info("Using the configured Scanner Engine '{}'", path);
       return new CachedFile(path, null);
@@ -98,7 +99,7 @@ public class ScannerEngineLauncherFactory {
       String response = scannerHttpClient.callRestApi(API_PATH_ENGINE);
       return new Gson().fromJson(response, ScannerEngineMetadata.class);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to get the scanner-engine metadata", e);
+      throw new MessageException("Failed to get the scanner-engine metadata: " + e.getMessage(), e);
     }
   }
 
