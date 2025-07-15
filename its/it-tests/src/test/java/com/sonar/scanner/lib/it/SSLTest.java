@@ -184,7 +184,7 @@ public class SSLTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
+    assertThat(buildResult.getLogs()).contains("The certificate chain is not trusted");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -210,7 +210,7 @@ public class SSLTest {
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
 
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
+    assertThat(buildResult.getLogs()).contains("The certificate chain is not trusted");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(KEYSTORE_CLIENT_WITH_CA_KEYTOOL).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
@@ -248,7 +248,7 @@ public class SSLTest {
 
     BuildResult buildResult = scanner.executeSimpleProject(project("js-sample"), "https://localhost:" + httpsPort);
     assertThat(buildResult.getLastStatus()).isNotZero();
-    assertThat(buildResult.getLogs()).contains("None of the TrustManagers trust this certificate chain");
+    assertThat(buildResult.getLogs()).contains("The certificate chain is not trusted");
 
     Path clientTruststore = Paths.get(SSLTest.class.getResource(clientTrustStore).toURI()).toAbsolutePath();
     assertThat(clientTruststore).exists();
