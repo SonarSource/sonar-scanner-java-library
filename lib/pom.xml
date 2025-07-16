@@ -26,7 +26,7 @@
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp</artifactId>
+      <artifactId>okhttp-jvm</artifactId>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
@@ -67,12 +67,12 @@
     <dependency>
       <groupId>io.github.hakky54</groupId>
       <artifactId>sslcontext-kickstart</artifactId>
-      <version>8.3.6</version>
+      <version>9.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.78.1</version>
+      <version>1.81</version>
     </dependency>
 
     <!-- unit tests -->
@@ -105,7 +105,7 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>3.9.2</version>
+      <version>3.13.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
