@@ -105,7 +105,11 @@ class ScannerEngineBootstrapperTest {
     try (var bootstrapResult = underTest.bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarcloud.io");
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties())
+        .contains(
+          entry(ScannerProperties.HOST_URL, "https://sonarcloud.io"),
+          entry(ScannerProperties.API_BASE_URL, "https://api.sonarcloud.io"),
+          entry(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io"));
       assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud");
     }
   }
@@ -115,19 +119,39 @@ class ScannerEngineBootstrapperTest {
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.SONAR_REGION, "us").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
-      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).containsEntry(ScannerProperties.HOST_URL, "https://sonarqube.us");
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
+        entry(ScannerProperties.HOST_URL, "https://sonarqube.us"),
+        entry(ScannerProperties.API_BASE_URL, "https://api.sonarqube.us"),
+        entry(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.us"));
       assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud (US region)");
+    }
+  }
+
+  @Test
+  void should_use_cleaned_urls() throws Exception {
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://www.sonarcloud.io/").bootstrap()) {
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties())
+        .contains(
+          entry(ScannerProperties.HOST_URL, "https://sonarcloud.io"),
+          entry(ScannerProperties.API_BASE_URL, "https://api.sonarcloud.io"),
+          entry(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io"));
+      assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud");
     }
   }
 
   @Test
   void should_use_new_bootstrapping_with_sonarqube_10_6() throws Exception {
     when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
-    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost:1234/").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       verifySonarQubeServerTypeLogged(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
+        entry(ScannerProperties.HOST_URL, "http://localhost:1234"),
+        entry(ScannerProperties.API_BASE_URL, "http://localhost:1234/api/v2"));
       assertThat(logTester.logs(Level.WARN)).isEmpty();
     }
   }
@@ -141,7 +165,8 @@ class ScannerEngineBootstrapperTest {
     }
 
     assertThat(logTester.logs(Level.ERROR))
-      .contains("Failed to query server version: GET http://myserver/api/v2/analysis/version failed with HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
+      .contains(
+        "Failed to query server version: GET http://myserver/api/v2/analysis/version failed with HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
   }
 
   @Test
@@ -234,8 +259,10 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 407, "Proxy Authentication Required", null));
-    when(scannerHttpClient.callWebApi("/api/server/version")).thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 407, "Proxy Authentication Required", null));
+    when(scannerHttpClient.callRestApi("/analysis/version"))
+      .thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 407, "Proxy Authentication Required", null));
+    when(scannerHttpClient.callWebApi("/api/server/version"))
+      .thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 407, "Proxy Authentication Required", null));
 
     logTester.setLevel(Level.DEBUG);
 
@@ -243,8 +270,10 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: GET http://myserver/api/server/version failed with HTTP 407 Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and " +
-      "sonar.scanner.proxyPassword.");
+    assertThat(logTester.logs(Level.ERROR)).contains(
+      "Failed to query server version: GET http://myserver/api/server/version failed with HTTP 407 Proxy Authentication Required. Please check the properties sonar.scanner.proxyUser and "
+        +
+        "sonar.scanner.proxyPassword.");
     assertThatNoServerTypeIsLogged();
   }
 
@@ -275,7 +304,6 @@ class ScannerEngineBootstrapperTest {
     assertThatNoServerTypeIsLogged();
   }
 
-
   @ParameterizedTest
   @ValueSource(ints = {401, 403})
   void should_log_user_friendly_message_when_auth_error(int code) throws Exception {
@@ -292,7 +320,8 @@ class ScannerEngineBootstrapperTest {
       assertThat(result.isSuccessful()).isFalse();
     }
 
-    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: GET http://myserver failed with HTTP " + code + " Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
+    assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: GET http://myserver failed with HTTP " + code
+      + " Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
       ".");
     assertThatNoServerTypeIsLogged();
   }
@@ -507,8 +536,7 @@ class ScannerEngineBootstrapperTest {
       Arguments.of("10.6", "SonarQube Server"),
       Arguments.of("2025.1.0.1234", "SonarQube Server"),
       Arguments.of("24.12", "SonarQube Community Build"),
-      Arguments.of("25.1.0.1234", "SonarQube Community Build")
-    );
+      Arguments.of("25.1.0.1234", "SonarQube Community Build"));
   }
 
   private void verifySonarQubeServerTypeLogged(String version) {

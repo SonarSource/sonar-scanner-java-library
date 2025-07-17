@@ -22,12 +22,14 @@ package org.sonarsource.scanner.lib.internal.endpoint;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.sonarsource.scanner.lib.EnvironmentConfig;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang3.StringUtils.trim;
 
 public class ScannerEndpointResolver {
 
@@ -73,8 +75,8 @@ public class ScannerEndpointResolver {
       throw new MessageException(format("Defining a custom '%s' without providing '%s' is not supported.", ScannerProperties.SONARQUBE_CLOUD_URL, ScannerProperties.API_BASE_URL));
     }
     return new ScannerEndpoint(
-      properties.get(ScannerProperties.SONARQUBE_CLOUD_URL),
-      properties.get(ScannerProperties.API_BASE_URL), true, null);
+      cleanUrl(properties.get(ScannerProperties.SONARQUBE_CLOUD_URL)),
+      cleanUrl(properties.get(ScannerProperties.API_BASE_URL)), true, null);
   }
 
   private static MessageException inconsistentUrlAndRegion(String prop2) {
@@ -83,11 +85,11 @@ public class ScannerEndpointResolver {
 
   private static ScannerEndpoint resolveEndpointFromSonarHostUrl(Map<String, String> properties) {
     return maybeResolveOfficialSonarQubeCloud(properties, ScannerProperties.HOST_URL)
-      .orElse(new SonarQubeServer(properties.get(ScannerProperties.HOST_URL)));
+      .orElse(new SonarQubeServer(cleanUrl(properties.get(ScannerProperties.HOST_URL))));
   }
 
   private static Optional<ScannerEndpoint> maybeResolveOfficialSonarQubeCloud(Map<String, String> properties, String urlPropName) {
-    var maybeCloudInstance = OfficialSonarQubeCloudInstance.fromWebEndpoint(properties.get(urlPropName));
+    var maybeCloudInstance = OfficialSonarQubeCloudInstance.fromWebEndpoint(cleanUrl(properties.get(urlPropName)));
     var hasRegion = properties.containsKey(ScannerProperties.SONAR_REGION);
     if (maybeCloudInstance.isPresent()) {
       if (hasRegion && OfficialSonarQubeCloudInstance.fromRegionCode(properties.get(ScannerProperties.SONAR_REGION)).filter(maybeCloudInstance.get()::equals).isEmpty()) {
@@ -99,6 +101,14 @@ public class ScannerEndpointResolver {
       throw inconsistentUrlAndRegion(urlPropName);
     }
     return Optional.empty();
+  }
+
+  private static String cleanUrl(String url) {
+    String withoutTrailingSlash = trim(url);
+    while (withoutTrailingSlash.endsWith("/")) {
+      withoutTrailingSlash = Strings.CS.removeEnd(withoutTrailingSlash, "/");
+    }
+    return withoutTrailingSlash;
   }
 
 }

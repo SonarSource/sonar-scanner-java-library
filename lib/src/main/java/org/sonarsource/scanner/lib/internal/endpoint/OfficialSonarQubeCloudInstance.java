@@ -21,6 +21,7 @@ package org.sonarsource.scanner.lib.internal.endpoint;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +32,6 @@ import org.apache.commons.lang3.StringUtils;
 public enum OfficialSonarQubeCloudInstance {
   GLOBAL("https://sonarcloud.io", "https://api.sonarcloud.io", null),
   US("https://sonarqube.us", "https://api.sonarqube.us", "US");
-
 
   private final ScannerEndpoint endpoint;
 
@@ -68,8 +68,13 @@ public enum OfficialSonarQubeCloudInstance {
 
   public static Optional<OfficialSonarQubeCloudInstance> fromWebEndpoint(String url) {
     return Arrays.stream(OfficialSonarQubeCloudInstance.values())
-      .filter(r -> r.endpoint.getWebEndpoint().equals(url))
+      .filter(r -> Objects.equals(removePrefix(r.endpoint.getWebEndpoint()), removePrefix(url)))
       .findFirst();
+  }
+
+  // In a web browser, both http://sonarcloud.io or https://www.sonarcloud.io redirect to SonarQube Cloud, so apply the same logic here for the detection
+  private static String removePrefix(String url) {
+    return url.replaceFirst("^https?://(www.)?", "");
   }
 
   public ScannerEndpoint getEndpoint() {

@@ -21,6 +21,8 @@ package org.sonarsource.scanner.lib.internal.endpoint;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 
@@ -38,9 +40,10 @@ class ScannerEndpointResolverTest {
     assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarcloud.io");
   }
 
-  @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_host_url() {
-    var props = Map.of(ScannerProperties.HOST_URL, "https://sonarcloud.io");
+  @ParameterizedTest
+  @ValueSource(strings = {"https://sonarcloud.io", "http://sonarcloud.io", "https://sonarcloud.io/", " https://sonarcloud.io ", "https://www.sonarcloud.io/"})
+  void should_recognize_sonarqube_cloud_endpoint_passed_through_host_url(String hostUrl) {
+    var props = Map.of(ScannerProperties.HOST_URL, hostUrl);
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
 
@@ -49,9 +52,10 @@ class ScannerEndpointResolverTest {
     assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarcloud.io");
   }
 
-  @Test
-  void should_recognize_sonarqube_cloud_us_endpoint_passed_through_host_url() {
-    var props = Map.of(ScannerProperties.HOST_URL, "https://sonarqube.us");
+  @ParameterizedTest
+  @ValueSource(strings = {"https://sonarqube.us", "https://sonarqube.us/", " https://sonarqube.us ", "https://www.sonarqube.us/"})
+  void should_recognize_sonarqube_cloud_us_endpoint_passed_through_host_url(String hostUrl) {
+    var props = Map.of(ScannerProperties.HOST_URL, hostUrl);
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
 
@@ -72,8 +76,20 @@ class ScannerEndpointResolverTest {
   }
 
   @Test
-  void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url() {
-    var props = Map.of(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarcloud.io");
+  void should_recognize_sonarqube_server_endpoint_with_path_ending_with_slash() {
+    var props = Map.of(ScannerProperties.HOST_URL, "https://next.sonarqube.com/sonarqube/");
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isFalse();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://next.sonarqube.com/sonarqube");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://next.sonarqube.com/sonarqube/api/v2");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"https://sonarcloud.io", "https://sonarcloud.io/", " https://sonarcloud.io ", "https://www.sonarcloud.io/"})
+  void should_recognize_sonarqube_cloud_endpoint_passed_through_cloud_url(String cloudUrl) {
+    var props = Map.of(ScannerProperties.SONARQUBE_CLOUD_URL, cloudUrl);
 
     var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
 
