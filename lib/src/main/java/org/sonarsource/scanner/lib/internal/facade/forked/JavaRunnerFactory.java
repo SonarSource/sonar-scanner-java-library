@@ -86,7 +86,7 @@ public class JavaRunnerFactory {
     } else {
       var cachedFile = getJreFromServer(scannerHttpClient, fileCache, properties, true);
       if (cachedFile.isPresent()) {
-        return new JavaRunner(cachedFile.get().getPathInCache(), cachedFile.get().isCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
+        return new JavaRunner(cachedFile.get().getPathInCache(), Boolean.TRUE.equals(cachedFile.get().getCacheHit()) ? JreCacheHit.HIT : JreCacheHit.MISS);
       }
     }
     String javaHome = system.getEnvironmentVariable("JAVA_HOME");
@@ -145,7 +145,7 @@ public class JavaRunnerFactory {
       var cachedFile = fileCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
         new JreDownloader(scannerHttpClient, jreMetadata.get()));
       var extractedDirectory = extractArchive(cachedFile.getPathInCache());
-      return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.isCacheHit()));
+      return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.getCacheHit()));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download

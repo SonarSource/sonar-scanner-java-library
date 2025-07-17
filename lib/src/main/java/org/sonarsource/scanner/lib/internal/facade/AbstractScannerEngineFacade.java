@@ -30,11 +30,11 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
   private final Map<String, String> bootstrapProperties;
   private final boolean isSonarQubeCloud;
   private final String serverVersion;
-  private final boolean wasEngineCacheHit;
+  private final Boolean wasEngineCacheHit;
   private final JreCacheHit wasJreCacheHit;
 
   protected AbstractScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarQubeCloud, @Nullable String serverVersion,
-    boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
+    @Nullable Boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
     this.isSonarQubeCloud = isSonarQubeCloud;
     this.serverVersion = serverVersion;
@@ -69,7 +69,9 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
     if (wasJreCacheHit != null) {
       allProps.put("sonar.scanner.wasJreCacheHit", wasJreCacheHit.name());
     }
-    allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
+    if (wasEngineCacheHit != null) {
+      allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
+    }
   }
 
   protected abstract boolean doAnalyze(Map<String, String> allProps);

@@ -40,7 +40,7 @@ public class SimulationScannerEngineFacade extends AbstractScannerEngineFacade {
 
   public SimulationScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarCloud,
     @Nullable String serverVersion) {
-    super(bootstrapProperties, isSonarCloud, serverVersion, false, null);
+    super(bootstrapProperties, isSonarCloud, serverVersion, null, null);
   }
 
   @Override
