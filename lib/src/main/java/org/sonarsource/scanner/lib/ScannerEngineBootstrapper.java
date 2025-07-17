@@ -81,7 +81,6 @@ public class ScannerEngineBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineBootstrapper.class);
 
-
   static final String SQ_VERSION_NEW_BOOTSTRAPPING = "10.6";
   static final String SQ_VERSION_TOKEN_AUTHENTICATION = "10.0";
 
@@ -157,8 +156,7 @@ public class ScannerEngineBootstrapper {
   private ScannerEngineBootstrapResult bootstrapCloud(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig, ScannerEndpoint endpoint) {
     endpoint.getRegionLabel().ifPresentOrElse(
       region -> LOG.info("Communicating with SonarQube Cloud ({} region)", region),
-      () -> LOG.info("Communicating with SonarQube Cloud")
-    );
+      () -> LOG.info("Communicating with SonarQube Cloud"));
     var scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
       (launcher, adaptedProperties) -> NewScannerEngineFacade.forSonarQubeCloud(adaptedProperties, launcher));
     return new SuccessfulBootstrap(scannerFacade);
@@ -307,8 +305,11 @@ public class ScannerEngineBootstrapper {
   }
 
   private void initBootstrapDefaultValues(ScannerEndpoint endpoint) {
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.HOST_URL, endpoint.getWebEndpoint());
-    setBootstrapPropertyIfNotAlreadySet(ScannerProperties.API_BASE_URL, endpoint.getApiEndpoint());
+    setBootstrapProperty(ScannerProperties.HOST_URL, endpoint.getWebEndpoint());
+    setBootstrapProperty(ScannerProperties.API_BASE_URL, endpoint.getApiEndpoint());
+    if (endpoint.isSonarQubeCloud()) {
+      setBootstrapProperty(ScannerProperties.SONARQUBE_CLOUD_URL, endpoint.getWebEndpoint());
+    }
     if (!bootstrapProperties.containsKey(SCANNER_OS)) {
       setBootstrapProperty(SCANNER_OS, new OsResolver(system, new Paths2()).getOs().name().toLowerCase(Locale.ENGLISH));
     }
@@ -336,12 +337,6 @@ public class ScannerEngineBootstrapper {
       trustStore.getKeyStorePassword().ifPresent(password -> result.put(SONAR_SCANNER_TRUSTSTORE_PASSWORD, password));
     }
     return Map.copyOf(result);
-  }
-
-  private void setBootstrapPropertyIfNotAlreadySet(String key, @Nullable String value) {
-    if (!bootstrapProperties.containsKey(key) && value != null) {
-      setBootstrapProperty(key, value);
-    }
   }
 
 }
