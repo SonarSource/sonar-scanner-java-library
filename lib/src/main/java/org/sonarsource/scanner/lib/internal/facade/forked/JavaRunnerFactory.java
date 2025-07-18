@@ -42,10 +42,11 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.downloadcache.Downloader;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.MessageException;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.CompressionUtils;
 import org.sonarsource.scanner.lib.internal.util.ProcessWrapperFactory;
@@ -74,7 +75,7 @@ public class JavaRunnerFactory {
     this.processWrapperFactory = processWrapperFactory;
   }
 
-  public JavaRunner createRunner(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
+  public JavaRunner createRunner(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache, Map<String, String> properties) {
     String javaExecutablePropValue = properties.get(JAVA_EXECUTABLE_PATH);
     if (javaExecutablePropValue != null) {
       LOG.info("Using the configured java executable '{}'", javaExecutablePropValue);
@@ -84,9 +85,9 @@ public class JavaRunnerFactory {
     if (skipJreProvisioning) {
       LOG.info("JRE provisioning is disabled");
     } else {
-      var cachedFile = getJreFromServer(scannerHttpClient, fileCache, properties, true);
+      var cachedFile = getJreFromServer(scannerHttpClient, downloadCache, properties, true);
       if (cachedFile.isPresent()) {
-        return new JavaRunner(cachedFile.get().getPathInCache(), Boolean.TRUE.equals(cachedFile.get().getCacheHit()) ? JreCacheHit.HIT : JreCacheHit.MISS);
+        return new JavaRunner(cachedFile.get().getPath(), cachedFile.get().didCacheHit() ? JreCacheHit.HIT : JreCacheHit.MISS);
       }
     }
     String javaHome = system.getEnvironmentVariable("JAVA_HOME");
@@ -131,7 +132,7 @@ public class JavaRunnerFactory {
     }
   }
 
-  private static Optional<CachedFile> getJreFromServer(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties, boolean retry) {
+  private static Optional<CachedFile> getJreFromServer(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache, Map<String, String> properties, boolean retry) {
     String os = properties.get(SCANNER_OS);
     String arch = properties.get(SCANNER_ARCH);
     LOG.info("JRE provisioning: os[{}], arch[{}]", os, arch);
@@ -142,17 +143,17 @@ public class JavaRunnerFactory {
         LOG.info("No JRE found for this OS/architecture");
         return Optional.empty();
       }
-      var cachedFile = fileCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
+      var cachedFile = downloadCache.getOrDownload(jreMetadata.get().getFilename(), jreMetadata.get().getSha256(), "SHA-256",
         new JreDownloader(scannerHttpClient, jreMetadata.get()));
-      var extractedDirectory = extractArchive(cachedFile.getPathInCache());
-      return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.getCacheHit()));
+      var extractedDirectory = extractArchive(cachedFile.getPath());
+      return Optional.of(new CachedFile(extractedDirectory.resolve(jreMetadata.get().javaPath), cachedFile.didCacheHit()));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new JRE might have been published between the metadata fetch and the download
         LOG.warn("Failed to get the JRE, retrying...");
-        return getJreFromServer(scannerHttpClient, fileCache, properties, false);
+        return getJreFromServer(scannerHttpClient, downloadCache, properties, false);
       }
-      throw e;
+      throw new IllegalStateException("Unable to provision the JRE", e);
     }
   }
 
@@ -240,7 +241,7 @@ public class JavaRunnerFactory {
     }
   }
 
-  static class JreDownloader implements FileCache.Downloader {
+  static class JreDownloader implements Downloader {
     private final ScannerHttpClient connection;
     private final JreMetadata jreMetadata;
 

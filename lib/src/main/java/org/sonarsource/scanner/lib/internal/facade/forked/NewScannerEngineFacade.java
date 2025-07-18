@@ -28,7 +28,7 @@ public class NewScannerEngineFacade extends AbstractScannerEngineFacade {
 
   private NewScannerEngineFacade(Map<String, String> bootstrapProperties, ScannerEngineLauncher launcher,
     boolean isSonarQubeCloud, @Nullable String serverVersion) {
-    super(bootstrapProperties, isSonarQubeCloud, serverVersion, launcher.getEngineCacheHit(), launcher.getJreCacheHit());
+    super(bootstrapProperties, isSonarQubeCloud, serverVersion, launcher.didEngineCacheHit().orElse(null), launcher.getJreCacheHit());
     this.launcher = launcher;
   }
 

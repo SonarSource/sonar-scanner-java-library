@@ -30,8 +30,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.batch.IsolatedLauncher;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 public class IsolatedLauncherFactory {
@@ -61,11 +61,11 @@ public class IsolatedLauncherFactory {
     return classloader;
   }
 
-  public IsolatedLauncherAndClassloader createLauncher(ScannerHttpClient scannerHttpClient, FileCache fileCache) {
+  public IsolatedLauncherAndClassloader createLauncher(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache) {
     Set<String> unmaskRules = new HashSet<>();
     unmaskRules.add("org.sonarsource.scanner.lib.internal.batch.");
     ClassloadRules rules = new ClassloadRules(Collections.emptySet(), unmaskRules);
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(scannerHttpClient, fileCache).create();
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloaderFactory(scannerHttpClient, downloadCache).create();
     return createLauncher(legacyScannerEngineDownloader, rules);
   }
 
@@ -73,11 +73,11 @@ public class IsolatedLauncherFactory {
     try {
       List<CachedFile> jarFiles = legacyScannerEngineDownloader.getOrDownload();
       LOG.debug("Create isolated classloader...");
-      var cl = createClassLoader(jarFiles.stream().map(CachedFile::getPathInCache).collect(Collectors.toList()), rules);
+      var cl = createClassLoader(jarFiles.stream().map(CachedFile::getPath).collect(Collectors.toList()), rules);
       IsolatedLauncher objProxy = IsolatedLauncherProxy.create(cl, IsolatedLauncher.class, launcherImplClassName);
       tempCleaning.clean();
 
-      return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::getCacheHit));
+      return new IsolatedLauncherAndClassloader(objProxy, cl, jarFiles.stream().allMatch(CachedFile::didCacheHit));
     } catch (Exception e) {
       // Catch all other exceptions, which relates to reflection
       throw new ScannerException("Unable to execute SonarScanner analysis", e);

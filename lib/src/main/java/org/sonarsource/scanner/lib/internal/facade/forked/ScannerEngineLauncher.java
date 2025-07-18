@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,13 +31,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.downloadcache.CachedFile;
 import org.sonarsource.scanner.lib.ScannerProperties;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
 import org.sonarsource.scanner.lib.internal.http.OkHttpClientFactory;
+import org.sonarsource.scanner.lib.internal.util.Either;
 
 public class ScannerEngineLauncher {
   private static final Set<String> SENSITIVE_JVM_ARGUMENTS = Set.of(
@@ -48,9 +50,9 @@ public class ScannerEngineLauncher {
 
   private static final String JSON_FIELD_SCANNER_PROPERTIES = "scannerProperties";
   private final JavaRunner javaRunner;
-  private final CachedFile scannerEngineJar;
+  private final Either<CachedFile, Path> scannerEngineJar;
 
-  public ScannerEngineLauncher(JavaRunner javaRunner, CachedFile scannerEngineJar) {
+  public ScannerEngineLauncher(JavaRunner javaRunner, Either<CachedFile, Path> scannerEngineJar) {
     this.javaRunner = javaRunner;
     this.scannerEngineJar = scannerEngineJar;
   }
@@ -117,7 +119,7 @@ public class ScannerEngineLauncher {
     }
     args.add("-D" + OkHttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
     args.add("-jar");
-    args.add(scannerEngineJar.getPathInCache().toAbsolutePath().toString());
+    args.add(scannerEngineJar.map(CachedFile::getPath, Function.identity()).toAbsolutePath().toString());
     return args;
   }
 
@@ -157,9 +159,8 @@ public class ScannerEngineLauncher {
     return new Gson().toJson(jsonObject);
   }
 
-  @CheckForNull
-  public Boolean getEngineCacheHit() {
-    return scannerEngineJar.getCacheHit();
+  public Optional<Boolean> didEngineCacheHit() {
+    return scannerEngineJar.map(c -> Optional.of(c.didCacheHit()), p -> Optional.empty());
   }
 
   public JreCacheHit getJreCacheHit() {

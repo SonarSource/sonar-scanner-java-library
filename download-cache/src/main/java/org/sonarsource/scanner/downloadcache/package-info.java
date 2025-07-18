@@ -1,5 +1,5 @@
 /*
- * SonarScanner Java Library
+ * SonarScanner Download Cache Utility
  * Copyright (C) 2011-2025 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -17,20 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.facade.inprocess;
+@ParametersAreNonnullByDefault
+package org.sonarsource.scanner.downloadcache;
 
-import org.junit.jupiter.api.Test;
-import org.sonarsource.scanner.downloadcache.DownloadCache;
-import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-class LegacyScannerEngineDownloaderFactoryTest {
-  @Test
-  void should_create() {
-    ScannerHttpClient conn = mock(ScannerHttpClient.class);
-    DownloadCache cache = mock(DownloadCache.class);
-    assertThat(new LegacyScannerEngineDownloaderFactory(conn, cache).create()).isNotNull();
-  }
-}
+import javax.annotation.ParametersAreNonnullByDefault;

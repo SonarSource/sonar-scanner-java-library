@@ -32,8 +32,9 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import org.sonarsource.scanner.lib.internal.util.ProcessWrapperFactory;
 import org.sonarsource.scanner.lib.internal.util.System2;
@@ -55,7 +56,7 @@ import static org.sonarsource.scanner.lib.internal.facade.forked.JavaRunnerFacto
 class JavaRunnerFactoryTest {
 
   private final ScannerHttpClient scannerHttpClient = mock(ScannerHttpClient.class);
-  private final FileCache fileCache = mock(FileCache.class);
+  private final DownloadCache downloadCache = mock(DownloadCache.class);
   private final System2 system = mock(System2.class);
   private final ProcessWrapperFactory processWrapperFactory = mock(ProcessWrapperFactory.class);
 
@@ -70,15 +71,15 @@ class JavaRunnerFactoryTest {
   }
 
   @Test
-  void createRunner_jreProvisioning() throws IOException {
+  void createRunner_jreProvisioning() throws IOException, HashMismatchException {
     var jre = temp.resolve("fake-jre.zip");
     FileUtils.copyFile(new File("src/test/resources/fake-jre.zip"), jre.toFile());
 
     when(scannerHttpClient.callRestApi(matches(API_PATH_JRE + ".*"))).thenReturn(
       IOUtils.toString(requireNonNull(getClass().getResourceAsStream("createRunner_jreProvisioning.json")), StandardCharsets.UTF_8));
-    when(fileCache.getOrDownload(eq("fake-jre.zip"), eq("123456"), eq("SHA-256"), any(JavaRunnerFactory.JreDownloader.class))).thenReturn(new CachedFile(jre, true));
+    when(downloadCache.getOrDownload(eq("fake-jre.zip"), eq("123456"), eq("SHA-256"), any(JavaRunnerFactory.JreDownloader.class))).thenReturn(new CachedFile(jre, true));
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, new HashMap<>());
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, new HashMap<>());
 
     assertThat(runner.getJavaExecutable()).isNotNull();
     assertThat(runner.getJavaExecutable()).exists();
@@ -89,7 +90,7 @@ class JavaRunnerFactoryTest {
     when(scannerHttpClient.callRestApi(matches(API_PATH_JRE + ".*"))).thenReturn("[]");
     Map<String, String> props = Map.of(SCANNER_OS, "linux", SCANNER_ARCH, "x64");
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, props);
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, props);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
@@ -100,7 +101,7 @@ class JavaRunnerFactoryTest {
     var javaExe = temp.resolve("bin/java");
     Map<String, String> properties = Map.of(JAVA_EXECUTABLE_PATH, javaExe.toAbsolutePath().toString());
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, properties);
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, properties);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(javaExe);
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
@@ -115,7 +116,7 @@ class JavaRunnerFactoryTest {
     when(system.getEnvironmentVariable("JAVA_HOME")).thenReturn(javaHome.toString());
     Map<String, String> properties = Map.of(SKIP_JRE_PROVISIONING, "true");
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, properties);
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, properties);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(temp.resolve("bin/java"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
@@ -125,7 +126,7 @@ class JavaRunnerFactoryTest {
   void createRunner_jreProvisioningSkipAndNoJavaHome() {
     Map<String, String> properties = Map.of(SKIP_JRE_PROVISIONING, "true");
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, properties);
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, properties);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("java"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);
@@ -141,7 +142,7 @@ class JavaRunnerFactoryTest {
 
     Map<String, String> properties = Map.of(SKIP_JRE_PROVISIONING, "true");
 
-    JavaRunner runner = underTest.createRunner(scannerHttpClient, fileCache, properties);
+    JavaRunner runner = underTest.createRunner(scannerHttpClient, downloadCache, properties);
 
     assertThat(runner.getJavaExecutable()).isEqualTo(Paths.get("C:\\bin\\java.exe"));
     assertThat(runner.getJreCacheHit()).isEqualTo(JreCacheHit.DISABLED);

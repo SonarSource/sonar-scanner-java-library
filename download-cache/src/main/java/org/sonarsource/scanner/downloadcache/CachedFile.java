@@ -1,5 +1,5 @@
 /*
- * SonarScanner Java Library
+ * SonarScanner Download Cache Utility
  * Copyright (C) 2011-2025 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -17,20 +17,31 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.facade.inprocess;
+package org.sonarsource.scanner.downloadcache;
 
-import org.junit.jupiter.api.Test;
-import org.sonarsource.scanner.downloadcache.DownloadCache;
-import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
+import java.nio.file.Path;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+/**
+ * A file from the cache
+ */
+public class CachedFile {
 
-class LegacyScannerEngineDownloaderFactoryTest {
-  @Test
-  void should_create() {
-    ScannerHttpClient conn = mock(ScannerHttpClient.class);
-    DownloadCache cache = mock(DownloadCache.class);
-    assertThat(new LegacyScannerEngineDownloaderFactory(conn, cache).create()).isNotNull();
+  private final Path path;
+  private final boolean didCacheHit;
+
+  public CachedFile(Path path, boolean didCacheHit) {
+    this.path = path;
+    this.didCacheHit = didCacheHit;
+  }
+
+  public Path getPath() {
+    return path;
+  }
+
+  /**
+   * @return true if the file was previously in the cache, false if it was freshly downloaded
+   */
+  public boolean didCacheHit() {
+    return didCacheHit;
   }
 }

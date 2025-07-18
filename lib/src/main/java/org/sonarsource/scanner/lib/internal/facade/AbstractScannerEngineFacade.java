@@ -30,16 +30,16 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
   private final Map<String, String> bootstrapProperties;
   private final boolean isSonarQubeCloud;
   private final String serverVersion;
-  private final Boolean wasEngineCacheHit;
-  private final JreCacheHit wasJreCacheHit;
+  private final Boolean didEngineCacheHit;
+  private final JreCacheHit jreCacheHit;
 
   protected AbstractScannerEngineFacade(Map<String, String> bootstrapProperties, boolean isSonarQubeCloud, @Nullable String serverVersion,
-    @Nullable Boolean wasEngineCacheHit, @Nullable JreCacheHit wasJreCacheHit) {
+    @Nullable Boolean didEngineCacheHit, @Nullable JreCacheHit jreCacheHit) {
     this.bootstrapProperties = bootstrapProperties;
     this.isSonarQubeCloud = isSonarQubeCloud;
     this.serverVersion = serverVersion;
-    this.wasEngineCacheHit = wasEngineCacheHit;
-    this.wasJreCacheHit = wasJreCacheHit;
+    this.didEngineCacheHit = didEngineCacheHit;
+    this.jreCacheHit = jreCacheHit;
   }
 
   @Override
@@ -66,11 +66,11 @@ public abstract class AbstractScannerEngineFacade implements ScannerEngineFacade
   }
 
   private void addStatsProperties(Map<String, String> allProps) {
-    if (wasJreCacheHit != null) {
-      allProps.put("sonar.scanner.wasJreCacheHit", wasJreCacheHit.name());
+    if (jreCacheHit != null) {
+      allProps.put("sonar.scanner.wasJreCacheHit", jreCacheHit.name());
     }
-    if (wasEngineCacheHit != null) {
-      allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(wasEngineCacheHit));
+    if (didEngineCacheHit != null) {
+      allProps.put("sonar.scanner.wasEngineCacheHit", String.valueOf(didEngineCacheHit));
     }
   }
 

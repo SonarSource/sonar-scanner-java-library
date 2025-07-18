@@ -10,12 +10,6 @@
   <artifactId>sonar-scanner-java-library</artifactId>
   <name>SonarScanner Java Library</name>
 
-  <properties>
-    <!-- Don't update to slf4j 2 to continue supporting the Scanner for Maven with Maven < 4 -->
-    <slf4j.version>1.7.36</slf4j.version>
-  </properties>
-
-
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -48,6 +42,11 @@
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sonar-scanner-download-cache</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -94,12 +93,6 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- used to compare results -->
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

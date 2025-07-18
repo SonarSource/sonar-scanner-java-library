@@ -25,7 +25,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.downloadcache.Downloader;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.LegacyScannerEngineDownloader.ScannerFileDownloader;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
@@ -43,10 +45,10 @@ class LegacyScannerEngineDownloaderTest {
   private final BootstrapIndexDownloader bootstrapIndexDownloader = mock(BootstrapIndexDownloader.class);
   private final ScannerFileDownloader scannerFileDownloader = mock(ScannerFileDownloader.class);
   private final JarExtractor jarExtractor = mock(JarExtractor.class);
-  private final FileCache fileCache = mock(FileCache.class);
+  private final DownloadCache downloadCache = mock(DownloadCache.class);
 
   @Test
-  void should_download_jar_files(@TempDir Path tmpDir) {
+  void should_download_jar_files(@TempDir Path tmpDir) throws HashMismatchException {
     var batchJar = tmpDir.resolve("sonar-scanner-java-library-batch.jar");
     when(jarExtractor.extractToTemp("sonar-scanner-java-library-batch")).thenReturn(batchJar);
 
@@ -57,14 +59,14 @@ class LegacyScannerEngineDownloaderTest {
     // index of the files to download
     when(bootstrapIndexDownloader.getIndex()).thenReturn(jars);
 
-    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor);
+    LegacyScannerEngineDownloader legacyScannerEngineDownloader = new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, downloadCache, jarExtractor);
     var files = legacyScannerEngineDownloader.getOrDownload();
 
     assertThat(files).isNotNull();
     verify(bootstrapIndexDownloader).getIndex();
-    verify(fileCache, times(1)).getOrDownload(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(FileCache.Downloader.class));
-    verify(fileCache, times(1)).getOrDownload(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(FileCache.Downloader.class));
-    verifyNoMoreInteractions(fileCache);
+    verify(downloadCache, times(1)).getOrDownload(eq("cpd.jar"), eq("CA124VADFSDS"), eq("MD5"), any(Downloader.class));
+    verify(downloadCache, times(1)).getOrDownload(eq("squid.jar"), eq("34535FSFSDF"), eq("MD5"), any(Downloader.class));
+    verifyNoMoreInteractions(downloadCache);
   }
 
   @Test

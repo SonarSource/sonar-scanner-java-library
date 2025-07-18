@@ -27,8 +27,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.MessageException;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 import testutils.LogTester;
 
@@ -46,7 +48,7 @@ import static org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLa
 class ScannerEngineLauncherFactoryTest {
 
   private final ScannerHttpClient scannerHttpClient = mock(ScannerHttpClient.class);
-  private final FileCache fileCache = mock(FileCache.class);
+  private final DownloadCache downloadCache = mock(DownloadCache.class);
   private final JavaRunnerFactory javaRunnerFactory = mock(JavaRunnerFactory.class);
 
   @RegisterExtension
@@ -56,14 +58,16 @@ class ScannerEngineLauncherFactoryTest {
   private Path temp;
 
   @Test
-  void createLauncher_use_engine_provisioning_by_default() {
+  void createLauncher_use_engine_provisioning_by_default() throws HashMismatchException {
     when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenReturn("{\"filename\":\"scanner-engine.jar\",\"sha256\":\"123456\"}");
-    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(downloadCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    CachedFile cachedEngine = mock(CachedFile.class);
+    when(downloadCache.getOrDownload(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"), any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class))).thenReturn(cachedEngine);
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
-    factory.createLauncher(scannerHttpClient, fileCache, Map.of());
+    factory.createLauncher(scannerHttpClient, downloadCache, Map.of());
 
-    verify(fileCache).getOrDownload(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"),
+    verify(downloadCache).getOrDownload(eq("scanner-engine.jar"), eq("123456"), eq("SHA-256"),
       any(ScannerEngineLauncherFactory.ScannerEngineDownloader.class));
   }
 
@@ -71,22 +75,22 @@ class ScannerEngineLauncherFactoryTest {
   void createLauncher_use_local_scanner_engine_if_specified(@TempDir Path temp) throws IOException {
     Path jarPath = temp.resolve("my-engine.jar");
     Files.createFile(jarPath);
-    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(downloadCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
-    factory.createLauncher(scannerHttpClient, fileCache, Map.of("sonar.scanner.engineJarPath", jarPath.toString()));
+    factory.createLauncher(scannerHttpClient, downloadCache, Map.of("sonar.scanner.engineJarPath", jarPath.toString()));
 
-    verifyNoInteractions(fileCache);
+    verifyNoInteractions(downloadCache);
     assertThat(logTester.logs(Level.INFO)).contains("Using the configured Scanner Engine '" + jarPath + "'");
   }
 
   @Test
   void createLauncher_fails_if_local_scanner_engine_doesnt_exist() {
-    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(downloadCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
     Map<String, String> properties = Map.of("sonar.scanner.engineJarPath", "dontexist.jar");
-    assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, fileCache, properties))
+    assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, downloadCache, properties))
       .isInstanceOf(MessageException.class)
       .hasMessage("Scanner Engine jar path 'dontexist.jar' does not exist. Please check property 'sonar.scanner.engineJarPath'.");
   }
@@ -94,16 +98,16 @@ class ScannerEngineLauncherFactoryTest {
   @Test
   void createLauncher_fail_to_download_engine_metadata() {
     when(scannerHttpClient.callRestApi(API_PATH_ENGINE)).thenThrow(new IllegalStateException("Some error"));
-    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(fileCache), anyMap())).thenReturn(mock(JavaRunner.class));
+    when(javaRunnerFactory.createRunner(eq(scannerHttpClient), eq(downloadCache), anyMap())).thenReturn(mock(JavaRunner.class));
 
     ScannerEngineLauncherFactory factory = new ScannerEngineLauncherFactory(javaRunnerFactory);
     Map<String, String> properties = Map.of();
 
-    assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, fileCache, properties))
+    assertThatThrownBy(() -> factory.createLauncher(scannerHttpClient, downloadCache, properties))
       .isInstanceOf(MessageException.class)
       .hasMessage("Failed to get the scanner-engine metadata: Some error");
 
-    verifyNoInteractions(fileCache);
+    verifyNoInteractions(downloadCache);
   }
 
   @Test
