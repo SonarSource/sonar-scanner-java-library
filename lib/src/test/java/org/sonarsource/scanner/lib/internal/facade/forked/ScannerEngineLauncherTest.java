@@ -27,8 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.downloadcache.CachedFile;
 import org.sonarsource.scanner.lib.ScannerProperties;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
+import org.sonarsource.scanner.lib.internal.util.Either;
 import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +52,7 @@ class ScannerEngineLauncherTest {
   void execute() {
     var scannerEngine = temp.resolve("scanner-engine.jar");
 
-    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, Either.forLeft(new CachedFile(scannerEngine, true)));
 
     Map<String, String> properties = Map.of(
       ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g",
@@ -70,21 +71,22 @@ class ScannerEngineLauncherTest {
   void execute_log_info_when_java_opts_provided_obfuscating_sensitive_values() {
     var scannerEngine = temp.resolve("scanner-engine.jar");
 
-    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, Either.forLeft(new CachedFile(scannerEngine, true)));
 
     Map<String, String> properties = Map.of(
       ScannerProperties.SCANNER_JAVA_OPTS, "-Xmx4g -Xms1g -Dsonar.login=secret1 -Dsonar.password=secret2 -Dsonar.token=secret3 -Djava.net.ssl.trustStorePassword=secret4",
       ScannerProperties.HOST_URL, "http://localhost:9000");
     launcher.execute(properties);
 
-    assertThat(logTester.logs(Level.INFO)).containsOnly("SONAR_SCANNER_JAVA_OPTS=-Xmx4g -Xms1g -Dsonar.login=* -Dsonar.password=* -Dsonar.token=* -Djava.net.ssl.trustStorePassword=*");
+    assertThat(logTester.logs(Level.INFO))
+      .containsOnly("SONAR_SCANNER_JAVA_OPTS=-Xmx4g -Xms1g -Dsonar.login=* -Dsonar.password=* -Dsonar.token=* -Djava.net.ssl.trustStorePassword=*");
   }
 
   @Test
   void replace_null_values_by_empty_in_json_and_ignore_null_key() {
     var scannerEngine = temp.resolve("scanner-engine.jar");
 
-    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, new CachedFile(scannerEngine, true));
+    ScannerEngineLauncher launcher = new ScannerEngineLauncher(javaRunner, Either.forLeft(new CachedFile(scannerEngine, true)));
 
     Map<String, String> properties = new HashMap<>();
     properties.put("sonar.myProp", null);

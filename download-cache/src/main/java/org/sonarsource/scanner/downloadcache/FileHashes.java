@@ -1,5 +1,5 @@
 /*
- * SonarScanner Java Library
+ * SonarScanner Download Cache Utility
  * Copyright (C) 2011-2025 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.scanner.lib.internal.cache;
+package org.sonarsource.scanner.downloadcache;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,8 +28,6 @@ import java.security.MessageDigest;
 
 /**
  * Hashes used to store files in the cache directory.
- *
- * @since 3.5
  */
 class FileHashes {
 

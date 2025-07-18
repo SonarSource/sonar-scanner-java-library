@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.downloadcache.Downloader;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.BootstrapIndexDownloader.JarEntry;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
@@ -41,16 +43,16 @@ class LegacyScannerEngineDownloader {
 
   private static final Logger LOG = LoggerFactory.getLogger(LegacyScannerEngineDownloader.class);
 
-  private final FileCache fileCache;
+  private final DownloadCache downloadCache;
   private final JarExtractor jarExtractor;
   private final ScannerFileDownloader scannerFileDownloader;
   private final BootstrapIndexDownloader bootstrapIndexDownloader;
 
-  LegacyScannerEngineDownloader(ScannerFileDownloader scannerFileDownloader, BootstrapIndexDownloader bootstrapIndexDownloader, FileCache fileCache,
+  LegacyScannerEngineDownloader(ScannerFileDownloader scannerFileDownloader, BootstrapIndexDownloader bootstrapIndexDownloader, DownloadCache downloadCache,
     JarExtractor jarExtractor) {
     this.scannerFileDownloader = scannerFileDownloader;
     this.bootstrapIndexDownloader = bootstrapIndexDownloader;
-    this.fileCache = fileCache;
+    this.downloadCache = downloadCache;
     this.jarExtractor = jarExtractor;
   }
 
@@ -65,11 +67,17 @@ class LegacyScannerEngineDownloader {
   private List<CachedFile> getOrDownloadScannerEngineFiles() {
     Collection<JarEntry> index = bootstrapIndexDownloader.getIndex();
     return index.stream()
-      .map(jar -> fileCache.getOrDownload(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader))
+      .map(jar -> {
+        try {
+          return downloadCache.getOrDownload(jar.getFilename(), jar.getHash(), "MD5", scannerFileDownloader);
+        } catch (HashMismatchException e) {
+          throw new IllegalStateException("Unable to provision the Scanner Engine", e);
+        }
+      })
       .collect(Collectors.toList());
   }
 
-  static class ScannerFileDownloader implements FileCache.Downloader {
+  static class ScannerFileDownloader implements Downloader {
     private final ScannerHttpClient connection;
 
     ScannerFileDownloader(ScannerHttpClient conn) {

@@ -33,11 +33,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
 import org.sonarsource.scanner.lib.internal.FailedBootstrap;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
 import org.sonarsource.scanner.lib.internal.SuccessfulBootstrap;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
 import org.sonarsource.scanner.lib.internal.endpoint.ScannerEndpoint;
 import org.sonarsource.scanner.lib.internal.endpoint.ScannerEndpointResolver;
 import org.sonarsource.scanner.lib.internal.facade.forked.NewScannerEngineFacade;
@@ -134,7 +134,8 @@ public class ScannerEngineBootstrapper {
     var httpConfig = new HttpConfig(immutableProperties, sonarUserHome, system);
     var isSonarQubeCloud = endpoint.isSonarQubeCloud();
     var isSimulation = immutableProperties.containsKey(InternalProperties.SCANNER_DUMP_TO_FILE);
-    var fileCache = FileCache.create(sonarUserHome);
+    var cacheBaseDir = sonarUserHome.resolve("cache");
+    var fileCache = new DownloadCache(cacheBaseDir);
 
     if (isSimulation) {
       var serverVersion = immutableProperties.getOrDefault(InternalProperties.SCANNER_VERSION_SIMULATION, "9.9");
@@ -153,16 +154,16 @@ public class ScannerEngineBootstrapper {
     }
   }
 
-  private ScannerEngineBootstrapResult bootstrapCloud(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig, ScannerEndpoint endpoint) {
+  private ScannerEngineBootstrapResult bootstrapCloud(DownloadCache downloadCache, Map<String, String> immutableProperties, HttpConfig httpConfig, ScannerEndpoint endpoint) {
     endpoint.getRegionLabel().ifPresentOrElse(
       region -> LOG.info("Communicating with SonarQube Cloud ({} region)", region),
       () -> LOG.info("Communicating with SonarQube Cloud"));
-    var scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
+    var scannerFacade = buildNewFacade(downloadCache, immutableProperties, httpConfig,
       (launcher, adaptedProperties) -> NewScannerEngineFacade.forSonarQubeCloud(adaptedProperties, launcher));
     return new SuccessfulBootstrap(scannerFacade);
   }
 
-  private ScannerEngineBootstrapResult bootstrapServer(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig) {
+  private ScannerEngineBootstrapResult bootstrapServer(DownloadCache downloadCache, Map<String, String> immutableProperties, HttpConfig httpConfig) {
     var serverVersion = getServerVersion(scannerHttpClient);
     var serverLabel = guessServerLabelFromVersion(serverVersion);
     LOG.info("Communicating with {} {}", serverLabel, serverVersion);
@@ -172,10 +173,10 @@ public class ScannerEngineBootstrapper {
     }
     ScannerEngineFacade scannerFacade;
     if (VersionUtils.isAtLeastIgnoringQualifier(serverVersion, SQ_VERSION_NEW_BOOTSTRAPPING)) {
-      scannerFacade = buildNewFacade(fileCache, immutableProperties, httpConfig,
+      scannerFacade = buildNewFacade(downloadCache, immutableProperties, httpConfig,
         (launcher, adaptedProperties) -> NewScannerEngineFacade.forSonarQubeServer(adaptedProperties, launcher, serverVersion));
     } else {
-      var launcher = launcherFactory.createLauncher(scannerHttpClient, fileCache);
+      var launcher = launcherFactory.createLauncher(scannerHttpClient, downloadCache);
       var adaptedProperties = adaptDeprecatedPropertiesForInProcessBootstrapping(immutableProperties, httpConfig);
       scannerFacade = new InProcessScannerEngineFacade(adaptedProperties, launcher, false, serverVersion);
     }
@@ -190,9 +191,9 @@ public class ScannerEngineBootstrapper {
     }
   }
 
-  private ScannerEngineFacade buildNewFacade(FileCache fileCache, Map<String, String> immutableProperties, HttpConfig httpConfig,
+  private ScannerEngineFacade buildNewFacade(DownloadCache downloadCache, Map<String, String> immutableProperties, HttpConfig httpConfig,
     BiFunction<ScannerEngineLauncher, Map<String, String>, ScannerEngineFacade> facadeFactory) {
-    var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, fileCache, immutableProperties);
+    var launcher = scannerEngineLauncherFactory.createLauncher(scannerHttpClient, downloadCache, immutableProperties);
     var adaptedProperties = adaptSslPropertiesToScannerProperties(immutableProperties, httpConfig);
     return facadeFactory.apply(launcher, adaptedProperties);
   }

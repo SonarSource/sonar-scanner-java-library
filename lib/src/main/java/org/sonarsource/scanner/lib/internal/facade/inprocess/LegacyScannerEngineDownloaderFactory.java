@@ -19,22 +19,22 @@
  */
 package org.sonarsource.scanner.lib.internal.facade.inprocess;
 
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
 
 class LegacyScannerEngineDownloaderFactory {
   private final ScannerHttpClient scannerHttpClient;
-  private final FileCache fileCache;
+  private final DownloadCache downloadCache;
 
-  LegacyScannerEngineDownloaderFactory(ScannerHttpClient conn, FileCache fileCache) {
+  LegacyScannerEngineDownloaderFactory(ScannerHttpClient conn, DownloadCache downloadCache) {
     this.scannerHttpClient = conn;
-    this.fileCache = fileCache;
+    this.downloadCache = downloadCache;
   }
 
   LegacyScannerEngineDownloader create() {
     BootstrapIndexDownloader bootstrapIndexDownloader = new BootstrapIndexDownloader(scannerHttpClient);
     LegacyScannerEngineDownloader.ScannerFileDownloader scannerFileDownloader = new LegacyScannerEngineDownloader.ScannerFileDownloader(scannerHttpClient);
     JarExtractor jarExtractor = new JarExtractor();
-    return new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, fileCache, jarExtractor);
+    return new LegacyScannerEngineDownloader(scannerFileDownloader, bootstrapIndexDownloader, downloadCache, jarExtractor);
   }
 }

@@ -45,7 +45,7 @@ import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.IsolatedLauncherFactory;
@@ -93,7 +93,7 @@ class ScannerEngineBootstrapperTest {
     when(system.getProperty("java.home")).thenReturn(System.getProperty("java.home"));
 
     var launcher = mock(ScannerEngineLauncher.class);
-    when(scannerEngineLauncherFactory.createLauncher(any(ScannerHttpClient.class), any(FileCache.class), anyMap()))
+    when(scannerEngineLauncherFactory.createLauncher(any(ScannerHttpClient.class), any(DownloadCache.class), anyMap()))
       .thenReturn(launcher);
 
     underTest = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -103,7 +103,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_new_bootstrapping_on_sonarqube_cloud() throws Exception {
     try (var bootstrapResult = underTest.bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties())
         .contains(
@@ -117,7 +117,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_new_bootstrapping_on_sonarqube_cloud_us() throws Exception {
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.SONAR_REGION, "us").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
         entry(ScannerProperties.HOST_URL, "https://sonarqube.us"),
@@ -130,7 +130,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_cleaned_urls() throws Exception {
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://www.sonarcloud.io/").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
       assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties())
         .contains(
@@ -145,7 +145,7 @@ class ScannerEngineBootstrapperTest {
   void should_use_new_bootstrapping_with_sonarqube_10_6() throws Exception {
     when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost:1234/").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       verifySonarQubeServerTypeLogged(SQ_VERSION_NEW_BOOTSTRAPPING);
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(SQ_VERSION_NEW_BOOTSTRAPPING);
@@ -182,7 +182,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_issue_deprecation_warning_for_sonar_login_property_sonarqube_10_0() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -192,7 +192,7 @@ class ScannerEngineBootstrapperTest {
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").setBootstrapProperty(ScannerProperties.SONAR_LOGIN,
       "mockTokenValue").bootstrap()) {
-      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class));
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(logTester.logs(Level.WARN)).contains("Use of 'sonar.login' property has been deprecated in favor of 'sonar.token' (or the env variable alternative " +
         "'SONAR_TOKEN'). Please use the latter when passing a token.");
@@ -206,7 +206,7 @@ class ScannerEngineBootstrapperTest {
     String testCBVersion = "24.12.0.23452";
     when(scannerHttpClient.callRestApi("/analysis/version")).thenReturn(testCBVersion);
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
-      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class), anyMap());
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Community Build ".concat(testCBVersion));
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo(testCBVersion);
@@ -216,7 +216,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_old_bootstrapping_with_sonarqube_9_9() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -225,7 +225,7 @@ class ScannerEngineBootstrapperTest {
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("9.9");
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
-      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class));
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("9.9");
       verifySonarQubeServerTypeLogged("9.9");
@@ -235,7 +235,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_use_old_bootstrapping_with_sonarqube_10_5() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -244,7 +244,7 @@ class ScannerEngineBootstrapperTest {
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("10.5");
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
-      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(FileCache.class));
+      verify(launcherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class));
       assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isFalse();
       assertThat(bootstrapResult.getEngineFacade().getServerVersion()).isEqualTo("10.5");
       verifySonarQubeServerTypeLogged("10.5");
@@ -254,7 +254,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_show_help_on_proxy_auth_error() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -280,7 +280,7 @@ class ScannerEngineBootstrapperTest {
   @Test
   void should_preserve_both_exceptions_when_checking_version() throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
@@ -308,7 +308,7 @@ class ScannerEngineBootstrapperTest {
   @ValueSource(ints = {401, 403})
   void should_log_user_friendly_message_when_auth_error(int code) throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
-    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(FileCache.class)))
+    when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,

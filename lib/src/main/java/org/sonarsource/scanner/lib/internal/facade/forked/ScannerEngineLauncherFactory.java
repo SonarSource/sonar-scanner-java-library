@@ -30,11 +30,13 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonarsource.scanner.downloadcache.CachedFile;
+import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.downloadcache.Downloader;
+import org.sonarsource.scanner.downloadcache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.MessageException;
-import org.sonarsource.scanner.lib.internal.cache.CachedFile;
-import org.sonarsource.scanner.lib.internal.cache.FileCache;
-import org.sonarsource.scanner.lib.internal.cache.HashMismatchException;
 import org.sonarsource.scanner.lib.internal.http.ScannerHttpClient;
+import org.sonarsource.scanner.lib.internal.util.Either;
 import org.sonarsource.scanner.lib.internal.util.ProcessWrapperFactory;
 import org.sonarsource.scanner.lib.internal.util.System2;
 
@@ -55,10 +57,10 @@ public class ScannerEngineLauncherFactory {
     this.javaRunnerFactory = javaRunnerFactory;
   }
 
-  public ScannerEngineLauncher createLauncher(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
-    JavaRunner javaRunner = javaRunnerFactory.createRunner(scannerHttpClient, fileCache, properties);
+  public ScannerEngineLauncher createLauncher(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache, Map<String, String> properties) {
+    JavaRunner javaRunner = javaRunnerFactory.createRunner(scannerHttpClient, downloadCache, properties);
     jreSanityCheck(javaRunner);
-    var scannerEngine = getScannerEngine(scannerHttpClient, fileCache, properties);
+    var scannerEngine = getScannerEngine(scannerHttpClient, downloadCache, properties);
     return new ScannerEngineLauncher(javaRunner, scannerEngine);
   }
 
@@ -66,7 +68,7 @@ public class ScannerEngineLauncherFactory {
     javaRunner.execute(Collections.singletonList("--version"), null, LOG::debug);
   }
 
-  private static CachedFile getScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, Map<String, String> properties) {
+  private static Either<CachedFile, Path> getScannerEngine(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache, Map<String, String> properties) {
     String scannerEngineJarPathPropValue = properties.get(SCANNER_ENGINE_JAR_PATH);
     if (scannerEngineJarPathPropValue != null) {
       var path = Paths.get(scannerEngineJarPathPropValue).toAbsolutePath();
@@ -74,23 +76,23 @@ public class ScannerEngineLauncherFactory {
         throw new MessageException("Scanner Engine jar path '" + scannerEngineJarPathPropValue + "' does not exist. Please check property '" + SCANNER_ENGINE_JAR_PATH + "'.");
       }
       LOG.info("Using the configured Scanner Engine '{}'", path);
-      return new CachedFile(path, null);
+      return Either.forRight(path);
     }
-    return provisionScannerEngine(scannerHttpClient, fileCache, true);
+    return Either.forLeft(provisionScannerEngine(scannerHttpClient, downloadCache, true));
   }
 
-  private static CachedFile provisionScannerEngine(ScannerHttpClient scannerHttpClient, FileCache fileCache, boolean retry) {
+  private static CachedFile provisionScannerEngine(ScannerHttpClient scannerHttpClient, DownloadCache downloadCache, boolean retry) {
     try {
       var scannerEngineMetadata = getScannerEngineMetadata(scannerHttpClient);
-      return fileCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
+      return downloadCache.getOrDownload(scannerEngineMetadata.getFilename(), scannerEngineMetadata.getSha256(), "SHA-256",
         new ScannerEngineDownloader(scannerHttpClient, scannerEngineMetadata));
     } catch (HashMismatchException e) {
       if (retry) {
         // A new scanner-engine might have been published between the metadata fetch and the download
         LOG.warn("Failed to get the scanner-engine, retrying...");
-        return provisionScannerEngine(scannerHttpClient, fileCache, false);
+        return provisionScannerEngine(scannerHttpClient, downloadCache, false);
       }
-      throw e;
+      throw new IllegalStateException("Unable to provision the Scanner Engine", e);
     }
   }
 
@@ -109,7 +111,7 @@ public class ScannerEngineLauncherFactory {
     }
   }
 
-  static class ScannerEngineDownloader implements FileCache.Downloader {
+  static class ScannerEngineDownloader implements Downloader {
     private final ScannerHttpClient connection;
     private final ScannerEngineMetadata scannerEngineMetadata;
 

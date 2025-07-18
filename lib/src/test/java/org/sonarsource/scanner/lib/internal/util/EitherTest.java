@@ -17,7 +17,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-@ParametersAreNonnullByDefault
-package org.sonarsource.scanner.lib.internal.cache;
+package org.sonarsource.scanner.lib.internal.util;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class EitherTest {
+
+  @Test
+  void testMap() {
+    Either<char[], String> either = Either.forLeft(new char[] {'f', 'o', 'o'});
+    assertThat(either.isLeft()).isTrue();
+    assertThat(either.isRight()).isFalse();
+    assertThat((String) either.map(String::new, String::toUpperCase)).isEqualTo("foo");
+
+    either = Either.forRight("bar");
+    assertThat(either.isLeft()).isFalse();
+    assertThat(either.isRight()).isTrue();
+    assertThat((String) either.map(String::new, String::toUpperCase)).isEqualTo("BAR");
+  }
+
+}
