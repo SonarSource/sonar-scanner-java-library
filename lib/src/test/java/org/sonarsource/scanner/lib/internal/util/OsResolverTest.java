@@ -99,7 +99,7 @@ class OsResolverTest {
   @Test
   void getOs_zOS() {
     when(system.getProperty(OS_NAME)).thenReturn("z/OS");
-    assertThat(underTest.getOs()).isEqualTo(OsResolver.OperatingSystem.Z_OS);
+    assertThat(underTest.getOs()).isEqualTo(OsResolver.OperatingSystem.ZOS);
   }
 
   @Test

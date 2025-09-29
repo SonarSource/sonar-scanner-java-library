@@ -51,7 +51,7 @@ public class OsResolver {
       } else if (osNameLowerCase.contains("linux")) {
         return isAlpine() ? OperatingSystem.ALPINE : OperatingSystem.LINUX;
       } else if (osNameLowerCase.contains("z/os")) {
-        return OperatingSystem.Z_OS;
+        return OperatingSystem.ZOS;
       }
     }
     throw new IllegalStateException(String.format("Failed to detect OS, use the property '%s' to set it manually.", SCANNER_OS));
@@ -77,6 +77,6 @@ public class OsResolver {
    * Operating systems supported by the JRE provisioning.
    */
   public enum OperatingSystem {
-    LINUX, WINDOWS, MACOS, ALPINE, Z_OS
+    LINUX, WINDOWS, MACOS, ALPINE, ZOS
   }
 }
