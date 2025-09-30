@@ -97,6 +97,12 @@ class OsResolverTest {
   }
 
   @Test
+  void getOs_zOS() {
+    when(system.getProperty(OS_NAME)).thenReturn("z/OS");
+    assertThat(underTest.getOs()).isEqualTo(OsResolver.OperatingSystem.ZOS);
+  }
+
+  @Test
   void getOs_unknown() {
     when(system.getProperty(OS_NAME)).thenReturn("aix");
     assertThatThrownBy(() -> underTest.getOs())
