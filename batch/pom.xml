@@ -38,12 +38,11 @@
       <artifactId>sonar-plugin-api</artifactId>
       <version>13.2.0.3137</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Unit tests -->
