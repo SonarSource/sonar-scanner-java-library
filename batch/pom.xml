@@ -11,7 +11,7 @@
   <name>SonarScanner Java Library - Batch</name>
 
   <properties>
-    <sonarQubeVersion>6.6</sonarQubeVersion>
+    <sonarQubeVersion>25.9.0.112764</sonarQubeVersion>
   </properties>
 
   <dependencies>
@@ -26,6 +26,12 @@
       <artifactId>sonar-scanner-engine</artifactId>
       <version>${sonarQubeVersion}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Unit tests -->
