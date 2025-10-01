@@ -11,7 +11,7 @@
   <name>SonarScanner Java Library - Batch</name>
 
   <properties>
-    <sonarQubeVersion>6.6</sonarQubeVersion>
+    <sonarQubeVersion>25.9.0.112764</sonarQubeVersion>
   </properties>
 
   <dependencies>
@@ -26,6 +26,12 @@
       <artifactId>sonar-scanner-engine</artifactId>
       <version>${sonarQubeVersion}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Unit tests -->
@@ -59,6 +65,18 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Transitively required in Tests by sonar-scanner-engine -->
+    <dependency>
+      <groupId>org.sonarsource.api.plugin</groupId>
+      <artifactId>sonar-plugin-api</artifactId>
+      <version>13.2.0.3137</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
