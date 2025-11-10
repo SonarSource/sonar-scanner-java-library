@@ -4,7 +4,7 @@ Common library used by many Scanners (SQ Scanner, SQ Scanner for Maven, SQ Scann
 
 Used to programmatically run SQ analysis to help developers write [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonar-scanner-java-library).
 
-[![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scanner-java-library.svg?branch=master)](https://cirrus-ci.com/github/SonarSource/sonar-scanner-java-library) [![Quality Gate Status](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent&metric=alert_status&token=5402ff8aea6466f2c1de75ce30617a365a8d3f8e)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent)
+[![Build Status](https://github.com/SonarSource/sonar-scanner-java-library/actions/workflows/build.yml/badge.svg)](https://github.com/SonarSource/sonar-scanner-java-library/actions/workflows/build.yml) [![Quality Gate Status](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent&metric=alert_status&token=5402ff8aea6466f2c1de75ce30617a365a8d3f8e)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.scanner.lib%3Asonar-scanner-java-library-parent)
 
 ## Have Questions or Feedback?
 
