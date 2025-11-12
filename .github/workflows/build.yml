@@ -29,6 +29,13 @@ jobs:
           experimental: true
           install_args: "java@21"  # Build task uses Java 21
 
+      - uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/kv/data/repox data.url | ARTIFACTORY_URL;
+            development/artifactory/token/SonarSource-sonar-scanner-java-library-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+            development/github/token/licenses-ro token | GITHUB_TOKEN
+
       - uses: SonarSource/ci-github-actions/build-maven@v1
         with:
           deploy-pull-request: 'true'
