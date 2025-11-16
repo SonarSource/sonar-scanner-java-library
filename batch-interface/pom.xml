@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.sonarsource.scanner.lib</groupId>
     <artifactId>sonar-scanner-java-library-parent</artifactId>
-    <version>3.5-SNAPSHOT</version>
+    <version>3.6-SNAPSHOT</version>
   </parent>
 
   <artifactId>sonar-scanner-java-library-batch-interface</artifactId>

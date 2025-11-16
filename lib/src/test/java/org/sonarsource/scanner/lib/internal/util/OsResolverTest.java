@@ -1,6 +1,6 @@
 /*
  * SonarScanner Java Library
- * Copyright (C) 2011-2025 SonarSource SA
+ * Copyright (C) 2011-2025 SonarSource Sàrl
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -94,6 +94,12 @@ class OsResolverTest {
 
     Files.write(osReleaseFile, "ID=ubuntu\n".getBytes());
     assertThat(underTest.getOs()).isEqualTo(OsResolver.OperatingSystem.LINUX);
+  }
+
+  @Test
+  void getOs_zOS() {
+    when(system.getProperty(OS_NAME)).thenReturn("z/OS");
+    assertThat(underTest.getOs()).isEqualTo(OsResolver.OperatingSystem.ZOS);
   }
 
   @Test

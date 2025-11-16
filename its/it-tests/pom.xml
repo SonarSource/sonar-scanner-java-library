@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sonarsource.scanner.lib</groupId>
     <artifactId>it</artifactId>
-    <version>3.5-SNAPSHOT</version>
+    <version>3.6-SNAPSHOT</version>
   </parent>
   
   <artifactId>it-sonar-scanner-java-library</artifactId>
@@ -13,7 +13,7 @@
   
   <properties>
     <jetty.version>10.0.25</jetty.version>
-    <logback.version>1.3.15</logback.version>
+    <logback.version>1.5.19</logback.version>
     <sonar.skip>true</sonar.skip>
     <skipTests>true</skipTests>
   </properties>
