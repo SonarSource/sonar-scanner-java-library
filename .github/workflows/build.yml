@@ -3,9 +3,8 @@ on:
   push:
     branches:
       - master
-      - 'branch-*'
+      - branch-*
   pull_request:
-  merge_group:
   workflow_dispatch:
 
 concurrency:
@@ -42,13 +41,13 @@ jobs:
           if-no-files-found: ignore
 
   qa:
-    name: QA
+    name: QA - SQ ${{ matrix.SQ_VERSION }}
     needs: build
     runs-on: github-ubuntu-latest-s
     strategy:
       fail-fast: false
       matrix:
-        sonar-version:
+        SQ_VERSION:
           - LATEST_RELEASE
           - LATEST_RELEASE[2025.1]
           - LATEST_RELEASE[9.9]
@@ -77,11 +76,9 @@ jobs:
           artifactory-reader-role: private-reader
 
       - name: Run ITs
-        env:
-          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           cd its
-          mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=${{ matrix.sonar-version }} -DjavaVersion=${{ matrix.java-version }}
+          mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=${{ matrix.SQ_VERSION }} -DjavaVersion=${{ env.JAVA_VERSION }}
 
       - name: Upload server logs
         if: failure()
@@ -92,18 +89,17 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload test results
-        if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
         with:
           name: test-results-${{ github.job }}-${{ strategy.job-index }}
           path: "**/target/surefire-reports/**.xml"
           if-no-files-found: ignore
 
   promote:
-    needs:
-      - build
-    runs-on: github-ubuntu-latest-s
     name: Promote
+    needs: qa
+    runs-on: github-ubuntu-latest-s
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
