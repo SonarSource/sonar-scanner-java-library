@@ -62,15 +62,15 @@ jobs:
         with:
           version: 2025.7.12
 
-      - name: Select Java 17
-        run: mise use java@17
-
       - name: Getting Vault Secrets
         uses: SonarSource/vault-action-wrapper@v3
         with:
           secrets: |
             development/artifactory/token/SonarSource-sonar-scanner-java-library-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
             development/github/token/licenses-ro token | GITHUB_TOKEN
+
+      - name: Select Java 17
+        run: mise use java@17
 
       - name: Configure Maven
         uses: SonarSource/ci-github-actions/config-maven@v1
