@@ -27,8 +27,9 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.7.12
-      - name: Select Java 21
-        run: mise use java@21
+          tool_versions: |
+            java 21
+
       - uses: SonarSource/ci-github-actions/build-maven@v1
         with:
           artifactory-reader-role: private-reader
@@ -61,6 +62,8 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           version: 2025.7.12
+          tool_versions: |
+            java 17
 
       - name: Getting Vault Secrets
         uses: SonarSource/vault-action-wrapper@v3
@@ -68,9 +71,6 @@ jobs:
           secrets: |
             development/artifactory/token/SonarSource-sonar-scanner-java-library-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
             development/github/token/licenses-ro token | GITHUB_TOKEN
-
-      - name: Select Java 17
-        run: mise use java@17
 
       - name: Configure Maven
         uses: SonarSource/ci-github-actions/config-maven@v1
