@@ -47,6 +47,8 @@ jobs:
     name: QA - SQ ${{ matrix.SQ_VERSION }}
     needs: build
     runs-on: github-ubuntu-latest-s
+    env:
+      JAVA_VERSION: LATEST_RELEASE
     strategy:
       fail-fast: false
       matrix:
@@ -54,8 +56,6 @@ jobs:
           - LATEST_RELEASE
           - LATEST_RELEASE[2025.1]
           - LATEST_RELEASE[9.9]
-        java-version:
-          - LATEST_RELEASE
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
