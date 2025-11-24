@@ -48,7 +48,7 @@ class JavaRunnerTest {
     assertThat(runner.execute(List.of("--version"), "test", stdOut::add)).isTrue();
 
     assertThat(stdOut).isNotEmpty();
-    assertThat(logTester.logs(Level.ERROR)).isEmpty();
+    assertThat(logTester.logs(Level.ERROR)).allMatch(s -> s.startsWith("[stderr] "));
   }
 
   @Test

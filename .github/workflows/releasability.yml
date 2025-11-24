@@ -13,10 +13,7 @@ jobs:
       id-token: write
       statuses: write
       contents: read
-    if: >-
-      (contains(fromJSON('["main", "master"]'), github.event.check_suite.head_branch) || startsWith(github.event.check_suite.head_branch, 'dogfood-') || startsWith(github.event.check_suite.head_branch, 'branch-'))
-      && github.event.check_suite.conclusion == 'success'
-      && github.event.check_suite.app.slug == 'cirrus-ci'
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: SonarSource/gh-action_releasability/releasability-status@v3
         with:
