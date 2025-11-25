@@ -1,0 +1,114 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+      - branch-*
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: github-ubuntu-latest-s
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.7.12
+          tool_versions: |
+            java 21
+
+      - uses: SonarSource/ci-github-actions/build-maven@v1
+        with:
+          artifactory-reader-role: private-reader
+          artifactory-deployer-role: qa-deployer
+          deploy-pull-request: true
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/target/surefire-reports/**/*.xml'
+          if-no-files-found: ignore
+
+  qa:
+    name: QA - SQ ${{ matrix.SQ_VERSION }}
+    needs: build
+    runs-on: github-ubuntu-latest-s
+    env:
+      JAVA_VERSION: LATEST_RELEASE
+    strategy:
+      fail-fast: false
+      matrix:
+        SQ_VERSION:
+          - LATEST_RELEASE
+          - LATEST_RELEASE[2025.1]
+          - LATEST_RELEASE[9.9]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: 2025.7.12
+          tool_versions: |
+            java 17
+
+      - name: Getting Vault Secrets
+        uses: SonarSource/vault-action-wrapper@v3
+        with:
+          secrets: |
+            development/artifactory/token/SonarSource-sonar-scanner-java-library-private-reader access_token | ARTIFACTORY_ACCESS_TOKEN;
+            development/github/token/licenses-ro token | GITHUB_TOKEN
+
+      - name: Configure Maven
+        uses: SonarSource/ci-github-actions/config-maven@v1
+        with:
+          artifactory-reader-role: private-reader
+
+      - name: Run ITs
+        run: |
+          cd its
+          mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=${{ matrix.SQ_VERSION }} -DjavaVersion=${{ env.JAVA_VERSION }}
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: server-logs-${{ github.job }}-${{ strategy.job-index }}
+          path: "**/target/**/logs/**.log"
+          if-no-files-found: ignore
+
+      - name: Upload test results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: test-results-${{ github.job }}-${{ strategy.job-index }}
+          path: "**/target/surefire-reports/**.xml"
+          if-no-files-found: ignore
+
+  promote:
+    name: Promote
+    needs: qa
+    runs-on: github-ubuntu-latest-s
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          cache_save: false
+          version: 2025.7.12
+      - uses: SonarSource/ci-github-actions/get-build-number@v1
+      - uses: SonarSource/ci-github-actions/promote@v1
+        with:
+          promote-pull-request: true
