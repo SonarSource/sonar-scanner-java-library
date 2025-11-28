@@ -21,15 +21,19 @@ package org.sonarsource.scanner.lib.internal.http;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.util.Utils;
@@ -40,18 +44,15 @@ import static java.util.Objects.requireNonNull;
 public class ScannerHttpClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerHttpClient.class);
-
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
-
-  private OkHttpClient sharedHttpClient;
+  private HttpClient sharedHttpClient;
   private HttpConfig httpConfig;
 
   public void init(HttpConfig httpConfig) {
     this.httpConfig = httpConfig;
-    this.sharedHttpClient = OkHttpClientFactory.create(httpConfig);
+    this.sharedHttpClient = HttpClientFactory.create(httpConfig);
   }
-
 
   public void downloadFromRestApi(String urlPath, Path toFile) {
     if (!urlPath.startsWith("/")) {
@@ -84,8 +85,8 @@ public class ScannerHttpClient {
   private void downloadFile(String url, Path toFile, boolean authentication) {
     LOG.debug("Download {} to {}", url, toFile.toAbsolutePath());
 
-    callUrl(url, authentication, "application/octet-stream", responseBody -> {
-      try (InputStream in = responseBody.byteStream()) {
+    callUrl(url, authentication, "application/octet-stream", response -> {
+      try (InputStream in = response.body()) {
         Files.copy(in, toFile, StandardCopyOption.REPLACE_EXISTING);
         return null;
       } catch (IOException | RuntimeException e) {
@@ -118,7 +119,11 @@ public class ScannerHttpClient {
    * @throws IllegalStateException if HTTP response code is different than 2xx
    */
   private String callApi(String url) {
-    return callUrl(url, true, null, ResponseBody::string);
+    return callUrl(url, true, null, response -> {
+      try (InputStream in = response.body()) {
+        return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+      }
+    });
   }
 
   /**
@@ -129,55 +134,94 @@ public class ScannerHttpClient {
    * @param acceptHeader   the value of the Accept header
    */
   private <G> G callUrl(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler) {
-    var httpClient = buildHttpClient(authentication);
-    var request = prepareRequest(url, acceptHeader);
-    try (Response response = httpClient.newCall(request).execute()) {
-      var body = response.body();
-      if (!response.isSuccessful()) {
-        throw new HttpException(response.request().url().url(), response.code(), response.message(), body != null ? body.string() : null);
+    return callUrlWithRedirects(url, authentication, acceptHeader, responseHandler, 0);
+  }
+
+  private <G> G callUrlWithRedirects(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler, int redirectCount) {
+    if (redirectCount > 10) {
+      throw new IllegalStateException("Too many redirects (>10) for URL: " + url);
+    }
+
+    var request = prepareRequest(url, acceptHeader, authentication);
+
+    HttpResponse<InputStream> response = null;
+    Instant start = Instant.now();
+    try {
+      LOG.debug("--> {} {}", request.method(), request.uri());
+      response = sharedHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+      if (isRedirect(response.statusCode())) {
+        var locationHeader = response.headers().firstValue("Location");
+        if (locationHeader.isPresent()) {
+          String redirectUrl = locationHeader.get();
+          if (!redirectUrl.startsWith("http")) {
+            URI originalUri = URI.create(url);
+            redirectUrl = originalUri.getScheme() + "://" + originalUri.getAuthority() + redirectUrl;
+          }
+          return callUrlWithRedirects(redirectUrl, authentication, acceptHeader, responseHandler, redirectCount + 1);
+        }
       }
-      return responseHandler.apply(requireNonNull(body, "Response body is empty"));
+
+      if (response.statusCode() < 200 || response.statusCode() >= 300) {
+        String errorBody = tryReadBody(response);
+        throw new HttpException(URI.create(url).toURL(), response.statusCode(), errorBody);
+      }
+
+      return responseHandler.apply(requireNonNull(response, "Response is empty"));
     } catch (HttpException e) {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException(format("Call to URL [%s] failed: %s", url, e.getMessage()), e);
+    } finally {
+      if (response != null) {
+        LOG.debug("<-- {} {} ({}ms)", response.statusCode(), response.uri(), Duration.between(start, Instant.now()).toMillis());
+      }
     }
+  }
+
+  @CheckForNull
+  private static String tryReadBody(HttpResponse<InputStream> response) {
+    String errorBody = null;
+    try (InputStream body = response.body()) {
+      errorBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      // Ignore
+    }
+    return errorBody;
+  }
+
+  private static boolean isRedirect(int statusCode) {
+    return statusCode == 301 || statusCode == 302 || statusCode == 303 ||
+           statusCode == 307 || statusCode == 308;
   }
 
   private interface ResponseHandler<G> {
-    G apply(ResponseBody responseBody) throws IOException;
+    G apply(HttpResponse<InputStream> response) throws IOException;
   }
 
-  private Request prepareRequest(String url, @Nullable String acceptHeader) {
-    var requestBuilder = new Request.Builder()
-      .get()
-      .url(url)
-      .addHeader("User-Agent", httpConfig.getUserAgent());
+  private HttpRequest prepareRequest(String url, @Nullable String acceptHeader, boolean authentication) {
+    var timeout = httpConfig.getResponseTimeout().isZero() ? httpConfig.getSocketTimeout() : httpConfig.getResponseTimeout();
+
+    var requestBuilder = HttpRequest.newBuilder()
+      .GET()
+      .uri(URI.create(url))
+      .timeout(timeout)
+      .header("User-Agent", httpConfig.getUserAgent());
+
     if (acceptHeader != null) {
       requestBuilder.header("Accept", acceptHeader);
     }
-    return requestBuilder.build();
-  }
 
-  private OkHttpClient buildHttpClient(boolean authentication) {
     if (authentication) {
-      return sharedHttpClient.newBuilder()
-        .addNetworkInterceptor(chain -> {
-          Request request = chain.request();
-          if (httpConfig.getToken() != null) {
-            request = request.newBuilder()
-              .header("Authorization", "Bearer " + httpConfig.getToken())
-              .build();
-          } else if (httpConfig.getLogin() != null) {
-            request = request.newBuilder()
-              .header("Authorization", Credentials.basic(httpConfig.getLogin(), httpConfig.getPassword() != null ? httpConfig.getPassword() : ""))
-              .build();
-          }
-          return chain.proceed(request);
-        })
-        .build();
-    } else {
-      return sharedHttpClient;
+      if (httpConfig.getToken() != null) {
+        requestBuilder.header("Authorization", "Bearer " + httpConfig.getToken());
+      } else if (httpConfig.getLogin() != null) {
+        String credentials = httpConfig.getLogin() + ":" + (httpConfig.getPassword() != null ? httpConfig.getPassword() : "");
+        String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        requestBuilder.header("Authorization", "Basic " + encodedCredentials);
+      }
     }
+
+    return requestBuilder.build();
   }
 }

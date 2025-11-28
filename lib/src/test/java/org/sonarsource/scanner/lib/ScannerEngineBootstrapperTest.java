@@ -39,13 +39,13 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.RestoreSystemProperties;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
-import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.downloadcache.DownloadCache;
+import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncher;
 import org.sonarsource.scanner.lib.internal.facade.forked.ScannerEngineLauncherFactory;
 import org.sonarsource.scanner.lib.internal.facade.inprocess.IsolatedLauncherFactory;
@@ -158,7 +158,7 @@ class ScannerEngineBootstrapperTest {
 
   @Test
   void should_report_apiv2_error_with_sq_10_6_even_if_older_version_ws_succeeded() throws Exception {
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver/api/v2/analysis/version").toURL(), 401, "", null));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver/api/v2/analysis/version").toURL(), 401, null));
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn(SQ_VERSION_NEW_BOOTSTRAPPING);
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       assertThat(bootstrapResult.isSuccessful()).isFalse();
@@ -166,7 +166,7 @@ class ScannerEngineBootstrapperTest {
 
     assertThat(logTester.logs(Level.ERROR))
       .contains(
-        "Failed to query server version: GET http://myserver/api/v2/analysis/version failed with HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
+        "Failed to query server version: GET http://myserver/api/v2/analysis/version failed with HTTP 401 Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN.");
   }
 
   @Test
@@ -187,7 +187,7 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 404, "Not Found", null));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 404, null));
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn(SQ_VERSION_TOKEN_AUTHENTICATION);
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").setBootstrapProperty(ScannerProperties.SONAR_LOGIN,
@@ -221,7 +221,7 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 401, "Unauthorized", null));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 401, null));
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("9.9");
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
@@ -240,7 +240,7 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 404, "Not Found", null));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver").toURL(), 404, null));
     when(scannerHttpClient.callWebApi("/api/server/version")).thenReturn("10.5");
 
     try (var bootstrapResult = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://myserver").bootstrap()) {
@@ -260,9 +260,9 @@ class ScannerEngineBootstrapperTest {
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
     when(scannerHttpClient.callRestApi("/analysis/version"))
-      .thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 407, "Proxy Authentication Required", null));
+      .thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 407, null));
     when(scannerHttpClient.callWebApi("/api/server/version"))
-      .thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 407, "Proxy Authentication Required", null));
+      .thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 407, null));
 
     logTester.setLevel(Level.DEBUG);
 
@@ -285,8 +285,8 @@ class ScannerEngineBootstrapperTest {
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 404, "Not Found", null));
-    when(scannerHttpClient.callWebApi("/api/server/version")).thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 400, "Server Error", null));
+    when(scannerHttpClient.callRestApi("/analysis/version")).thenThrow(new HttpException(URI.create("http://myserver/analysis/version").toURL(), 404, null));
+    when(scannerHttpClient.callWebApi("/api/server/version")).thenThrow(new HttpException(URI.create("http://myserver/api/server/version").toURL(), 400, null));
 
     logTester.setLevel(Level.DEBUG);
 
@@ -296,32 +296,32 @@ class ScannerEngineBootstrapperTest {
 
     var loggedError = logTester.logEvents(Level.ERROR);
     assertThat(loggedError).hasSize(1);
-    assertThat(loggedError.get(0).getFormattedMessage()).contains("Failed to query server version: GET http://myserver/api/server/version failed with HTTP 400 Server Error");
+    assertThat(loggedError.get(0).getFormattedMessage()).contains("Failed to query server version: GET http://myserver/api/server/version failed with HTTP 400 Bad Request");
     assertThat(ThrowableProxyUtil.asString(loggedError.get(0).getThrowableProxy()))
       .containsSubsequence(
         "Suppressed: org.sonarsource.scanner.lib.internal.http.HttpException: GET http://myserver/analysis/version failed with HTTP 404 Not Found",
-        "Caused by: org.sonarsource.scanner.lib.internal.http.HttpException: GET http://myserver/api/server/version failed with HTTP 400 Server Error");
+        "Caused by: org.sonarsource.scanner.lib.internal.http.HttpException: GET http://myserver/api/server/version failed with HTTP 400 Bad Request");
     assertThatNoServerTypeIsLogged();
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {401, 403})
-  void should_log_user_friendly_message_when_auth_error(int code) throws Exception {
+  @CsvSource({"401,Unauthorized", "403,Forbidden"})
+  void should_log_user_friendly_message_when_auth_error(int code, String message) throws Exception {
     IsolatedLauncherFactory launcherFactory = mock(IsolatedLauncherFactory.class);
     when(launcherFactory.createLauncher(eq(scannerHttpClient), any(DownloadCache.class)))
       .thenReturn(mock(IsolatedLauncherFactory.IsolatedLauncherAndClassloader.class));
 
     ScannerEngineBootstrapper bootstrapper = new ScannerEngineBootstrapper("Gradle", "3.1", system, scannerHttpClient,
       launcherFactory, scannerEngineLauncherFactory);
-    when(scannerHttpClient.callRestApi(anyString())).thenThrow(new HttpException(URI.create("http://myserver").toURL(), code, "Unauthorized", null));
-    when(scannerHttpClient.callWebApi(anyString())).thenThrow(new HttpException(URI.create("http://myserver").toURL(), code, "Unauthorized", null));
+    when(scannerHttpClient.callRestApi(anyString())).thenThrow(new HttpException(URI.create("http://myserver").toURL(), code, null));
+    when(scannerHttpClient.callWebApi(anyString())).thenThrow(new HttpException(URI.create("http://myserver").toURL(), code, null));
 
     try (var result = bootstrapper.setBootstrapProperty(ScannerProperties.HOST_URL, "http://localhost").bootstrap()) {
       assertThat(result.isSuccessful()).isFalse();
     }
 
     assertThat(logTester.logs(Level.ERROR)).contains("Failed to query server version: GET http://myserver failed with HTTP " + code
-      + " Unauthorized. Please check the property sonar.token or the environment variable SONAR_TOKEN" +
+      + " " + message + ". Please check the property sonar.token or the environment variable SONAR_TOKEN" +
       ".");
     assertThatNoServerTypeIsLogged();
   }

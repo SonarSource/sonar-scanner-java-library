@@ -54,7 +54,6 @@
 
     <!-- used for deployment to SonarSource Artifactory -->
     <gitRepositoryName>sonar-scanner-java-library</gitRepositoryName>
-    <okhttp.version>5.1.0</okhttp.version>
     <mockito.version>5.20.0</mockito.version>
     <!-- Don't update to slf4j 2 to continue supporting the Scanner for Maven with Maven < 4 -->
     <slf4j.version>1.7.36</slf4j.version>
@@ -76,21 +75,6 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
         <version>1.28.0</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp-jvm</artifactId>
-        <version>${okhttp.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp-urlconnection</artifactId>
-        <version>${okhttp.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>logging-interceptor</artifactId>
-        <version>${okhttp.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
