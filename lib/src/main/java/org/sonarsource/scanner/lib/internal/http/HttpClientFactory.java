@@ -21,9 +21,13 @@ package org.sonarsource.scanner.lib.internal.http;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Authenticator;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.net.ProxySelector;
+import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -32,16 +36,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import nl.altindag.ssl.SSLFactory;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
 import nl.altindag.ssl.util.KeyStoreUtils;
-import okhttp3.ConnectionSpec;
-import okhttp3.Credentials;
-import okhttp3.JavaNetCookieJar;
-import okhttp3.OkHttpClient;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.Properties;
 import org.slf4j.Logger;
@@ -49,72 +47,57 @@ import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 
-public class OkHttpClientFactory {
+public class HttpClientFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(OkHttpClientFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HttpClientFactory.class);
 
   static final CookieManager COOKIE_MANAGER;
-  private static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
-  // use the same cookie jar for all instances
-  private static final JavaNetCookieJar COOKIE_JAR;
-  // This property tells Bouncycastle to not fail on empty keystore passwords
   public static final String BC_IGNORE_USELESS_PASSWD = "org.bouncycastle.pkcs12.ignore_useless_passwd";
 
-  private OkHttpClientFactory() {
-    // only statics
+  private HttpClientFactory() {
   }
 
   static {
     COOKIE_MANAGER = new CookieManager();
     COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
-    COOKIE_JAR = new JavaNetCookieJar(COOKIE_MANAGER);
   }
 
-  static OkHttpClient create(HttpConfig httpConfig) {
-
+  static HttpClient create(HttpConfig httpConfig) {
     var sslContext = configureSsl(httpConfig.getSslConfig(), httpConfig.skipSystemTruststore());
 
-    OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-      .connectTimeout(httpConfig.getConnectTimeout().toMillis(), TimeUnit.MILLISECONDS)
-      .readTimeout(httpConfig.getSocketTimeout().toMillis(), TimeUnit.MILLISECONDS)
-      .callTimeout(httpConfig.getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS)
-      .cookieJar(COOKIE_JAR)
-      .sslSocketFactory(sslContext.getSslSocketFactory(), sslContext.getTrustManager().orElseThrow());
-
-    ConnectionSpec tls = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
-      .allEnabledTlsVersions()
-      .allEnabledCipherSuites()
-      .build();
-    okHttpClientBuilder.connectionSpecs(asList(tls, ConnectionSpec.CLEARTEXT));
+    var httpClientBuilder = HttpClient.newBuilder()
+      .connectTimeout(httpConfig.getConnectTimeout())
+      .cookieHandler(COOKIE_MANAGER)
+      .sslContext(sslContext.getSslContext())
+      .sslParameters(sslContext.getSslParameters())
+      .followRedirects(HttpClient.Redirect.NEVER);
 
     if (httpConfig.getProxy() != null) {
-      okHttpClientBuilder.proxy(httpConfig.getProxy());
+      var proxyAddress = httpConfig.getProxy().address();
+      if (proxyAddress instanceof InetSocketAddress) {
+        httpClientBuilder.proxy(ProxySelector.of((InetSocketAddress) proxyAddress));
+      }
     }
 
     if (isNotBlank(httpConfig.getProxyUser())) {
-      okHttpClientBuilder.proxyAuthenticator((route, response) -> {
-        if (response.request().header(PROXY_AUTHORIZATION) != null) {
-          // Give up, we've already attempted to authenticate.
+      httpClientBuilder.authenticator(new Authenticator() {
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+          if (getRequestorType() == RequestorType.PROXY) {
+            return new PasswordAuthentication(
+              httpConfig.getProxyUser(),
+              Optional.ofNullable(httpConfig.getProxyPassword()).orElse("").toCharArray()
+            );
+          }
           return null;
         }
-        if (HttpURLConnection.HTTP_PROXY_AUTH == response.code()) {
-          String credential = Credentials.basic(httpConfig.getProxyUser(), Optional.ofNullable(httpConfig.getProxyPassword()).orElse(""), UTF_8);
-          return response.request().newBuilder().header(PROXY_AUTHORIZATION, credential).build();
-        }
-        return null;
       });
     }
 
-    var logging = new HttpLoggingInterceptor(LOG::debug);
-    logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
-    okHttpClientBuilder.addInterceptor(logging);
-
-    return okHttpClientBuilder.build();
+    return httpClientBuilder.build();
   }
 
   private static SSLFactory configureSsl(SslConfig sslConfig, boolean skipSystemTrustMaterial) {

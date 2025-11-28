@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.downloadcache.CachedFile;
 import org.sonarsource.scanner.lib.ScannerProperties;
-import org.sonarsource.scanner.lib.internal.http.OkHttpClientFactory;
+import org.sonarsource.scanner.lib.internal.http.HttpClientFactory;
 import org.sonarsource.scanner.lib.internal.util.Either;
 
 public class ScannerEngineLauncher {
@@ -117,7 +117,7 @@ public class ScannerEngineLauncher {
       LOG.info("SONAR_SCANNER_JAVA_OPTS={}", redactSensitiveArguments(split));
       args.addAll(split);
     }
-    args.add("-D" + OkHttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
+    args.add("-D" + HttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
     args.add("-jar");
     args.add(scannerEngineJar.map(CachedFile::getPath, Function.identity()).toAbsolutePath().toString());
     return args;

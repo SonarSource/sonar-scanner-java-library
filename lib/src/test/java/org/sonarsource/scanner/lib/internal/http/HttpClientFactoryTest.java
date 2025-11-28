@@ -21,8 +21,12 @@ package org.sonarsource.scanner.lib.internal.http;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +37,6 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLHandshakeException;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
 import nl.altindag.ssl.exception.GenericSecurityException;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -67,7 +69,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class OkHttpClientFactoryTest {
+class HttpClientFactoryTest {
 
   private static final String COOKIE = "BIGipServerpool_sonarqube.example.com_8443=123456789.12345.0000";
 
@@ -102,16 +104,16 @@ class OkHttpClientFactoryTest {
     "keystore_emptypwd.p12,   wrong,        true",
     "keystore_emptypwd.p12,,                true"})
   void it_should_fail_if_invalid_truststore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
-    bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
+    bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
     if (password != null) {
       bootstrapProperties.put("sonar.scanner.truststorePassword", password);
     }
 
     var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
     if (shouldSucceed) {
-      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(httpConfig));
+      assertThatNoException().isThrownBy(() -> HttpClientFactory.create(httpConfig));
     } else {
-      assertThatThrownBy(() -> OkHttpClientFactory.create(httpConfig))
+      assertThatThrownBy(() -> HttpClientFactory.create(httpConfig))
         .isInstanceOf(GenericKeyStoreException.class)
         .hasMessageContaining("Unable to read truststore from")
         .hasStackTraceContaining("password");
@@ -132,16 +134,16 @@ class OkHttpClientFactoryTest {
     "keystore_emptypwd.p12,   wrong,        true",
     "keystore_emptypwd.p12,,                true"})
   void it_should_fail_if_invalid_keystore_password(String keystore, @Nullable String password, boolean shouldSucceed) {
-    bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
+    bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/" + keystore))).toString());
     if (password != null) {
       bootstrapProperties.put("sonar.scanner.keystorePassword", password);
     }
 
     var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
     if (shouldSucceed) {
-      assertThatNoException().isThrownBy(() -> OkHttpClientFactory.create(httpConfig));
+      assertThatNoException().isThrownBy(() -> HttpClientFactory.create(httpConfig));
     } else {
-      assertThatThrownBy(() -> OkHttpClientFactory.create(httpConfig))
+      assertThatThrownBy(() -> HttpClientFactory.create(httpConfig))
         .isInstanceOf(GenericSecurityException.class)
         .hasMessageContaining("keystore password was incorrect");
     }
@@ -151,7 +153,7 @@ class OkHttpClientFactoryTest {
   void should_load_os_certificates_by_default() {
     logTester.setLevel(Level.DEBUG);
 
-    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
+    HttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
 
     assertThat(logTester.logs(Level.DEBUG)).contains("Loading OS trusted SSL certificates...");
   }
@@ -161,13 +163,12 @@ class OkHttpClientFactoryTest {
     logTester.setLevel(Level.DEBUG);
     bootstrapProperties.put("sonar.scanner.skipSystemTruststore", "true");
 
-    OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
+    HttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
 
     assertThat(logTester.logs(Level.DEBUG)).doesNotContain("Loading OS trusted SSL certificates...");
   }
 
   @Nested
-  // Workaround until we move to Java 17+ and can make Wiremock extension static
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class WithMockHttpSonarQubeForCookies {
 
@@ -189,17 +190,21 @@ class OkHttpClientFactoryTest {
       try {
         String url = sonarqubeMock.baseUrl();
 
-        OkHttpClientFactory.COOKIE_MANAGER.getCookieStore().removeAll(); // Clear any existing cookies
+        HttpClientFactory.COOKIE_MANAGER.getCookieStore().removeAll();
 
-        Response response = call(url);
-        assertThat(response.header("Set-Cookie")).isEqualTo(COOKIE); // The server should have asked us to set a cookie
-        assertThat(response.body().string()).doesNotContain(COOKIE);
+        HttpResponse<String> response = call(url);
+        String setCookieHeader = response.headers().firstValue("Set-Cookie").orElse(null);
+        assertThat(setCookieHeader).isEqualTo(COOKIE);
+        assertThat(response.body()).doesNotContain(COOKIE);
 
         response = call(url);
-        assertThat(response.body().string()).contains(COOKIE);
+        assertThat(response.body()).contains(COOKIE);
 
+        HttpClientFactory.COOKIE_MANAGER.getCookieStore().removeAll();
+
+        response = call(url);
+        assertThat(response.body()).doesNotContain(COOKIE);
       } finally {
-        // Ensure to not keeping this property for other tests
         System.clearProperty("javax.net.ssl.trustStore");
         System.clearProperty("javax.net.ssl.trustStorePassword");
       }
@@ -208,7 +213,6 @@ class OkHttpClientFactoryTest {
   }
 
   @Nested
-  // Workaround until we move to Java 17+ and can make Wiremock extension static
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class WithMockHttpSonarQube {
 
@@ -228,8 +232,10 @@ class OkHttpClientFactoryTest {
           .withBody("Success")));
 
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
-        .isInstanceOf(IOException.class)
-        .hasStackTraceContaining("timeout");
+        .satisfiesAnyOf(
+          e -> assertThat(e).isInstanceOf(java.net.http.HttpTimeoutException.class),
+          e -> assertThat(e).hasStackTraceContaining("timeout")
+        );
     }
 
     @Test
@@ -243,12 +249,13 @@ class OkHttpClientFactoryTest {
           .withBody("Success")));
 
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
-        .isInstanceOf(IOException.class)
-        .hasStackTraceContaining("timeout");
+        .satisfiesAnyOf(
+          e -> assertThat(e).isInstanceOf(java.net.http.HttpTimeoutException.class),
+          e -> assertThat(e).hasStackTraceContaining("timeout")
+        );
     }
 
     @Nested
-    // Workaround until we move to Java 17+ and can make Wiremock extension static
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class WithProxy {
 
@@ -279,7 +286,7 @@ class OkHttpClientFactoryTest {
       }
 
       @Test
-      void it_should_honor_scanner_proxy_settings() throws IOException {
+      void it_should_honor_scanner_proxy_settings() throws IOException, InterruptedException {
         bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
         bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
         bootstrapProperties.put("sonar.scanner.proxyPort", "" + proxyMock.getPort());
@@ -287,16 +294,16 @@ class OkHttpClientFactoryTest {
         sonarqubeMock.stubFor(get("/batch/index")
           .willReturn(aResponse().withStatus(200).withBody("Success")));
 
-        Response response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).contains("Success");
+        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("Success");
 
         proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index")));
       }
 
       @Test
       @Tag(PROXY_AUTH_ENABLED)
-      void it_should_honor_scanner_proxy_settings_with_auth() throws IOException {
+      void it_should_honor_scanner_proxy_settings_with_auth() throws IOException, InterruptedException {
         var proxyLogin = "proxyLogin";
         var proxyPassword = "proxyPassword";
         bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
@@ -308,9 +315,9 @@ class OkHttpClientFactoryTest {
         sonarqubeMock.stubFor(get("/batch/index")
           .willReturn(aResponse().withStatus(200).withBody("Success")));
 
-        Response response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).contains("Success");
+        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("Success");
 
         proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index"))
           .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString((proxyLogin + ":" + proxyPassword).getBytes(StandardCharsets.UTF_8)))));
@@ -319,7 +326,7 @@ class OkHttpClientFactoryTest {
 
       @Test
       @Tag(PROXY_AUTH_ENABLED)
-      void it_should_honor_old_jvm_proxy_auth_properties() throws IOException {
+      void it_should_honor_old_jvm_proxy_auth_properties() throws IOException, InterruptedException {
         var proxyLogin = "proxyLogin";
         var proxyPassword = "proxyPassword";
         bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
@@ -331,9 +338,9 @@ class OkHttpClientFactoryTest {
         sonarqubeMock.stubFor(get("/batch/index")
           .willReturn(aResponse().withStatus(200).withBody("Success")));
 
-        Response response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).contains("Success");
+        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("Success");
 
         proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index"))
           .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString((proxyLogin + ":" + proxyPassword).getBytes(StandardCharsets.UTF_8)))));
@@ -344,7 +351,6 @@ class OkHttpClientFactoryTest {
   }
 
   @Nested
-  // Workaround until we move to Java 17+ and can make Wiremock extension static
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class WithMockHttpsSonarQube {
 
@@ -354,7 +360,7 @@ class OkHttpClientFactoryTest {
     WireMockExtension sonarqubeMock = WireMockExtension.newInstance()
       .options(wireMockConfig().dynamicHttpsPort().httpDisabled(true)
         .keystoreType("pkcs12")
-        .keystorePath(toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/server.p12"))).toString())
+        .keystorePath(toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/server.p12"))).toString())
         .keystorePassword(KEYSTORE_PWD)
         .keyManagerPassword(KEYSTORE_PWD))
       .build();
@@ -375,19 +381,18 @@ class OkHttpClientFactoryTest {
     }
 
     @Test
-    void it_should_trust_server_self_signed_certificate_when_certificate_is_in_truststore() throws IOException {
+    void it_should_trust_server_self_signed_certificate_when_certificate_is_in_truststore() throws IOException, InterruptedException {
       bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
       bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdClientWithServerCA");
 
-      Response response = call(sonarqubeMock.url("/batch/index"));
-      assertThat(response.code()).isEqualTo(200);
-      assertThat(response.body().string()).contains("Success");
+      HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+      assertThat(response.statusCode()).isEqualTo(200);
+      assertThat(response.body()).contains("Success");
     }
   }
 
   @Nested
-  // Workaround until we move to Java 17+ and can make Wiremock extension static
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class WithMockHttpsSonarQubeAndClientCertificates {
 
@@ -397,12 +402,12 @@ class OkHttpClientFactoryTest {
     WireMockExtension sonarqubeMock = WireMockExtension.newInstance()
       .options(wireMockConfig().dynamicHttpsPort().httpDisabled(true)
         .keystoreType("pkcs12")
-        .keystorePath(toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/server.p12"))).toString())
+        .keystorePath(toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/server.p12"))).toString())
         .keystorePassword(KEYSTORE_PWD)
         .keyManagerPassword(KEYSTORE_PWD)
         .needClientAuth(true)
         .trustStoreType("pkcs12")
-        .trustStorePath(toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/server-with-client-ca.p12"))).toString())
+        .trustStorePath(toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/server-with-client-ca.p12"))).toString())
         .trustStorePassword("pwdServerWithClientCA"))
       .build();
 
@@ -415,40 +420,42 @@ class OkHttpClientFactoryTest {
     @Test
     void it_should_fail_if_client_certificate_not_provided() {
       bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
       bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdClientWithServerCA");
 
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
         .isInstanceOf(Exception.class)
         .satisfiesAnyOf(
           e -> assertThat(e).hasStackTraceContaining("SSLHandshakeException"),
-          // Exception is flaky because of https://bugs.openjdk.org/browse/JDK-8172163
           e -> assertThat(e).hasStackTraceContaining("Broken pipe"));
     }
 
     @Test
-    void it_should_authenticate_using_certificate_in_keystore() throws IOException {
+    void it_should_authenticate_using_certificate_in_keystore() throws IOException, InterruptedException {
       bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
 
-      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
       bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdClientWithServerCA");
-      bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(OkHttpClientFactoryTest.class.getResource("/ssl/client.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.keystorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/client.p12"))).toString());
       bootstrapProperties.put("sonar.scanner.keystorePassword", "pwdClientCertP12");
 
-      Response response = call(sonarqubeMock.url("/batch/index"));
-      assertThat(response.code()).isEqualTo(200);
-      assertThat(response.body().string()).contains("Success");
+      HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+      assertThat(response.statusCode()).isEqualTo(200);
+      assertThat(response.body()).contains("Success");
     }
 
   }
 
-  private Response call(String url) throws IOException {
-    return OkHttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2)).newCall(
-        new Request.Builder()
-          .url(url)
-          .get()
-          .build())
-      .execute();
+  private HttpResponse<String> call(String url) throws IOException, InterruptedException {
+    HttpConfig config = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
+    HttpClient client = HttpClientFactory.create(config);
+    var timeout = config.getResponseTimeout().isZero() ? config.getSocketTimeout() : config.getResponseTimeout();
+    HttpRequest request = HttpRequest.newBuilder()
+      .uri(URI.create(url))
+      .GET()
+      .timeout(timeout)
+      .build();
+    return client.send(request, HttpResponse.BodyHandlers.ofString());
   }
 
   private static Path toPath(URL url) {
