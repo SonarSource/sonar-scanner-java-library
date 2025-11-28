@@ -20,24 +20,28 @@
 package org.sonarsource.scanner.lib.internal.http;
 
 import java.net.URL;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HttpException extends RuntimeException {
+  private static final Logger LOG = LoggerFactory.getLogger(HttpException.class);
   private final int code;
 
-  public HttpException(URL requestUrl, int statusCode, String statusText, @Nullable String body) {
-    super(formatMessage(requestUrl, statusCode, statusText, body));
+  public HttpException(URL requestUrl, int statusCode, @Nullable String body) {
+    super(formatMessage(requestUrl, statusCode, body));
     this.code = statusCode;
   }
 
-  private static String formatMessage(URL requestUrl, int code, String statusText, @Nullable String body) {
+  private static String formatMessage(URL requestUrl, int code, @Nullable String body) {
     String message = "GET " + requestUrl + " failed with HTTP " + code;
-    if (StringUtils.isNotBlank(statusText)) {
-      message += " " + statusText;
+    var reasonPhrase = getReasonPhrase(code);
+    if (reasonPhrase != null) {
+      message += " " + reasonPhrase;
     }
-    if (LoggerFactory.getLogger(HttpException.class).isDebugEnabled() && StringUtils.isNotBlank(body)) {
+    if (LOG.isDebugEnabled() && StringUtils.isNotBlank(body)) {
       message += "\n" + body;
     }
     return message;
@@ -45,6 +49,60 @@ public class HttpException extends RuntimeException {
 
   public int getCode() {
     return code;
+  }
+
+  @CheckForNull
+  private static String getReasonPhrase(int statusCode) {
+    switch (statusCode) {
+      case 200:
+        return "OK";
+      case 201:
+        return "Created";
+      case 204:
+        return "No Content";
+      case 301:
+        return "Moved Permanently";
+      case 302:
+        return "Found";
+      case 303:
+        return "See Other";
+      case 304:
+        return "Not Modified";
+      case 307:
+        return "Temporary Redirect";
+      case 308:
+        return "Permanent Redirect";
+      case 400:
+        return "Bad Request";
+      case 401:
+        return "Unauthorized";
+      case 403:
+        return "Forbidden";
+      case 404:
+        return "Not Found";
+      case 405:
+        return "Method Not Allowed";
+      case 407:
+        return "Proxy Authentication Required";
+      case 408:
+        return "Request Timeout";
+      case 409:
+        return "Conflict";
+      case 410:
+        return "Gone";
+      case 500:
+        return "Internal Server Error";
+      case 501:
+        return "Not Implemented";
+      case 502:
+        return "Bad Gateway";
+      case 503:
+        return "Service Unavailable";
+      case 504:
+        return "Gateway Timeout";
+      default:
+        return null;
+    }
   }
 
 }
