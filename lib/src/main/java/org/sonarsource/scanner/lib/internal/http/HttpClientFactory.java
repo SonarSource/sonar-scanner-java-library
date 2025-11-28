@@ -82,21 +82,6 @@ public class HttpClientFactory {
       }
     }
 
-    if (isNotBlank(httpConfig.getProxyUser())) {
-      httpClientBuilder.authenticator(new Authenticator() {
-        @Override
-        protected PasswordAuthentication getPasswordAuthentication() {
-          if (getRequestorType() == RequestorType.PROXY) {
-            return new PasswordAuthentication(
-              httpConfig.getProxyUser(),
-              Optional.ofNullable(httpConfig.getProxyPassword()).orElse("").toCharArray()
-            );
-          }
-          return null;
-        }
-      });
-    }
-
     return httpClientBuilder.build();
   }
 

@@ -27,10 +27,8 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -39,9 +37,7 @@ import nl.altindag.ssl.exception.GenericKeyStoreException;
 import nl.altindag.ssl.exception.GenericSecurityException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
@@ -53,15 +49,10 @@ import testutils.LogTester;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -234,8 +225,7 @@ class HttpClientFactoryTest {
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
         .satisfiesAnyOf(
           e -> assertThat(e).isInstanceOf(java.net.http.HttpTimeoutException.class),
-          e -> assertThat(e).hasStackTraceContaining("timeout")
-        );
+          e -> assertThat(e).hasStackTraceContaining("timeout"));
     }
 
     @Test
@@ -251,101 +241,7 @@ class HttpClientFactoryTest {
       assertThatThrownBy(() -> call(sonarqubeMock.url("/batch/index")))
         .satisfiesAnyOf(
           e -> assertThat(e).isInstanceOf(java.net.http.HttpTimeoutException.class),
-          e -> assertThat(e).hasStackTraceContaining("timeout")
-        );
-    }
-
-    @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class WithProxy {
-
-      private static final String PROXY_AUTH_ENABLED = "proxy-auth";
-
-      @RegisterExtension
-      WireMockExtension proxyMock = WireMockExtension.newInstance()
-        .options(wireMockConfig().dynamicPort())
-        .build();
-
-      @BeforeEach
-      void configureMocks(TestInfo info) {
-        if (info.getTags().contains(PROXY_AUTH_ENABLED)) {
-          proxyMock.stubFor(get(urlMatching("/batch/.*"))
-            .inScenario("Proxy Auth")
-            .whenScenarioStateIs(STARTED)
-            .willReturn(aResponse()
-              .withStatus(407)
-              .withHeader("Proxy-Authenticate", "Basic realm=\"Access to the proxy\""))
-            .willSetStateTo("Challenge returned"));
-          proxyMock.stubFor(get(urlMatching("/batch/.*"))
-            .inScenario("Proxy Auth")
-            .whenScenarioStateIs("Challenge returned")
-            .willReturn(aResponse().proxiedFrom(sonarqubeMock.baseUrl())));
-        } else {
-          proxyMock.stubFor(get(urlMatching("/batch/.*")).willReturn(aResponse().proxiedFrom(sonarqubeMock.baseUrl())));
-        }
-      }
-
-      @Test
-      void it_should_honor_scanner_proxy_settings() throws IOException, InterruptedException {
-        bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-        bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
-        bootstrapProperties.put("sonar.scanner.proxyPort", "" + proxyMock.getPort());
-
-        sonarqubeMock.stubFor(get("/batch/index")
-          .willReturn(aResponse().withStatus(200).withBody("Success")));
-
-        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("Success");
-
-        proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index")));
-      }
-
-      @Test
-      @Tag(PROXY_AUTH_ENABLED)
-      void it_should_honor_scanner_proxy_settings_with_auth() throws IOException, InterruptedException {
-        var proxyLogin = "proxyLogin";
-        var proxyPassword = "proxyPassword";
-        bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-        bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
-        bootstrapProperties.put("sonar.scanner.proxyPort", "" + proxyMock.getPort());
-        bootstrapProperties.put("sonar.scanner.proxyUser", proxyLogin);
-        bootstrapProperties.put("sonar.scanner.proxyPassword", proxyPassword);
-
-        sonarqubeMock.stubFor(get("/batch/index")
-          .willReturn(aResponse().withStatus(200).withBody("Success")));
-
-        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("Success");
-
-        proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index"))
-          .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString((proxyLogin + ":" + proxyPassword).getBytes(StandardCharsets.UTF_8)))));
-
-      }
-
-      @Test
-      @Tag(PROXY_AUTH_ENABLED)
-      void it_should_honor_old_jvm_proxy_auth_properties() throws IOException, InterruptedException {
-        var proxyLogin = "proxyLogin";
-        var proxyPassword = "proxyPassword";
-        bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
-        bootstrapProperties.put("sonar.scanner.proxyHost", "localhost");
-        bootstrapProperties.put("sonar.scanner.proxyPort", "" + proxyMock.getPort());
-        when(system2.getProperty("http.proxyUser")).thenReturn(proxyLogin);
-        when(system2.getProperty("http.proxyPassword")).thenReturn(proxyPassword);
-
-        sonarqubeMock.stubFor(get("/batch/index")
-          .willReturn(aResponse().withStatus(200).withBody("Success")));
-
-        HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("Success");
-
-        proxyMock.verify(getRequestedFor(urlEqualTo("/batch/index"))
-          .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString((proxyLogin + ":" + proxyPassword).getBytes(StandardCharsets.UTF_8)))));
-
-      }
+          e -> assertThat(e).hasStackTraceContaining("timeout"));
     }
 
   }
