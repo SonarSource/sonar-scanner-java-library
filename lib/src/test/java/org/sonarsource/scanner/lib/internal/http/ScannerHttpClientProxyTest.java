@@ -97,7 +97,7 @@ class ScannerHttpClientProxyTest {
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
 
-    ScannerHttpClient underTest = createWithTempDir(sonarqube.baseUrl(), props);
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
     String response = underTest.callWebApi("/batch/index.txt");
 
     assertThat(response).isEqualTo(HELLO_WORLD);
@@ -116,7 +116,7 @@ class ScannerHttpClientProxyTest {
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_USER, "proxyUser");
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD, "proxyPassword");
 
-    ScannerHttpClient underTest = createWithTempDir(sonarqube.baseUrl(), props);
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
     String response = underTest.callWebApi("/batch/index.txt");
 
     assertThat(response).isEqualTo(HELLO_WORLD);
@@ -138,7 +138,7 @@ class ScannerHttpClientProxyTest {
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
     props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
 
-    ScannerHttpClient underTest = createWithTempDir(sonarqube.baseUrl(), props);
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
     String response = underTest.callWebApi("/batch/index.txt");
 
     assertThat(response).isEqualTo(HELLO_WORLD);
@@ -146,7 +146,73 @@ class ScannerHttpClientProxyTest {
       .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8)))));
   }
 
-  private ScannerHttpClient createWithTempDir(String url, Map<String, String> additionalProps) {
+  @Test
+  @Tag(PROXY_AUTH_ENABLED)
+  void should_preserve_token_authentication_with_proxy_auth() {
+    sonarqube.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse().withBody(HELLO_WORLD)));
+
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_USER, "proxyUser");
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD, "proxyPassword");
+    props.put("sonar.token", "some_token");
+
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
+    String response = underTest.callWebApi("/batch/index.txt");
+
+    assertThat(response).isEqualTo(HELLO_WORLD);
+    proxyMock.verify(getRequestedFor(urlMatching("/batch/.*"))
+      .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8)))));
+    sonarqube.verify(getRequestedFor(urlMatching("/batch/.*"))
+      .withHeader("Authorization", equalTo("Bearer some_token")));
+  }
+
+  @Test
+  @Tag(PROXY_AUTH_ENABLED)
+  void should_preserve_username_password_authentication_with_proxy_auth() {
+    sonarqube.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse().withBody(HELLO_WORLD)));
+
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_USER, "proxyUser");
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD, "proxyPassword");
+    props.put("sonar.login", "some_username");
+    props.put("sonar.password", "some_password");
+
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
+    String response = underTest.callWebApi("/batch/index.txt");
+
+    assertThat(response).isEqualTo(HELLO_WORLD);
+    proxyMock.verify(getRequestedFor(urlMatching("/batch/.*"))
+      .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8)))));
+    sonarqube.verify(getRequestedFor(urlMatching("/batch/.*"))
+      .withHeader("Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
+  }
+
+  @Test
+  void should_preserve_token_authentication_with_proxy_without_auth() {
+    sonarqube.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse().withBody(HELLO_WORLD)));
+
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
+    props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
+    props.put("sonar.token", "some_token");
+
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
+    String response = underTest.callWebApi("/batch/index.txt");
+
+    assertThat(response).isEqualTo(HELLO_WORLD);
+    proxyMock.verify(getRequestedFor(urlMatching("/batch/.*")));
+    sonarqube.verify(getRequestedFor(urlMatching("/batch/.*"))
+      .withHeader("Authorization", equalTo("Bearer some_token")));
+  }
+
+  private ScannerHttpClient create(String url, Map<String, String> additionalProps) {
     Map<String, String> props = new HashMap<>();
     props.put(ScannerProperties.HOST_URL, url);
     props.put(ScannerProperties.API_BASE_URL, url);
