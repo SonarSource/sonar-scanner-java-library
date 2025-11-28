@@ -138,17 +138,27 @@ public class ScannerHttpClient {
   }
 
   private <G> G callUrlWithRedirects(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler, int redirectCount) {
+    return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, redirectCount, false);
+  }
+
+  private <G> G callUrlWithRedirectsAndProxyAuth(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler,
+    int redirectCount, boolean proxyAuthAttempted) {
     if (redirectCount > 10) {
       throw new IllegalStateException("Too many redirects (>10) for URL: " + url);
     }
 
-    var request = prepareRequest(url, acceptHeader, authentication);
+    var request = prepareRequest(url, acceptHeader, authentication, proxyAuthAttempted);
 
     HttpResponse<InputStream> response = null;
     Instant start = Instant.now();
     try {
       LOG.debug("--> {} {}", request.method(), request.uri());
       response = sharedHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+      if (response.statusCode() == 407 && !proxyAuthAttempted && httpConfig.getProxyUser() != null) {
+        LOG.debug("Received 407 Proxy Authentication Required, retrying with Proxy-Authorization header");
+        return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, redirectCount, true);
+      }
 
       if (isRedirect(response.statusCode())) {
         var locationHeader = response.headers().firstValue("Location");
@@ -158,7 +168,7 @@ public class ScannerHttpClient {
             URI originalUri = URI.create(url);
             redirectUrl = originalUri.getScheme() + "://" + originalUri.getAuthority() + redirectUrl;
           }
-          return callUrlWithRedirects(redirectUrl, authentication, acceptHeader, responseHandler, redirectCount + 1);
+          return callUrlWithRedirectsAndProxyAuth(redirectUrl, authentication, acceptHeader, responseHandler, redirectCount + 1, proxyAuthAttempted);
         }
       }
 
@@ -199,7 +209,7 @@ public class ScannerHttpClient {
     G apply(HttpResponse<InputStream> response) throws IOException;
   }
 
-  private HttpRequest prepareRequest(String url, @Nullable String acceptHeader, boolean authentication) {
+  private HttpRequest prepareRequest(String url, @Nullable String acceptHeader, boolean authentication, boolean addProxyAuth) {
     var timeout = httpConfig.getResponseTimeout().isZero() ? httpConfig.getSocketTimeout() : httpConfig.getResponseTimeout();
 
     var requestBuilder = HttpRequest.newBuilder()
@@ -220,6 +230,12 @@ public class ScannerHttpClient {
         String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
         requestBuilder.header("Authorization", "Basic " + encodedCredentials);
       }
+    }
+
+    if (addProxyAuth && httpConfig.getProxyUser() != null) {
+      String proxyCredentials = httpConfig.getProxyUser() + ":" + (httpConfig.getProxyPassword() != null ? httpConfig.getProxyPassword() : "");
+      String encodedProxyCredentials = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
+      requestBuilder.header("Proxy-Authorization", "Basic " + encodedProxyCredentials);
     }
 
     return requestBuilder.build();
