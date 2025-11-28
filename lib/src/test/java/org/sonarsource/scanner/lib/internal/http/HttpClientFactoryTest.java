@@ -76,12 +76,12 @@ class HttpClientFactoryTest {
   private final Map<String, String> bootstrapProperties = new HashMap<>();
 
   @RegisterExtension
-  private LogTester logTester = new LogTester();
+  private final LogTester logTester = new LogTester();
 
   @TempDir
   private Path sonarUserHomeDir;
   private Path sonarUserHome;
-  private System2 system2 = mock();
+  private final System2 system2 = mock();
 
   @BeforeEach
   void prepareMocks() {
