@@ -50,8 +50,12 @@ public class ScannerHttpClient {
   private HttpConfig httpConfig;
 
   public void init(HttpConfig httpConfig) {
+    init(httpConfig, HttpClientFactory.create(httpConfig));
+  }
+
+  void init(HttpConfig httpConfig, HttpClient httpClient) {
     this.httpConfig = httpConfig;
-    this.sharedHttpClient = HttpClientFactory.create(httpConfig);
+    this.sharedHttpClient = httpClient;
   }
 
   public void downloadFromRestApi(String urlPath, Path toFile) {
@@ -134,11 +138,11 @@ public class ScannerHttpClient {
    * @param acceptHeader   the value of the Accept header
    */
   private <G> G callUrl(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler) {
-    return callUrlWithRedirects(url, authentication, acceptHeader, responseHandler, 0);
+    return callUrlWithRedirects(url, authentication, acceptHeader, responseHandler);
   }
 
-  private <G> G callUrlWithRedirects(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler, int redirectCount) {
-    return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, redirectCount, false);
+  private <G> G callUrlWithRedirects(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler) {
+    return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, 0, false);
   }
 
   private <G> G callUrlWithRedirectsAndProxyAuth(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler,
@@ -180,6 +184,9 @@ public class ScannerHttpClient {
       return responseHandler.apply(requireNonNull(response, "Response is empty"));
     } catch (HttpException e) {
       throw e;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(format("Call to URL [%s] was interrupted: %s", url, e.getMessage()), e);
     } catch (Exception e) {
       throw new IllegalStateException(format("Call to URL [%s] failed: %s", url, e.getMessage()), e);
     } finally {

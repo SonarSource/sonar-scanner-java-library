@@ -21,11 +21,9 @@ package org.sonarsource.scanner.lib.internal.http;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Authenticator;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
 import java.net.ProxySelector;
 import java.net.http.HttpClient;
 import java.nio.file.Files;
@@ -35,7 +33,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Optional;
 import javax.annotation.Nullable;
 import nl.altindag.ssl.SSLFactory;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
@@ -47,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 
 public class HttpClientFactory {

@@ -20,6 +20,9 @@
 package org.sonarsource.scanner.lib.internal.http;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +45,10 @@ import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -210,6 +217,38 @@ class ScannerHttpClientTest {
     sonarqube.verify(getRequestedFor(anyUrl())
       .withHeader("Authorization",
         equalTo("Basic " + Base64.getEncoder().encodeToString("some_username:some_password".getBytes(StandardCharsets.UTF_8)))));
+  }
+
+  @Test
+  void should_fail_when_too_many_redirects() {
+    ScannerHttpClient connection = create(redirectProxy.baseUrl());
+
+    redirectProxy.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse()
+        .withHeader("Location", redirectProxy.baseUrl() + "/batch/index.txt")
+        .withStatus(301)));
+
+    assertThatThrownBy(() -> connection.callWebApi("/batch/index.txt"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Too many redirects (>10)");
+  }
+
+  @Test
+  void should_handle_relative_location_header() {
+    ScannerHttpClient connection = create(redirectProxy.baseUrl());
+
+    redirectProxy.stubFor(get("/batch/index.txt")
+      .willReturn(aResponse()
+        .withHeader("Location", "/batch/redirected.txt")
+        .withStatus(302)));
+
+    redirectProxy.stubFor(get("/batch/redirected.txt")
+      .willReturn(aResponse()
+        .withBody(HELLO_WORLD)
+        .withStatus(200)));
+
+    String content = connection.callWebApi("/batch/index.txt");
+    assertThat(content).isEqualTo(HELLO_WORLD);
   }
 
   @Nested
@@ -394,5 +433,30 @@ class ScannerHttpClientTest {
   private void answer(String msg, int responseCode) {
     sonarqube.stubFor(get(anyUrl())
       .willReturn(aResponse().withBody(msg).withStatus(responseCode)));
+  }
+
+  @Test
+  void should_throw_IllegalStateException_when_interrupted() throws Exception {
+    HttpClient mockHttpClient = mock(HttpClient.class);
+    when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+      .thenThrow(new InterruptedException("Thread was interrupted"));
+
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.HOST_URL, sonarqube.baseUrl());
+    props.put(ScannerProperties.API_BASE_URL, sonarqube.baseUrl());
+    props.put(InternalProperties.SCANNER_APP, "user");
+    props.put(InternalProperties.SCANNER_APP_VERSION, "agent");
+
+    HttpConfig httpConfig = new HttpConfig(props, sonarUserHome, new System2());
+    ScannerHttpClient connection = new ScannerHttpClient();
+    connection.init(httpConfig, mockHttpClient);
+
+    assertThatThrownBy(() -> connection.callWebApi("/batch/index.txt"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessageContaining("Call to URL")
+      .hasMessageContaining("was interrupted")
+      .hasCauseInstanceOf(InterruptedException.class);
+
+    assertThat(Thread.interrupted()).isTrue();
   }
 }
