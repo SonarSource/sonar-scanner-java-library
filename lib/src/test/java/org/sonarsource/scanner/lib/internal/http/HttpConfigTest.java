@@ -53,7 +53,7 @@ class HttpConfigTest {
   private Path sonarUserHomeDir;
   private Path sonarUserHome;
 
-  private System2 system = mock();
+  private final System2 system = mock();
 
   @BeforeEach
   void prepareMocks() {
