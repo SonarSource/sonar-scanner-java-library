@@ -12,8 +12,8 @@
   <description>Integration tests</description>
   
   <properties>
-    <jetty.version>10.0.25</jetty.version>
-    <logback.version>1.5.19</logback.version>
+    <jetty.version>10.0.26</jetty.version>
+    <logback.version>1.5.21</logback.version>
     <sonar.skip>true</sonar.skip>
     <skipTests>true</skipTests>
   </properties>
@@ -28,7 +28,7 @@
     <dependency>
       <groupId>org.sonarsource.orchestrator</groupId>
       <artifactId>sonar-orchestrator-junit4</artifactId>
-      <version>5.6.2.2625</version>
+      <version>6.0.1.3892</version>
       <scope>test</scope>
     </dependency>
     
