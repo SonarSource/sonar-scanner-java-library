@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sonarsource.scanner.lib</groupId>
     <artifactId>it</artifactId>
-    <version>4.1-SNAPSHOT</version>
+    <version>4.0.1-SNAPSHOT</version>
   </parent>
   
   <artifactId>it-sonar-scanner-java-library</artifactId>
