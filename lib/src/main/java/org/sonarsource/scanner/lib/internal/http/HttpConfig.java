@@ -144,7 +144,6 @@ public class HttpConfig {
 
   @Nullable
   private static Proxy loadProxy(Map<String, String> bootstrapProperties) {
-    // OkHttp detects 'http.proxyHost' java property already, so just focus on sonar-specific properties
     String proxyHost = defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_PROXY_HOST), null);
     if (proxyHost != null) {
       int proxyPort;

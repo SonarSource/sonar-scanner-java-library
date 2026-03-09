@@ -46,7 +46,7 @@ public class ScannerHttpClient {
   private static final Logger LOG = LoggerFactory.getLogger(ScannerHttpClient.class);
   private static final String EXCEPTION_MESSAGE_MISSING_SLASH = "URL path must start with slash: %s";
 
-  private HttpClient sharedHttpClient;
+  private HttpClient httpClient;
   private HttpConfig httpConfig;
 
   public void init(HttpConfig httpConfig) {
@@ -55,7 +55,7 @@ public class ScannerHttpClient {
 
   void init(HttpConfig httpConfig, HttpClient httpClient) {
     this.httpConfig = httpConfig;
-    this.sharedHttpClient = httpClient;
+    this.httpClient = httpClient;
   }
 
   public void downloadFromRestApi(String urlPath, Path toFile) {
@@ -142,27 +142,22 @@ public class ScannerHttpClient {
   }
 
   private <G> G callUrlWithRedirects(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler) {
-    return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, 0, false);
+    return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, 0);
   }
 
   private <G> G callUrlWithRedirectsAndProxyAuth(String url, boolean authentication, @Nullable String acceptHeader, ResponseHandler<G> responseHandler,
-    int redirectCount, boolean proxyAuthAttempted) {
+    int redirectCount) {
     if (redirectCount > 10) {
       throw new IllegalStateException("Too many redirects (>10) for URL: " + url);
     }
 
-    var request = prepareRequest(url, acceptHeader, authentication, proxyAuthAttempted);
+    var request = prepareRequest(url, acceptHeader, authentication);
 
     HttpResponse<InputStream> response = null;
     Instant start = Instant.now();
     try {
       LOG.debug("--> {} {}", request.method(), request.uri());
-      response = sharedHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-
-      if (response.statusCode() == 407 && !proxyAuthAttempted && httpConfig.getProxyUser() != null) {
-        LOG.debug("Received 407 Proxy Authentication Required, retrying with Proxy-Authorization header");
-        return callUrlWithRedirectsAndProxyAuth(url, authentication, acceptHeader, responseHandler, redirectCount, true);
-      }
+      response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
       if (isRedirect(response.statusCode())) {
         var locationHeader = response.headers().firstValue("Location");
@@ -172,7 +167,7 @@ public class ScannerHttpClient {
             URI originalUri = URI.create(url);
             redirectUrl = originalUri.getScheme() + "://" + originalUri.getAuthority() + redirectUrl;
           }
-          return callUrlWithRedirectsAndProxyAuth(redirectUrl, authentication, acceptHeader, responseHandler, redirectCount + 1, proxyAuthAttempted);
+          return callUrlWithRedirectsAndProxyAuth(redirectUrl, authentication, acceptHeader, responseHandler, redirectCount + 1);
         }
       }
 
@@ -200,7 +195,9 @@ public class ScannerHttpClient {
   private static String tryReadBody(HttpResponse<InputStream> response) {
     String errorBody = null;
     try (InputStream body = response.body()) {
-      errorBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
+      if (body != null) {
+        errorBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
+      }
     } catch (IOException e) {
       // Ignore
     }
@@ -209,14 +206,14 @@ public class ScannerHttpClient {
 
   private static boolean isRedirect(int statusCode) {
     return statusCode == 301 || statusCode == 302 || statusCode == 303 ||
-           statusCode == 307 || statusCode == 308;
+      statusCode == 307 || statusCode == 308;
   }
 
   private interface ResponseHandler<G> {
     G apply(HttpResponse<InputStream> response) throws IOException;
   }
 
-  private HttpRequest prepareRequest(String url, @Nullable String acceptHeader, boolean authentication, boolean addProxyAuth) {
+  private HttpRequest prepareRequest(String url, @Nullable String acceptHeader, boolean authentication) {
     var timeout = httpConfig.getResponseTimeout().isZero() ? httpConfig.getSocketTimeout() : httpConfig.getResponseTimeout();
 
     var requestBuilder = HttpRequest.newBuilder()
@@ -239,7 +236,11 @@ public class ScannerHttpClient {
       }
     }
 
-    if (addProxyAuth && httpConfig.getProxyUser() != null) {
+    // Preemptively send proxy credentials on every request. The JDK HttpClient forwards
+    // Proxy-Authorization from the application request to CONNECT tunnel requests for HTTPS
+    // targets, so sending it upfront avoids a round-trip 407 challenge and works reliably
+    // across JDK versions.
+    if (httpConfig.getProxyUser() != null) {
       String proxyCredentials = httpConfig.getProxyUser() + ":" + (httpConfig.getProxyPassword() != null ? httpConfig.getProxyPassword() : "");
       String encodedProxyCredentials = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
       requestBuilder.header("Proxy-Authorization", "Basic " + encodedProxyCredentials);
