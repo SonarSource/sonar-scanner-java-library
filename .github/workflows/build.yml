@@ -28,7 +28,7 @@ jobs:
         with:
           version: 2025.7.12
           tool_versions: |
-            java 21
+            java temurin-21
 
       - uses: SonarSource/ci-github-actions/build-maven@v1
         with:
@@ -66,7 +66,7 @@ jobs:
         with:
           version: 2025.7.12
           tool_versions: |
-            java ${{ matrix.JAVA_VERSION }}
+            java temurin-${{ matrix.JAVA_VERSION }}
 
       - name: Getting Vault Secrets
         uses: SonarSource/vault-action-wrapper@v3
