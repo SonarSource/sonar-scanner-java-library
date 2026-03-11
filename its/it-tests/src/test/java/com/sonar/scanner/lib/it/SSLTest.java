@@ -231,6 +231,7 @@ public class SSLTest {
       .containsAnyOf(
         // different exception is thrown depending on the JDK version. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8172163
         commonMessage + "Received fatal alert: bad_certificate",
+        commonMessage + "(certificate_required) Received fatal alert: certificate_required",
         commonMessage + "Broken pipe");
   }
 
