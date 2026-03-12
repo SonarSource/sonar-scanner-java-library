@@ -32,7 +32,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import javax.annotation.CheckForNull;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,8 +172,8 @@ public class ScannerHttpClient {
       }
 
       if (response.statusCode() < 200 || response.statusCode() >= 300) {
-        String errorBody = tryReadBody(response);
-        throw new HttpException(URI.create(url).toURL(), response.statusCode(), errorBody);
+        Optional<String> errorBody = tryReadBodyQuietly(response);
+        throw new HttpException(URI.create(url).toURL(), response.statusCode(), errorBody.orElse(null));
       }
 
       return responseHandler.apply(requireNonNull(response, "Response is empty"));
@@ -191,17 +191,15 @@ public class ScannerHttpClient {
     }
   }
 
-  @CheckForNull
-  private static String tryReadBody(HttpResponse<InputStream> response) {
-    String errorBody = null;
+  private static Optional<String> tryReadBodyQuietly(HttpResponse<InputStream> response) {
     try (InputStream body = response.body()) {
       if (body != null) {
-        errorBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
+        return Optional.of(new String(body.readAllBytes(), StandardCharsets.UTF_8));
       }
     } catch (IOException e) {
       // Ignore
     }
-    return errorBody;
+    return Optional.empty();
   }
 
   private static boolean isRedirect(int statusCode) {

@@ -141,7 +141,6 @@
           <systemPropertyVariables>
             <user.language>en</user.language>
             <user.country>US</user.country>
-            <jdk.http.auth.tunneling.disabledSchemes>foo</jdk.http.auth.tunneling.disabledSchemes>
           </systemPropertyVariables>
           <environmentVariables>
             <LANGUAGE>en_US</LANGUAGE>
