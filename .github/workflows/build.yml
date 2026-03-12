@@ -83,7 +83,7 @@ jobs:
       - name: Run ITs
         run: |
           cd its
-          mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=${{ matrix.SQ_VERSION }} -DjavaVersion=${{ env.JAVA_VERSION }}
+          mvn -B -e verify -Prun-its -Dsonar.runtimeVersion=${{ matrix.SQ_VERSION }}
 
       - name: Upload server logs
         if: failure()

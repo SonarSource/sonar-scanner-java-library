@@ -46,6 +46,7 @@ import org.sonarsource.scanner.lib.internal.InternalProperties;
 import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -264,9 +265,14 @@ class ScannerHttpClientTest {
     @BeforeEach
     void configureMocks(TestInfo info) {
       if (info.getTags().contains(PROXY_AUTH_ENABLED)) {
+        // This scenario simulates a proxy that requires authentication and does not accept preemptive auth:
+        // the first request without Proxy-Authorization header gets a 407 with the Proxy-Authenticate challenge, then the client retries with the Proxy-Authorization header.
+        // This is not used because the Scanner HttpClient sends Proxy-Authorization preemptively by default,
+        // but keep it just in case we want to support it once we upgrade to JDK 24+ (because of https://bugs.openjdk.org/browse/JDK-8326949)
         proxyMock.stubFor(get(urlMatching("/batch/.*"))
           .inScenario("Proxy Auth")
           .whenScenarioStateIs(STARTED)
+            .withHeader("Proxy-Authorization", absent())
           .willReturn(aResponse()
             .withStatus(407)
             .withHeader("Proxy-Authenticate", "Basic realm=\"Access to the proxy\""))
@@ -274,6 +280,12 @@ class ScannerHttpClientTest {
         proxyMock.stubFor(get(urlMatching("/batch/.*"))
           .inScenario("Proxy Auth")
           .whenScenarioStateIs("Challenge returned")
+          .willReturn(aResponse().proxiedFrom(sonarqube.baseUrl())));
+        // Preemptive authentication (if client sends Proxy-Authorization on the first try) should also be accepted by the proxy
+        proxyMock.stubFor(get(urlMatching("/batch/.*"))
+          .inScenario("Proxy Auth")
+          .whenScenarioStateIs(STARTED)
+          .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8))))
           .willReturn(aResponse().proxiedFrom(sonarqube.baseUrl())));
       } else {
         proxyMock.stubFor(get(urlMatching("/batch/.*")).willReturn(aResponse().proxiedFrom(sonarqube.baseUrl())));
@@ -314,6 +326,26 @@ class ScannerHttpClientTest {
       assertThat(response).isEqualTo(HELLO_WORLD);
       proxyMock.verify(getRequestedFor(urlMatching("/batch/.*"))
         .withHeader("Proxy-Authorization", equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8)))));
+    }
+
+    @Test
+    void should_send_proxy_auth_preemptively_without_407_challenge() {
+      sonarqube.stubFor(get("/batch/index.txt").willReturn(aResponse().withBody(HELLO_WORLD)));
+
+      Map<String, String> props = new HashMap<>();
+      props.put(ScannerProperties.SONAR_SCANNER_PROXY_HOST, "localhost");
+      props.put(ScannerProperties.SONAR_SCANNER_PROXY_PORT, String.valueOf(proxyMock.getPort()));
+      props.put(ScannerProperties.SONAR_SCANNER_PROXY_USER, "proxyUser");
+      props.put(ScannerProperties.SONAR_SCANNER_PROXY_PASSWORD, "proxyPassword");
+
+      ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
+      String response = underTest.callWebApi("/batch/index.txt");
+
+      assertThat(response).isEqualTo(HELLO_WORLD);
+      // Proxy-Authorization must be present on the very first request — no 407 round-trip
+      proxyMock.verify(1, getRequestedFor(urlMatching("/batch/.*"))
+        .withHeader("Proxy-Authorization",
+          equalTo("Basic " + Base64.getEncoder().encodeToString("proxyUser:proxyPassword".getBytes(StandardCharsets.UTF_8)))));
     }
 
     @Test
