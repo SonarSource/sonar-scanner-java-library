@@ -213,7 +213,7 @@ class ScannerHttpClientTest {
   }
 
   @Test
-  void should_also_send_extra_headers_on_external_url(@TempDir Path tmpFolder) throws Exception {
+  void should_also_send_extra_headers_on_external_url(@TempDir Path tmpFolder) {
     var toFile = tmpFolder.resolve("index.txt");
     Map<String, String> props = new HashMap<>();
     props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Corp-Token: secret");

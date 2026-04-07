@@ -329,8 +329,8 @@ public class HttpConfig {
     }
     var headers = new LinkedHashMap<String, String>();
     try (var reader = CsvReader.builder().ofCsvRecord(rawValue)) {
-      for (var record : reader) {
-        for (var field : record.getFields()) {
+      for (var csvRecord : reader) {
+        for (var field : csvRecord.getFields()) {
           var trimmed = field.trim();
           if (!trimmed.isEmpty()) {
             parseAndAddHeader(headers, trimmed);
