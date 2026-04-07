@@ -198,6 +198,74 @@ class ScannerHttpClientTest {
       .withoutHeader("Authorization"));
   }
 
+  @Test
+  void should_send_extra_headers_on_authenticated_requests() {
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken,X-Tenant-Id: company");
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
+
+    answer(HELLO_WORLD);
+    connection.callWebApi("/batch/index.txt");
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("X-Auth", equalTo("mytoken"))
+      .withHeader("X-Tenant-Id", equalTo("company")));
+  }
+
+  @Test
+  void should_also_send_extra_headers_on_external_url(@TempDir Path tmpFolder) throws Exception {
+    var toFile = tmpFolder.resolve("index.txt");
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Corp-Token: secret");
+    ScannerHttpClient underTest = create(sonarqube.baseUrl(), props);
+
+    answer(HELLO_WORLD);
+    underTest.downloadFromExternalUrl(sonarqube.baseUrl() + "/batch/index.txt", toFile);
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("X-Corp-Token", equalTo("secret")));
+  }
+
+  @Test
+  void should_use_extra_authorization_header_instead_of_token() {
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "Authorization: Bearer custom-scheme-token");
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
+
+    answer(HELLO_WORLD);
+    connection.callWebApi("/batch/index.txt");
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("Authorization", equalTo("Bearer custom-scheme-token")));
+  }
+
+  @Test
+  void should_not_duplicate_authorization_when_both_token_and_extra_auth_header_set() {
+    Map<String, String> props = new HashMap<>();
+    props.put("sonar.token", "some_token");
+    props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "Authorization: Bearer custom-scheme-token");
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
+
+    answer(HELLO_WORLD);
+    connection.callWebApi("/batch/index.txt");
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("Authorization", equalTo("Bearer custom-scheme-token")));
+  }
+
+  @Test
+  void should_not_override_user_agent_via_extra_headers() {
+    Map<String, String> props = new HashMap<>();
+    props.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "User-Agent: custom-agent");
+    ScannerHttpClient connection = create(sonarqube.baseUrl(), props);
+
+    answer(HELLO_WORLD);
+    connection.callWebApi("/batch/index.txt");
+
+    sonarqube.verify(getRequestedFor(anyUrl())
+      .withHeader("User-Agent", equalTo("user/agent")));
+  }
+
   @ParameterizedTest
   @ValueSource(ints = {301, 302, 303, 307, 308})
   void should_follow_redirects_and_preserve_authentication(int code) {
