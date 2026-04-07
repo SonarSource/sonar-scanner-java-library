@@ -198,6 +198,15 @@ class HttpConfigTest {
     }
 
     @Test
+    void extraHeaders_ignores_trailing_comma() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken,");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders()).containsOnly(Map.entry("X-Auth", "mytoken"));
+    }
+
+    @Test
     void extraHeaders_throws_on_blank_name() {
       bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, ": value");
 

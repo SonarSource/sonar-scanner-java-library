@@ -331,7 +331,10 @@ public class HttpConfig {
     try (var reader = CsvReader.builder().ofCsvRecord(rawValue)) {
       for (var record : reader) {
         for (var field : record.getFields()) {
-          parseAndAddHeader(headers, field.trim());
+          var trimmed = field.trim();
+          if (!trimmed.isEmpty()) {
+            parseAndAddHeader(headers, trimmed);
+          }
         }
       }
     } catch (IllegalArgumentException e) {

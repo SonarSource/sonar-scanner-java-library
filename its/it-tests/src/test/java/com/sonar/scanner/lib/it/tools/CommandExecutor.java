@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class CommandExecutor {
   private static final Logger LOG = LoggerFactory.getLogger(CommandExecutor.class);
-  private static final int TIMEOUT = 20_000;
+  private static final int TIMEOUT = 120_000;
   private Path file;
 
   private ByteArrayOutputStream logs;
