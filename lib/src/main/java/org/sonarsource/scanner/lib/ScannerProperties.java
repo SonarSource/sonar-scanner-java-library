@@ -128,4 +128,12 @@ public final class ScannerProperties {
    * Java options to be used by the scanner-engine.
    */
   public static final String SCANNER_JAVA_OPTS = "sonar.scanner.javaOpts";
+
+  /**
+   * Extra HTTP headers to add to every request sent by the scanner bootstrapper, in RFC 4180 CSV
+   * format: comma-separated {@code Name: Value} fields. Fields whose value contains a comma must
+   * be quoted, e.g. {@code X-Auth: token,"X-Link: <url1>, <url2>"}.
+   * The {@code User-Agent} header cannot be overridden via this property.
+   */
+  public static final String SONAR_SCANNER_HTTP_EXTRA_HEADERS = "sonar.scanner.httpExtraHeaders";
 }

@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scanner.lib.internal.http;
 
+import de.siegmar.fastcsv.reader.CsvReader;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.file.Files;
@@ -26,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,6 +55,7 @@ import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_PORT;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_PROXY_USER;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_RESPONSE_TIMEOUT;
+import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_JVM_SSL_CONFIG;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SOCKET_TIMEOUT;
@@ -96,6 +99,9 @@ public class HttpConfig {
   private final String proxyPassword;
   private final String userAgent;
   private final boolean skipSystemTrustMaterial;
+  private final Map<String, String> extraHeaders;
+  private final boolean hasCustomAuthorization;
+  private final boolean hasCustomProxyAuthorization;
 
   public HttpConfig(Map<String, String> bootstrapProperties, Path sonarUserHome, System2 system) {
     this.webApiBaseUrl = StringUtils.removeEnd(bootstrapProperties.get(ScannerProperties.HOST_URL), "/");
@@ -117,6 +123,9 @@ public class HttpConfig {
     this.proxyUser = loadProxyUser(bootstrapProperties);
     this.proxyPassword = loadProxyPassword(bootstrapProperties);
     this.skipSystemTrustMaterial = Boolean.parseBoolean(defaultIfBlank(bootstrapProperties.get(SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE), "false"));
+    this.extraHeaders = parseExtraHeaders(bootstrapProperties);
+    this.hasCustomAuthorization = extraHeaders.keySet().stream().anyMatch("authorization"::equalsIgnoreCase);
+    this.hasCustomProxyAuthorization = extraHeaders.keySet().stream().anyMatch("proxy-authorization"::equalsIgnoreCase);
   }
 
   @CheckForNull
@@ -299,5 +308,59 @@ public class HttpConfig {
 
   public boolean skipSystemTruststore() {
     return skipSystemTrustMaterial;
+  }
+
+  public Map<String, String> getExtraHeaders() {
+    return extraHeaders;
+  }
+
+  public boolean hasCustomAuthorization() {
+    return hasCustomAuthorization;
+  }
+
+  public boolean hasCustomProxyAuthorization() {
+    return hasCustomProxyAuthorization;
+  }
+
+  private static Map<String, String> parseExtraHeaders(Map<String, String> bootstrapProperties) {
+    var rawValue = bootstrapProperties.get(SONAR_SCANNER_HTTP_EXTRA_HEADERS);
+    if (rawValue == null || rawValue.isBlank()) {
+      return Map.of();
+    }
+    var headers = new LinkedHashMap<String, String>();
+    try (var reader = CsvReader.builder().ofCsvRecord(rawValue)) {
+      for (var csvRecord : reader) {
+        for (var field : csvRecord.getFields()) {
+          var trimmed = field.trim();
+          if (!trimmed.isEmpty()) {
+            parseAndAddHeader(headers, trimmed);
+          }
+        }
+      }
+    } catch (IllegalArgumentException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to parse '" + SONAR_SCANNER_HTTP_EXTRA_HEADERS + "': " + e.getMessage(), e);
+    }
+    return Map.copyOf(headers);
+  }
+
+  private static void parseAndAddHeader(Map<String, String> headers, String field) {
+    int colonIdx = field.indexOf(':');
+    if (colonIdx < 0) {
+      throw new IllegalArgumentException(
+        "Invalid HTTP header in '" + SONAR_SCANNER_HTTP_EXTRA_HEADERS + "': \"" + field + "\". Expected format: \"Name: Value\"");
+    }
+    var name = field.substring(0, colonIdx).trim();
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException(
+        "Invalid HTTP header in '" + SONAR_SCANNER_HTTP_EXTRA_HEADERS + "': \"" + field + "\". Header name cannot be blank");
+    }
+    if (name.equalsIgnoreCase("User-Agent")) {
+      LOG.warn("The 'User-Agent' header cannot be overridden via '{}'. Ignoring.", SONAR_SCANNER_HTTP_EXTRA_HEADERS);
+      return;
+    }
+    var value = field.substring(colonIdx + 1).trim();
+    headers.put(name, value);
   }
 }

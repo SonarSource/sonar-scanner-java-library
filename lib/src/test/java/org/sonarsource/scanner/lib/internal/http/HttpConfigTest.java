@@ -28,10 +28,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
 
@@ -123,6 +125,96 @@ class HttpConfigTest {
 
     assertThat(underTest.getSslConfig().getTrustStore()).isNull();
     assertThat(underTest.getSslConfig().getKeyStore()).isNull();
+  }
+
+  @Nested
+  class ExtraHeaders {
+
+    @Test
+    void extraHeaders_are_empty_by_default() {
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders()).isEmpty();
+    }
+
+    @Test
+    void extraHeaders_single_header() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders()).containsOnly(Map.entry("X-Auth", "mytoken"));
+    }
+
+    @Test
+    void extraHeaders_multiple_headers() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken,X-Tenant-Id: company");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders())
+        .containsOnly(Map.entry("X-Auth", "mytoken"), Map.entry("X-Tenant-Id", "company"));
+    }
+
+    @Test
+    void extraHeaders_trims_whitespace() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, " X-Auth : mytoken , X-Tenant-Id : company ");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders())
+        .containsOnly(Map.entry("X-Auth", "mytoken"), Map.entry("X-Tenant-Id", "company"));
+    }
+
+    @Test
+    void extraHeaders_handles_comma_in_quoted_value() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken,\"X-Link: <url1>, <url2>\"");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders())
+        .containsOnly(Map.entry("X-Auth", "mytoken"), Map.entry("X-Link", "<url1>, <url2>"));
+    }
+
+    @Test
+    void extraHeaders_warns_and_skips_user_agent() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "User-Agent: custom-agent");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders()).isEmpty();
+      assertThat(logTester.logs(Level.WARN))
+        .contains("The 'User-Agent' header cannot be overridden via 'sonar.scanner.httpExtraHeaders'. Ignoring.");
+    }
+
+    @Test
+    void extraHeaders_throws_on_malformed_entry() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "no-colon-here");
+
+      assertThatThrownBy(() -> new HttpConfig(bootstrapProperties, sonarUserHome, system))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("sonar.scanner.httpExtraHeaders")
+        .hasMessageContaining("no-colon-here");
+    }
+
+    @Test
+    void extraHeaders_ignores_trailing_comma() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, "X-Auth: mytoken,");
+
+      var underTest = new HttpConfig(bootstrapProperties, sonarUserHome, system);
+
+      assertThat(underTest.getExtraHeaders()).containsOnly(Map.entry("X-Auth", "mytoken"));
+    }
+
+    @Test
+    void extraHeaders_throws_on_blank_name() {
+      bootstrapProperties.put(ScannerProperties.SONAR_SCANNER_HTTP_EXTRA_HEADERS, ": value");
+
+      assertThatThrownBy(() -> new HttpConfig(bootstrapProperties, sonarUserHome, system))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("sonar.scanner.httpExtraHeaders")
+        .hasMessageContaining("Header name cannot be blank");
+    }
   }
 
   @Test

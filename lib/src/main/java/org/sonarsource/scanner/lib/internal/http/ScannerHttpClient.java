@@ -224,7 +224,11 @@ public class ScannerHttpClient {
       requestBuilder.header("Accept", acceptHeader);
     }
 
-    if (authentication) {
+    // Extra headers are sent on every request (authenticated or not), to support corporate
+    // proxies or SSO systems that require a specific header on all outbound traffic.
+    httpConfig.getExtraHeaders().forEach(requestBuilder::header);
+
+    if (authentication && !httpConfig.hasCustomAuthorization()) {
       if (httpConfig.getToken() != null) {
         requestBuilder.header("Authorization", "Bearer " + httpConfig.getToken());
       } else if (httpConfig.getLogin() != null) {
@@ -238,7 +242,7 @@ public class ScannerHttpClient {
     // Proxy-Authorization from the application request to CONNECT tunnel requests for HTTPS
     // targets, so sending it upfront avoids a round-trip 407 challenge and works reliably
     // across JDK versions.
-    if (httpConfig.getProxyUser() != null) {
+    if (!httpConfig.hasCustomProxyAuthorization() && httpConfig.getProxyUser() != null) {
       String proxyCredentials = httpConfig.getProxyUser() + ":" + (httpConfig.getProxyPassword() != null ? httpConfig.getProxyPassword() : "");
       String encodedProxyCredentials = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
       requestBuilder.header("Proxy-Authorization", "Basic " + encodedProxyCredentials);
