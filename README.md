@@ -24,6 +24,6 @@ Make sure that you follow our [code style](https://github.com/SonarSource/sonar-
 
 ## License
 
-Copyright 2011-2025 SonarSource.
+Copyright (C) SonarSource Sàrl
 
 Licensed under the [GNU Lesser General Public License, Version 3.0](http://www.gnu.org/licenses/lgpl.txt)
