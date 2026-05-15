@@ -18,7 +18,7 @@ permissions:
 jobs:
   build:
     name: Build
-    runs-on: github-ubuntu-latest-s
+    runs-on: warp-custom-ubuntu-24-04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -46,7 +46,7 @@ jobs:
   qa:
     name: QA - SQ ${{ matrix.SQ_VERSION }}
     needs: build
-    runs-on: github-ubuntu-latest-s
+    runs-on: warp-custom-ubuntu-24-04
     env:
       JAVA_VERSION: LATEST_RELEASE
     strategy:
@@ -104,7 +104,7 @@ jobs:
   promote:
     name: Promote
     needs: qa
-    runs-on: github-ubuntu-latest-s
+    runs-on: warp-custom-ubuntu-24-04
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
