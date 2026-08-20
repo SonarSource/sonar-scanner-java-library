@@ -37,12 +37,12 @@ import javax.annotation.Nullable;
 import nl.altindag.ssl.SSLFactory;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
 import nl.altindag.ssl.util.KeyStoreUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
+import org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle.util.Properties;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
 
@@ -51,6 +51,13 @@ public class HttpClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(HttpClientFactory.class);
 
   static final CookieManager COOKIE_MANAGER;
+  /**
+   * BouncyCastle is repackaged under {@code org.sonarsource.scanner.lib.internal.impldep} (see the
+   * bouncycastle-shaded module), but this property name is deliberately kept unrelocated: it is both read by the
+   * relocated BouncyCastle in this JVM and forwarded as a {@code -D} argument to the forked scanner engine, which
+   * runs its own unrelocated BouncyCastle. The shade configuration excludes {@code org.bouncycastle.pkcs12.*} from
+   * relocation so that both sides agree on this name.
+   */
   public static final String BC_IGNORE_USELESS_PASSWD = "org.bouncycastle.pkcs12.ignore_useless_passwd";
 
   private HttpClientFactory() {
