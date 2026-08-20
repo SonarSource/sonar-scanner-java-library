@@ -1,0 +1,100 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonarsource.scanner.lib</groupId>
+    <artifactId>sonar-scanner-java-library-parent</artifactId>
+    <version>4.2-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sonar-scanner-bouncycastle-shaded</artifactId>
+  <name>SonarScanner Java Library :: Shaded BouncyCastle</name>
+  <description>
+    BouncyCastle repackaged under org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle so that the scanner
+    never conflicts with a different BouncyCastle version already present on the classpath (e.g. Gradle / AGP).
+    This module has no sources of its own: it only relocates bcprov-jdk18on.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.85.2</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <!-- Explicit version: the SonarSource parent pins 3.6.0 in pluginManagement -->
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <!--
+                Keep createDependencyReducedPom enabled (the default): the published pom must NOT declare
+                bcprov-jdk18on, otherwise consumers would still get the original BouncyCastle transitively
+                and the relocation would be pointless.
+              -->
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <artifactSet>
+                <includes>
+                  <include>org.bouncycastle:bcprov-jdk18on</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>org.bouncycastle</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle</shadedPattern>
+                  <excludes>
+                    <!--
+                      These are NOT classes but BouncyCastle system property names, e.g.
+                      org.bouncycastle.pkcs12.ignore_useless_passwd, read as plain string constants by
+                      PKCS12KeyStoreSpi / PKCS12PBMAC1KeyStoreSpi. The shade plugin rewrites string constants
+                      that look like class names, which would rename the properties here but not in:
+                        - HttpClientFactory, which sets the thread override, and
+                        - ScannerEngineLauncher, which forwards -Dorg.bouncycastle.pkcs12.ignore_useless_passwd
+                          to the forked scanner-engine JVM (running an unrelocated BouncyCastle).
+                      Both sides must keep using the original name, so exclude it from relocation.
+                      bcprov has no real org.bouncycastle.pkcs12 package, so nothing else is affected.
+                    -->
+                    <exclude>org.bouncycastle.pkcs12.*</exclude>
+                  </excludes>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <artifact>org.bouncycastle:bcprov-jdk18on</artifact>
+                  <excludes>
+                    <!-- bcprov is a signed jar; repackaging invalidates the signature -->
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <!--
+                      bcprov is a multi-release jar. MSHADE-406 is still unfixed in 3.6.2: versioned entries get
+                      their contents relocated but not their paths. Shade also does not propagate
+                      "Multi-Release: true", so these entries would be unusable dead weight either way.
+                      Dropping them falls back to the base classes, which is all the scanner needs
+                      (BouncyCastleProvider + PKCS12/JKS truststore loading).
+                    -->
+                    <exclude>META-INF/versions/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <!-- Rewrites META-INF/services/java.security.Provider to the relocated provider names -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
