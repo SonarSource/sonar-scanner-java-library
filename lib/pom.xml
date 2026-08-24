@@ -59,7 +59,9 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.85.2</version>
+      <!-- TEMPORARY: 1.86 beta, vendored in lib/beta-deps and seeded into ~/.m2 by
+           .github/scripts/seed-bc-beta.sh. Restore 1.85.2 (or move to 1.86) once released. -->
+      <version>1.86-beta</version>
     </dependency>
     <dependency>
       <groupId>de.siegmar</groupId>

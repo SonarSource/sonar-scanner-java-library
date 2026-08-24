@@ -30,6 +30,10 @@ jobs:
           tool_versions: |
             java temurin-21
 
+      # TEMPORARY - drop together with lib/beta-deps once Bouncy Castle 1.86 is released.
+      - name: Seed Bouncy Castle 1.86 beta into ~/.m2
+        run: .github/scripts/seed-bc-beta.sh
+
       - uses: SonarSource/ci-github-actions/build-maven@v1
         with:
           artifactory-reader-role: private-reader
@@ -79,6 +83,10 @@ jobs:
         uses: SonarSource/ci-github-actions/config-maven@v1
         with:
           artifactory-reader-role: private-reader
+
+      # TEMPORARY - the ITs resolve bcprov transitively through the published library.
+      - name: Seed Bouncy Castle 1.86 beta into ~/.m2
+        run: .github/scripts/seed-bc-beta.sh
 
       - name: Run ITs
         run: |
