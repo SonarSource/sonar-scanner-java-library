@@ -120,8 +120,9 @@ class Pkcs12CertificateReaderTest {
   @Test
   void throws_clear_exception_on_wrong_password() {
     Path path = resource("truststore-openssl-cert-only.p12");
+    var wrongPassword = "wrongpassword".toCharArray();
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "wrongpassword".toCharArray()))
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, wrongPassword))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("wrong password");
   }
@@ -129,8 +130,9 @@ class Pkcs12CertificateReaderTest {
   @Test
   void throws_clear_exception_on_corrupt_file() {
     Path path = resource("truststore-corrupt.p12");
+    var password = "anything".toCharArray();
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "anything".toCharArray()))
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class);
   }
 
@@ -138,7 +140,9 @@ class Pkcs12CertificateReaderTest {
   void throws_when_pfx_is_missing_the_authSafe_field() throws Exception {
     Path path = writePfx(DerBuilder.sequence(DerBuilder.integer(3)));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Malformed PFX");
   }
@@ -148,7 +152,9 @@ class Pkcs12CertificateReaderTest {
     var authSafeContentInfo = DerBuilder.sequence(DerBuilder.oid(OID_ENCRYPTED_DATA), DerBuilder.explicit(0, DerBuilder.octetString(new byte[0])));
     Path path = writePfx(pfxWithAuthSafeContentInfo(authSafeContentInfo));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported PFX authSafe content type");
   }
@@ -158,7 +164,9 @@ class Pkcs12CertificateReaderTest {
     var authSafeContentInfo = DerBuilder.sequence(DerBuilder.oid(OID_DATA));
     Path path = writePfx(pfxWithAuthSafeContentInfo(authSafeContentInfo));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Malformed ContentInfo");
   }
@@ -168,7 +176,9 @@ class Pkcs12CertificateReaderTest {
     var bogusInnerContentInfo = DerBuilder.sequence(DerBuilder.oid("1.2.3.4"), DerBuilder.explicit(0, DerBuilder.octetString(new byte[0])));
     Path path = writePfx(pfxWithAuthenticatedSafe(bogusInnerContentInfo));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported AuthenticatedSafe content type");
   }
@@ -178,7 +188,9 @@ class Pkcs12CertificateReaderTest {
     var algorithmWithoutParams = DerBuilder.sequence(DerBuilder.oid(OID_PBES2));
     Path path = writePfx(pfxWithEncryptedContentInfo(algorithmWithoutParams, new byte[]{1, 2, 3}));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Missing encryption parameters");
   }
@@ -189,7 +201,9 @@ class Pkcs12CertificateReaderTest {
     var unsupportedAlgorithm = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.12.1.1"), dummyParams);
     Path path = writePfx(pfxWithEncryptedContentInfo(unsupportedAlgorithm, new byte[]{1, 2, 3, 4}));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported PKCS12 encryption algorithm");
   }
@@ -202,7 +216,9 @@ class Pkcs12CertificateReaderTest {
     var contentEncryptionAlgorithm = DerBuilder.sequence(DerBuilder.oid(OID_PBES2), pbes2Params);
     Path path = writePfx(pfxWithEncryptedContentInfo(contentEncryptionAlgorithm, new byte[]{1, 2, 3, 4}));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported PBES2 key derivation function");
   }
@@ -216,7 +232,9 @@ class Pkcs12CertificateReaderTest {
     var contentEncryptionAlgorithm = DerBuilder.sequence(DerBuilder.oid(OID_PBES2), pbes2Params);
     Path path = writePfx(pfxWithEncryptedContentInfo(contentEncryptionAlgorithm, new byte[]{1, 2, 3, 4}));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported PBKDF2 pseudorandom function");
   }
@@ -230,7 +248,9 @@ class Pkcs12CertificateReaderTest {
     var contentEncryptionAlgorithm = DerBuilder.sequence(DerBuilder.oid(OID_PBES2), pbes2Params);
     Path path = writePfx(pfxWithEncryptedContentInfo(contentEncryptionAlgorithm, new byte[]{1, 2, 3, 4}));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported PBES2 encryption scheme");
   }
@@ -254,7 +274,9 @@ class Pkcs12CertificateReaderTest {
     var safeContents = DerBuilder.sequence(safeBag);
     Path path = writePfx(pfxWithAuthenticatedSafe(dataContentInfo(safeContents)));
 
-    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, "pwd".toCharArray()))
+    var password = "pwd".toCharArray();
+
+    assertThatThrownBy(() -> Pkcs12CertificateReader.readCertificates(path, password))
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unable to parse X.509 certificate");
   }

@@ -97,11 +97,7 @@ public final class DerBuilder {
     if (len < 0x80) {
       return new byte[]{(byte) len};
     }
-    var numberOfLengthBytes = 1;
-    var v = len;
-    while ((v >>>= 8) != 0) {
-      numberOfLengthBytes++;
-    }
+    var numberOfLengthBytes = (32 - Integer.numberOfLeadingZeros(len) + 7) / 8;
     var result = new byte[1 + numberOfLengthBytes];
     result[0] = (byte) (0x80 | numberOfLengthBytes);
     var remaining = len;

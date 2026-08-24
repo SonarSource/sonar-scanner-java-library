@@ -164,6 +164,8 @@ public final class Pkcs12CertificateReader {
     return cipher.doFinal(encryptedContent);
   }
 
+  // AES-CBC-PKCS5Padding is mandated by RFC 8018 (PBES2) for decrypting PKCS#12 content; it is not a choice made by this code.
+  @SuppressWarnings("java:S5542")
   private static byte[] decryptPbes2(DerValue parameters, byte[] encryptedContent, char[] password) throws GeneralSecurityException {
     var pbes2Fields = parameters.asReader().readAll();
     var keyDerivationFunc = pbes2Fields.get(0).asReader().readAll();

@@ -54,7 +54,8 @@ final class DerReader {
 
   DerValue readValue() {
     requireRemaining(1);
-    int tag = data[pos++] & 0xFF;
+    int tag = data[pos] & 0xFF;
+    pos++;
     int length = readLength();
     requireRemaining(length);
     int start = pos;
@@ -72,7 +73,8 @@ final class DerReader {
 
   private int readLength() {
     requireRemaining(1);
-    int first = data[pos++] & 0xFF;
+    int first = data[pos] & 0xFF;
+    pos++;
     if ((first & 0x80) == 0) {
       return first;
     }
@@ -83,7 +85,8 @@ final class DerReader {
     requireRemaining(numberOfLengthBytes);
     int length = 0;
     for (int i = 0; i < numberOfLengthBytes; i++) {
-      length = (length << 8) | (data[pos++] & 0xFF);
+      length = (length << 8) | (data[pos] & 0xFF);
+      pos++;
     }
     if (length < 0) {
       throw new Pkcs12ParsingException("DER content length is too large");

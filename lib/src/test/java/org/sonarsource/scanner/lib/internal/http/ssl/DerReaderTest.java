@@ -58,8 +58,9 @@ class DerReaderTest {
   @Test
   void throws_when_length_uses_indefinite_form() {
     byte[] bytes = {0x30, (byte) 0x80};
+    var reader = new DerReader(bytes);
 
-    assertThatThrownBy(() -> new DerReader(bytes).readValue())
+    assertThatThrownBy(reader::readValue)
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported DER length encoding");
   }
@@ -67,8 +68,9 @@ class DerReaderTest {
   @Test
   void throws_when_length_uses_more_than_four_bytes() {
     byte[] bytes = {0x30, (byte) 0x85, 0, 0, 0, 0, 1};
+    var reader = new DerReader(bytes);
 
-    assertThatThrownBy(() -> new DerReader(bytes).readValue())
+    assertThatThrownBy(reader::readValue)
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Unsupported DER length encoding");
   }
@@ -76,8 +78,9 @@ class DerReaderTest {
   @Test
   void throws_when_long_form_length_overflows_to_negative() {
     byte[] bytes = {0x30, (byte) 0x84, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+    var reader = new DerReader(bytes);
 
-    assertThatThrownBy(() -> new DerReader(bytes).readValue())
+    assertThatThrownBy(reader::readValue)
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("DER content length is too large");
   }
@@ -85,8 +88,9 @@ class DerReaderTest {
   @Test
   void throws_when_declared_length_exceeds_available_bytes() {
     byte[] bytes = {0x30, 0x7F, 1, 2};
+    var reader = new DerReader(bytes);
 
-    assertThatThrownBy(() -> new DerReader(bytes).readValue())
+    assertThatThrownBy(reader::readValue)
       .isInstanceOf(Pkcs12ParsingException.class)
       .hasMessageContaining("Truncated or malformed DER content");
   }
