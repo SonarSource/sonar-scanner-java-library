@@ -37,11 +37,10 @@ import javax.annotation.Nullable;
 import nl.altindag.ssl.SSLFactory;
 import nl.altindag.ssl.exception.GenericKeyStoreException;
 import nl.altindag.ssl.util.KeyStoreUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.internal.http.ssl.CertificateStore;
+import org.sonarsource.scanner.lib.internal.http.ssl.Pkcs12CertificateReader;
 import org.sonarsource.scanner.lib.internal.http.ssl.SslConfig;
 
 import static org.sonarsource.scanner.lib.ScannerProperties.SONAR_SCANNER_SKIP_SYSTEM_TRUSTSTORE;
@@ -51,7 +50,6 @@ public class HttpClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(HttpClientFactory.class);
 
   static final CookieManager COOKIE_MANAGER;
-  public static final String BC_IGNORE_USELESS_PASSWD = "org.bouncycastle.pkcs12.ignore_useless_passwd";
 
   private HttpClientFactory() {
   }
@@ -100,7 +98,7 @@ public class HttpClientFactory {
     if (trustStoreConfig != null) {
       KeyStore trustStore;
       try {
-        trustStore = loadTrustStoreWithBouncyCastle(
+        trustStore = loadTrustStore(
           trustStoreConfig.getPath(),
           trustStoreConfig.getKeyStorePassword().orElse(null),
           trustStoreConfig.getKeyStoreType(),
@@ -125,29 +123,50 @@ public class HttpClientFactory {
     }
   }
 
-  static KeyStore loadTrustStoreWithBouncyCastle(Path keystorePath, @Nullable String keystorePassword, String keystoreType, boolean fromJvm) throws IOException,
+  static KeyStore loadTrustStore(Path keystorePath, @Nullable String keystorePassword, String keystoreType, boolean fromJvm) throws IOException,
     KeyStoreException, CertificateException, NoSuchAlgorithmException {
-    Properties.setThreadOverride(BC_IGNORE_USELESS_PASSWD, true);
-    KeyStore keystore = KeyStore.getInstance(keystoreType, new BouncyCastleProvider());
     if (keystorePassword != null) {
-      loadKeyStoreWithPassword(keystorePath, keystore, keystorePassword);
-    } else {
-      try {
-        loadKeyStoreWithPassword(keystorePath, keystore, CertificateStore.DEFAULT_PASSWORD);
-      } catch (Exception e) {
-        if (!fromJvm) {
-          loadKeyStoreWithPassword(keystorePath, keystore, CertificateStore.OLD_DEFAULT_PASSWORD);
-          LOG.warn("Using deprecated default password for truststore '{}'.", keystorePath);
-        }
-      }
+      return loadTrustStoreWithPassword(keystorePath, keystoreType, keystorePassword);
     }
-    return keystore;
+    try {
+      return loadTrustStoreWithPassword(keystorePath, keystoreType, CertificateStore.DEFAULT_PASSWORD);
+    } catch (IOException | CertificateException e) {
+      if (fromJvm) {
+        throw e;
+      }
+      LOG.warn("Using deprecated default password for truststore '{}'.", keystorePath);
+      return loadTrustStoreWithPassword(keystorePath, keystoreType, CertificateStore.OLD_DEFAULT_PASSWORD);
+    }
   }
 
-  private static void loadKeyStoreWithPassword(Path keystorePath, KeyStore keystore, String oldDefaultPassword) throws IOException, NoSuchAlgorithmException, CertificateException {
+  private static KeyStore loadTrustStoreWithPassword(Path keystorePath, String keystoreType, String password) throws IOException, KeyStoreException, CertificateException,
+    NoSuchAlgorithmException {
+    KeyStore keystore = KeyStore.getInstance(keystoreType);
     try (InputStream keystoreInputStream = Files.newInputStream(keystorePath, StandardOpenOption.READ)) {
-      keystore.load(keystoreInputStream, oldDefaultPassword.toCharArray());
+      keystore.load(keystoreInputStream, password.toCharArray());
     }
+    if (keystore.size() > 0) {
+      return keystore;
+    }
+    return loadWithFallbackReader(keystorePath, password, keystore);
+  }
+
+  /**
+   * The JDK's own PKCS12 provider silently discards certificate-only entries produced by
+   * {@code openssl} (unlike {@code keytool}), because they lack a proprietary "trusted key
+   * usage" attribute. When that happens, fall back to a purpose-built reader that tolerates it.
+   */
+  private static KeyStore loadWithFallbackReader(Path keystorePath, String password, KeyStore emptyKeystore) {
+    try {
+      KeyStore fallback = Pkcs12CertificateReader.readCertificates(keystorePath, password.toCharArray());
+      if (fallback.size() > 0) {
+        LOG.debug("Truststore '{}' has no JDK-trusted certificate entries, falling back to manual PKCS12 parsing", keystorePath);
+        return fallback;
+      }
+    } catch (Exception e) {
+      LOG.debug("Manual PKCS12 parsing failed for truststore '{}', keeping empty result from native loader", keystorePath, e);
+    }
+    return emptyKeystore;
   }
 
 }

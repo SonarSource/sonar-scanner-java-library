@@ -30,6 +30,7 @@
   </licenses>
 
   <modules>
+    <module>bouncycastle-shaded</module>
     <module>lib</module>
     <module>download-cache</module>
     <module>batch</module>

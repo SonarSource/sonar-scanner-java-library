@@ -27,8 +27,11 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -44,6 +47,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.event.Level;
+import org.sonarsource.scanner.lib.internal.http.ssl.DerBuilder;
+import org.sonarsource.scanner.lib.internal.http.ssl.Pkcs12CertificateReader;
 import org.sonarsource.scanner.lib.internal.util.System2;
 import testutils.LogTester;
 
@@ -157,6 +162,63 @@ class HttpClientFactoryTest {
     HttpClientFactory.create(new HttpConfig(bootstrapProperties, sonarUserHome, system2));
 
     assertThat(logTester.logs(Level.DEBUG)).doesNotContain("Loading OS trusted SSL certificates...");
+  }
+
+  @Test
+  void it_should_not_retry_deprecated_default_password_when_truststore_is_from_jvm() {
+    when(system2.getProperty("javax.net.ssl.trustStore"))
+      .thenReturn(toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/keystore_anotherpwd.p12"))).toString());
+
+    var httpConfig = new HttpConfig(bootstrapProperties, sonarUserHome, system2);
+
+    assertThatThrownBy(() -> HttpClientFactory.create(httpConfig))
+      .isInstanceOf(GenericKeyStoreException.class);
+  }
+
+  @Test
+  void it_should_keep_empty_result_when_fallback_reader_also_fails_to_parse_truststore() throws Exception {
+    logTester.setLevel(Level.DEBUG);
+    var password = "test-password";
+    var path = sonarUserHomeDir.resolve("non-x509-cert-type.p12");
+    Files.write(path, buildTruststoreWithNonX509CertType());
+
+    var keyStore = HttpClientFactory.loadTrustStore(path, password, "PKCS12", false);
+
+    assertThat(keyStore.size()).isZero();
+    assertThat(logTester.logs(Level.DEBUG)).anyMatch(log -> log.contains("Manual PKCS12 parsing failed"));
+  }
+
+  @Test
+  void it_should_keep_empty_result_when_fallback_reader_also_finds_no_certificates() throws Exception {
+    var path = sonarUserHomeDir.resolve("no-certificates.p12");
+    var emptySafeContents = DerBuilder.sequence();
+    var dataContentInfo = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.7.1"), DerBuilder.explicit(0, DerBuilder.octetString(emptySafeContents)));
+    var authenticatedSafe = DerBuilder.sequence(dataContentInfo);
+    var authSafeContentInfo = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.7.1"), DerBuilder.explicit(0, DerBuilder.octetString(authenticatedSafe)));
+    Files.write(path, DerBuilder.sequence(DerBuilder.integer(3), authSafeContentInfo));
+
+    var keyStore = HttpClientFactory.loadTrustStore(path, "test-password", "PKCS12", false);
+
+    assertThat(keyStore.size()).isZero();
+  }
+
+  /**
+   * Native JDK load succeeds but returns no entries here too, since a non-X.509 certType is not a
+   * certificate-only bag it recognizes as trusted. {@link Pkcs12CertificateReader} (backed by BC's
+   * own PKCS12KeyStoreSpi) is stricter on this specific point and rejects the whole file outright,
+   * so the fallback reader also fails, exercising HttpClientFactory's catch-and-swallow path.
+   */
+  private static byte[] buildTruststoreWithNonX509CertType() throws Exception {
+    var cert = (X509Certificate) CertificateFactory.getInstance("X.509")
+      .generateCertificate(Files.newInputStream(toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/ca.crt")))));
+    var certBag = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.9.22.2"), DerBuilder.explicit(0, DerBuilder.octetString(cert.getEncoded())));
+    var safeBag = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.12.10.1.3"), DerBuilder.explicit(0, certBag));
+    var safeContents = DerBuilder.sequence(safeBag);
+
+    var dataContentInfo = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.7.1"), DerBuilder.explicit(0, DerBuilder.octetString(safeContents)));
+    var authenticatedSafe = DerBuilder.sequence(dataContentInfo);
+    var authSafeContentInfo = DerBuilder.sequence(DerBuilder.oid("1.2.840.113549.1.7.1"), DerBuilder.explicit(0, DerBuilder.octetString(authenticatedSafe)));
+    return DerBuilder.sequence(DerBuilder.integer(3), authSafeContentInfo);
   }
 
   @Nested
@@ -285,6 +347,32 @@ class HttpClientFactoryTest {
       HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
       assertThat(response.statusCode()).isEqualTo(200);
       assertThat(response.body()).contains("Success");
+    }
+
+    @Test
+    void it_should_trust_server_self_signed_certificate_when_truststore_is_openssl_generated_cert_only() throws IOException, InterruptedException {
+      logTester.setLevel(Level.DEBUG);
+      bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
+      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/truststore-openssl-cert-only.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdOpenssl12");
+
+      HttpResponse<String> response = call(sonarqubeMock.url("/batch/index"));
+
+      assertThat(response.statusCode()).isEqualTo(200);
+      assertThat(response.body()).contains("Success");
+      assertThat(logTester.logs(Level.DEBUG)).anyMatch(log -> log.contains("falling back to manual PKCS12 parsing"));
+    }
+
+    @Test
+    void it_should_not_use_the_fallback_reader_for_a_keytool_generated_truststore() throws IOException, InterruptedException {
+      logTester.setLevel(Level.DEBUG);
+      bootstrapProperties.put("sonar.host.url", sonarqubeMock.baseUrl());
+      bootstrapProperties.put("sonar.scanner.truststorePath", toPath(requireNonNull(HttpClientFactoryTest.class.getResource("/ssl/client-truststore.p12"))).toString());
+      bootstrapProperties.put("sonar.scanner.truststorePassword", "pwdClientWithServerCA");
+
+      call(sonarqubeMock.url("/batch/index"));
+
+      assertThat(logTester.logs(Level.DEBUG)).noneMatch(log -> log.contains("falling back to manual PKCS12 parsing"));
     }
   }
 

@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.downloadcache.CachedFile;
 import org.sonarsource.scanner.lib.ScannerProperties;
-import org.sonarsource.scanner.lib.internal.http.HttpClientFactory;
 import org.sonarsource.scanner.lib.internal.util.Either;
 
 public class ScannerEngineLauncher {
@@ -45,6 +44,13 @@ public class ScannerEngineLauncher {
     "sonar.login",
     "password",
     "token");
+
+  /**
+   * The forked scanner-engine JVM runs a separately-versioned jar with its own BouncyCastle
+   * dependency for PKCS12 truststore parsing; this flag is forwarded to it regardless of how
+   * this library itself loads truststores.
+   */
+  private static final String BC_IGNORE_USELESS_PASSWD = "org.bouncycastle.pkcs12.ignore_useless_passwd";
 
   private static final Logger LOG = LoggerFactory.getLogger(ScannerEngineLauncher.class);
 
@@ -117,7 +123,7 @@ public class ScannerEngineLauncher {
       LOG.info("SONAR_SCANNER_JAVA_OPTS={}", redactSensitiveArguments(split));
       args.addAll(split);
     }
-    args.add("-D" + HttpClientFactory.BC_IGNORE_USELESS_PASSWD + "=true");
+    args.add("-D" + BC_IGNORE_USELESS_PASSWD + "=true");
     args.add("-jar");
     args.add(scannerEngineJar.map(CachedFile::getPath, Function.identity()).toAbsolutePath().toString());
     return args;

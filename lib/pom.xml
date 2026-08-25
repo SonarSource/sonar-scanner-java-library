@@ -57,9 +57,10 @@
       <version>10.0.3</version>
     </dependency>
     <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.85.2</version>
+      <!-- Relocated and minimized BouncyCastle: see the sonar-scanner-bouncycastle-shaded module. -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sonar-scanner-bouncycastle-shaded</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>de.siegmar</groupId>

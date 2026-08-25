@@ -1,0 +1,100 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonarsource.scanner.lib</groupId>
+    <artifactId>sonar-scanner-java-library-parent</artifactId>
+    <version>4.2-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sonar-scanner-bouncycastle-shaded</artifactId>
+  <name>SonarScanner Java Library :: Shaded BouncyCastle</name>
+  <description>
+    BouncyCastle repackaged under org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle so that the scanner
+    never conflicts with a different BouncyCastle version already present on the classpath (e.g. Gradle / AGP), and
+    minimized to only the classes reachable from Pkcs12KeyStoreFactory below (BC's own PKCS12 ASN.1 parser),
+    rather than the rest of bcprov (elliptic curves, post-quantum algorithms, CMS/OpenPGP support, etc.) that this
+    library never uses. Pkcs12KeyStoreFactory instantiates BC's PKCS12KeyStoreSpi.DefPKCS12KeyStore directly instead
+    of going through KeyStore.getInstance("PKCS12", new BouncyCastleProvider()): that variant never constructs
+    BouncyCastleProvider (which reflectively registers ~150 algorithm implementations via Class.forName) and
+    resolves its actual decryption through the JDK's own SunJCE, so this module carries no runtime reflection or
+    java.security.Provider/ServiceLoader registration for maven-shade-plugin's minimizer to trip over.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.85.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <!-- Explicit version: the SonarSource parent pins 3.6.0 in pluginManagement -->
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <!--
+                minimizeJar traces reachability starting from THIS module's own compiled classes
+                (Pkcs12KeyStoreFactory), not from bcprov as a whole. That's exactly what we want: only
+                BC's PKCS12/ASN.1 parsing machinery is kept, not the rest of bcprov.
+              -->
+              <minimizeJar>true</minimizeJar>
+              <!--
+                Keep createDependencyReducedPom enabled (the default): the published pom must NOT declare
+                bcprov-jdk18on, otherwise consumers would still get the original BouncyCastle transitively
+                and both the relocation and the minimization would be pointless.
+              -->
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <artifactSet>
+                <includes>
+                  <include>org.bouncycastle:bcprov-jdk18on</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>org.bouncycastle</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle</shadedPattern>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <artifact>org.bouncycastle:bcprov-jdk18on</artifact>
+                  <excludes>
+                    <!-- bcprov is a signed jar; repackaging invalidates the signature -->
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <!--
+                      bcprov is a multi-release jar. MSHADE-406 is still unfixed in 3.6.2: versioned entries get
+                      their contents relocated but not their paths. Shade also does not propagate
+                      "Multi-Release: true", so these entries would be unusable dead weight either way.
+                      Dropping them falls back to the base classes, which is all this module needs.
+                    -->
+                    <exclude>META-INF/versions/**</exclude>
+                    <!-- No java.security.Provider is ever registered by this module; nothing reads this. -->
+                    <exclude>META-INF/services/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
