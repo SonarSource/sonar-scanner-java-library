@@ -1,0 +1,137 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonarsource.scanner.lib</groupId>
+    <artifactId>sonar-scanner-java-library-parent</artifactId>
+    <version>4.2-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sonar-scanner-java-library-shaded</artifactId>
+  <name>SonarScanner Java Library :: Shaded</name>
+  <description>
+    Fat jar of sonar-scanner-java-library with every third-party runtime dependency (gson, commons-compress,
+    commons-lang3, fastcsv, ayza, BouncyCastle) relocated under org.sonarsource.scanner.lib.internal, so that the
+    scanner never conflicts with a different version of any of them already present on the classpath. This is meant
+    for embedding tools that don't isolate their plugins in separate classloaders (e.g. Gradle / AGP) - Maven and
+    the CLI don't need it, and keep depending on the plain sonar-scanner-java-library artifact instead.
+    This module has no sources of its own: it only relocates sonar-scanner-java-library and its dependencies.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sonar-scanner-java-library</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <!-- Explicit version: the SonarSource parent pins 3.6.0 in pluginManagement -->
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <!--
+                Keep createDependencyReducedPom enabled (the default): the published pom must NOT declare gson,
+                commons-compress, commons-lang3, fastcsv, ayza or bcprov-jdk18on, otherwise consumers would still
+                get the original, unrelocated libraries transitively and the relocation would be pointless.
+              -->
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <artifactSet>
+                <includes>
+                  <include>${project.groupId}:sonar-scanner-java-library</include>
+                  <include>${project.groupId}:sonar-scanner-download-cache</include>
+                  <include>${project.groupId}:sonar-scanner-java-library-batch-interface</include>
+                  <include>com.google.code.gson:gson</include>
+                  <include>org.apache.commons:commons-compress</include>
+                  <include>org.apache.commons:commons-lang3</include>
+                  <include>de.siegmar:fastcsv</include>
+                  <include>io.github.hakky54:ayza</include>
+                  <include>org.bouncycastle:bcprov-jdk18on</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>com.google.gson</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google.gson</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.commons.compress</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.compress</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.commons.lang3</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.lang3</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>de.siegmar.fastcsv</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.de.siegmar.fastcsv</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>nl.altindag.ssl</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag.ssl</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.bouncycastle</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle</shadedPattern>
+                  <excludes>
+                    <!--
+                      org.bouncycastle.pkcs12.ignore_useless_passwd is NOT a class but a BouncyCastle
+                      system-property name, read as a plain string constant by PKCS12KeyStoreSpi. The shade
+                      plugin rewrites string constants that look like class names, which would rename this
+                      property in the shaded jar but not in the forked scanner-engine JVM it's forwarded to
+                      (HttpClientFactory.BC_IGNORE_USELESS_PASSWD / ScannerEngineLauncher), which runs its own
+                      unrelocated BouncyCastle. Both sides must agree on the original name.
+                      bcprov has no real org.bouncycastle.pkcs12 package, so nothing else is affected.
+                    -->
+                    <exclude>org.bouncycastle.pkcs12.*</exclude>
+                  </excludes>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <!--
+                    gson, commons-compress, commons-lang3, fastcsv, ayza and bcprov-jdk18on are all JPMS modules,
+                    and gson/commons-compress/commons-lang3 are also multi-release jars whose only versioned
+                    entries are JDK9+ copies of module-info.class - no functional code. A shaded/relocated fat jar
+                    isn't a valid JPMS module (relocated packages would clash with split-package rules), and
+                    MSHADE-406 is still unfixed in 3.6.2: versioned entries get their contents relocated but not
+                    their paths, making them unusable dead weight either way. Dropping module-info.class and all
+                    versioned entries falls back to the base classes, which is all this module needs.
+                  -->
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/**</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.bouncycastle:bcprov-jdk18on</artifact>
+                  <excludes>
+                    <!-- bcprov is a signed jar; repackaging invalidates the signature -->
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <!-- Rewrites META-INF/services/java.security.Provider to the relocated BouncyCastleProvider name -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
