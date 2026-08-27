@@ -62,44 +62,31 @@
                 </excludes>
               </artifactSet>
               <relocations>
+                <!--
+                  One relocation per shared top-level namespace instead of per library: none of the bundled
+                  libraries' packages overlap outside these namespaces (verified against each jar's contents), so
+                  this also covers their own transitive dependencies automatically - e.g. commons-compress pulling
+                  in commons-io/commons-codec, or gson pulling in error_prone_annotations - without needing a
+                  dedicated relocation entry added by hand for each one.
+                -->
                 <relocation>
-                  <pattern>com.google.gson</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google.gson</shadedPattern>
+                  <!-- gson, error_prone_annotations (transitive dependency of gson) -->
+                  <pattern>com.google</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>com.google.errorprone</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google.errorprone</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.commons.compress</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.compress</shadedPattern>
-                </relocation>
-                <relocation>
-                  <!-- transitive dependency of commons-compress -->
-                  <pattern>org.apache.commons.io</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.io</shadedPattern>
-                </relocation>
-                <relocation>
-                  <!-- transitive dependency of commons-compress -->
-                  <pattern>org.apache.commons.codec</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.codec</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.commons.lang3</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.lang3</shadedPattern>
+                  <!-- commons-compress, commons-lang3, and commons-compress's own commons-io/commons-codec -->
+                  <pattern>org.apache.commons</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>de.siegmar.fastcsv</pattern>
                   <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.de.siegmar.fastcsv</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>nl.altindag.ssl</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag.ssl</shadedPattern>
-                </relocation>
-                <relocation>
-                  <!-- transitive dependency of ayza -->
-                  <pattern>nl.altindag.sude</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag.sude</shadedPattern>
+                  <!-- ayza, sude (transitive dependency of ayza) -->
+                  <pattern>nl.altindag</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.bouncycastle</pattern>
