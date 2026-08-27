@@ -10,11 +10,12 @@
   <artifactId>sonar-scanner-java-library-shaded</artifactId>
   <name>SonarScanner Java Library :: Shaded</name>
   <description>
-    Fat jar of sonar-scanner-java-library with every third-party runtime dependency (gson, commons-compress,
-    commons-lang3, fastcsv, ayza, BouncyCastle) relocated under org.sonarsource.scanner.lib.internal, so that the
-    scanner never conflicts with a different version of any of them already present on the classpath. This is meant
-    for embedding tools that don't isolate their plugins in separate classloaders (e.g. Gradle / AGP) - Maven and
-    the CLI don't need it, and keep depending on the plain sonar-scanner-java-library artifact instead.
+    Fat jar of sonar-scanner-java-library with every third-party runtime dependency - direct (gson, commons-compress,
+    commons-lang3, fastcsv, ayza, BouncyCastle) and transitive (commons-io, commons-codec, sude,
+    error_prone_annotations) - relocated under org.sonarsource.scanner.lib.internal, so that the scanner never
+    conflicts with a different version of any of them already present on the classpath. This is meant for embedding
+    tools that don't isolate their plugins in separate classloaders (e.g. Gradle / AGP) - Maven and the CLI don't
+    need it, and keep depending on the plain sonar-scanner-java-library artifact instead.
     This module has no sources of its own: it only relocates sonar-scanner-java-library and its dependencies.
   </description>
 
@@ -47,17 +48,18 @@
               -->
               <createDependencyReducedPom>true</createDependencyReducedPom>
               <artifactSet>
-                <includes>
-                  <include>${project.groupId}:sonar-scanner-java-library</include>
-                  <include>${project.groupId}:sonar-scanner-download-cache</include>
-                  <include>${project.groupId}:sonar-scanner-java-library-batch-interface</include>
-                  <include>com.google.code.gson:gson</include>
-                  <include>org.apache.commons:commons-compress</include>
-                  <include>org.apache.commons:commons-lang3</include>
-                  <include>de.siegmar:fastcsv</include>
-                  <include>io.github.hakky54:ayza</include>
-                  <include>org.bouncycastle:bcprov-jdk18on</include>
-                </includes>
+                <!--
+                  Exclude rather than include: commons-compress and ayza pull their own non-optional compile
+                  dependencies (commons-io, commons-codec, sude) that must be shaded too, or their classes are
+                  simply missing from the jar (NoClassDefFoundError at runtime) since they'd be neither packaged
+                  nor left as a declared dependency. Excluding only what must stay off the runtime classpath is
+                  robust to lib gaining new transitive dependencies later; only their relocation still needs to be
+                  added by hand below, and verified by inspecting the built jar for unrelocated leftovers.
+                -->
+                <excludes>
+                  <exclude>org.slf4j:slf4j-api</exclude>
+                  <exclude>com.google.code.findbugs:jsr305</exclude>
+                </excludes>
               </artifactSet>
               <relocations>
                 <relocation>
@@ -65,8 +67,22 @@
                   <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google.gson</shadedPattern>
                 </relocation>
                 <relocation>
+                  <pattern>com.google.errorprone</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google.errorprone</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>org.apache.commons.compress</pattern>
                   <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.compress</shadedPattern>
+                </relocation>
+                <relocation>
+                  <!-- transitive dependency of commons-compress -->
+                  <pattern>org.apache.commons.io</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.io</shadedPattern>
+                </relocation>
+                <relocation>
+                  <!-- transitive dependency of commons-compress -->
+                  <pattern>org.apache.commons.codec</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons.codec</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons.lang3</pattern>
@@ -81,8 +97,13 @@
                   <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag.ssl</shadedPattern>
                 </relocation>
                 <relocation>
+                  <!-- transitive dependency of ayza -->
+                  <pattern>nl.altindag.sude</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag.sude</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>org.bouncycastle</pattern>
-                  <shadedPattern>org.sonarsource.scanner.lib.internal.impldep.org.bouncycastle</shadedPattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.bouncycastle</shadedPattern>
                   <excludes>
                     <!--
                       org.bouncycastle.pkcs12.ignore_useless_passwd is NOT a class but a BouncyCastle
@@ -127,6 +148,14 @@
               <transformers>
                 <!-- Rewrites META-INF/services/java.security.Provider to the relocated BouncyCastleProvider name -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <!--
+                  This jar bundles Apache-2.0 licensed code (gson, commons-compress, commons-io, commons-codec,
+                  commons-lang3, error_prone_annotations) alongside MIT-licensed code (BouncyCastle, fastcsv, ayza,
+                  sude). Without these, colliding META-INF/LICENSE and META-INF/NOTICE entries from the merged jars
+                  would be resolved arbitrarily (first one wins), dropping the others' attribution.
+                -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
               </transformers>
             </configuration>
           </execution>
