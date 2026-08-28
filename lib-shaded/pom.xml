@@ -218,11 +218,23 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                 <!--
                   This jar bundles Apache-2.0 licensed code (gson, commons-compress, commons-io, commons-codec,
-                  commons-lang3, error_prone_annotations) alongside MIT-licensed code (BouncyCastle, fastcsv, ayza,
-                  sude). Without these, colliding META-INF/LICENSE and META-INF/NOTICE entries from the merged jars
-                  would be resolved arbitrarily (first one wins), dropping the others' attribution.
+                  commons-lang3, error_prone_annotations, ayza, sude) alongside MIT-licensed code (BouncyCastle,
+                  fastcsv). ApacheLicenseResourceTransformer is deliberately NOT used here: despite its name, it
+                  doesn't merge or dedupe META-INF/LICENSE(.txt|.md) entries, it unconditionally drops every one of
+                  them (processResource is a no-op and hasTransformedResource() returns false) - which would
+                  silently strip BouncyCastle's own bundled MIT META-INF/LICENSE.md from the shaded jar. Leaving
+                  LICENSE(.txt) resources untransformed instead falls back to the shade plugin's default
+                  last-jar-wins merge for the colliding path, same as the META-INF/MANIFEST.MF overlap warned about
+                  above - harmless here since commons-compress/io/codec/lang3 all bundle the same Apache-2.0
+                  boilerplate text, and BouncyCastle's own META-INF/LICENSE.md is a distinct path so it isn't even
+                  part of that collision. ApacheNoticeResourceTransformer genuinely merges META-INF/NOTICE(.txt)
+                  content, so it stays.
+                  Residual gap, not something this shade config can fix: fastcsv, ayza, sude, gson and
+                  error_prone_annotations bundle no META-INF/LICENSE file of their own at all (verified against
+                  their jars) - their license is only declared in their POM's <licenses>, which is why
+                  third-party-licenses.sh (license-maven-plugin, run at the reactor root) remains the source of
+                  truth for full third-party attribution, rather than this jar's own META-INF content.
                 -->
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
               </transformers>
             </configuration>
