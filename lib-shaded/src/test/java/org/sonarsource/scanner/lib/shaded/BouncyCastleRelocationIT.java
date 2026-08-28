@@ -19,8 +19,6 @@
  */
 package org.sonarsource.scanner.lib.shaded;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -33,6 +31,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -124,9 +127,9 @@ class BouncyCastleRelocationIT {
           continue;
         }
         try (InputStream in = jarFile.getInputStream(entry)) {
-          for (String constant : readUtf8Constants(in.readAllBytes())) {
-            if (DOTTED_BOUNCYCASTLE_LITERAL.matcher(constant).matches()) {
-              literals.add(constant);
+          for (String literal : collectStringLiterals(in.readAllBytes())) {
+            if (DOTTED_BOUNCYCASTLE_LITERAL.matcher(literal).matches()) {
+              literals.add(literal);
             }
           }
         }
@@ -136,52 +139,33 @@ class BouncyCastleRelocationIT {
   }
 
   /**
-   * Reads every CONSTANT_Utf8 entry of a class file's constant pool (JVM spec 4.4), which is where both class/
-   * member names and String literals (via LDC or a field's ConstantValue attribute) ultimately live.
+   * Every String constant a class file can hand to shade's own relocator: an LDC-loaded literal, or a field's
+   * ConstantValue default - see maven-shade-plugin's DefaultShader.LazyInitRemapper#mapValue, the ASM
+   * Remapper hook it overrides to rewrite dotted string constants.
    */
-  private static Set<String> readUtf8Constants(byte[] classBytes) throws IOException {
-    Set<String> utf8Constants = new HashSet<>();
-    try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(classBytes))) {
-      in.readInt(); // magic
-      in.readUnsignedShort(); // minor version
-      in.readUnsignedShort(); // major version
-      int constantPoolCount = in.readUnsignedShort();
-      for (int i = 1; i < constantPoolCount; i++) {
-        int tag = in.readUnsignedByte();
-        switch (tag) {
-          case 1:
-            utf8Constants.add(in.readUTF());
-            break;
-          case 7:
-          case 8:
-          case 16:
-          case 19:
-          case 20:
-            in.skipBytes(2);
-            break;
-          case 15:
-            in.skipBytes(3);
-            break;
-          case 3:
-          case 4:
-          case 9:
-          case 10:
-          case 11:
-          case 12:
-          case 17:
-          case 18:
-            in.skipBytes(4);
-            break;
-          case 5:
-          case 6:
-            in.skipBytes(8);
-            i++; // long/double constants occupy two constant pool entries
-            break;
-          default:
-            throw new IllegalStateException("Unexpected constant pool tag: " + tag);
+  private static Set<String> collectStringLiterals(byte[] classBytes) {
+    Set<String> literals = new HashSet<>();
+    new ClassReader(classBytes).accept(new ClassVisitor(Opcodes.ASM9) {
+      @Override
+      public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+        if (value instanceof String) {
+          literals.add((String) value);
         }
+        return null;
       }
-    }
-    return utf8Constants;
+
+      @Override
+      public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        return new MethodVisitor(Opcodes.ASM9) {
+          @Override
+          public void visitLdcInsn(Object value) {
+            if (value instanceof String) {
+              literals.add((String) value);
+            }
+          }
+        };
+      }
+    }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+    return literals;
   }
 }
