@@ -1,0 +1,295 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonarsource.scanner.lib</groupId>
+    <artifactId>sonar-scanner-java-library-parent</artifactId>
+    <version>4.2-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sonar-scanner-java-library-shaded</artifactId>
+  <name>SonarScanner Java Library :: Shaded</name>
+  <description>
+    Fat jar of sonar-scanner-java-library with every third-party runtime dependency - direct (gson, commons-compress,
+    commons-lang3, fastcsv, ayza, BouncyCastle) and transitive (commons-io, commons-codec, sude,
+    error_prone_annotations) - relocated under org.sonarsource.scanner.lib.internal, so that the scanner never
+    conflicts with a different version of any of them already present on the classpath. This is meant for embedding
+    tools that don't isolate their plugins in separate classloaders (e.g. Gradle / AGP) - Maven and the CLI don't
+    need it, and keep depending on the plain sonar-scanner-java-library artifact instead.
+    This module has no main sources of its own: it only relocates sonar-scanner-java-library and its dependencies.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sonar-scanner-java-library</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Explicit version: not managed by the SonarSource parent -->
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>9.10.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <!-- Explicit version: the SonarSource parent pins 3.6.0 in pluginManagement -->
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <!--
+                Keep createDependencyReducedPom enabled (the default): the published pom must NOT declare gson,
+                commons-compress, commons-lang3, fastcsv, ayza or bcprov-jdk18on, otherwise consumers would still
+                get the original, unrelocated libraries transitively and the relocation would be pointless.
+              -->
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <artifactSet>
+                <!--
+                  Exclude rather than include: commons-compress and ayza pull their own non-optional compile
+                  dependencies (commons-io, commons-codec, sude) that must be shaded too, or their classes are
+                  simply missing from the jar (NoClassDefFoundError at runtime) since they'd be neither packaged
+                  nor left as a declared dependency. Excluding only what must stay off the runtime classpath is
+                  robust to lib gaining new transitive dependencies later; only their relocation still needs to be
+                  added by hand below, and verified by inspecting the built jar for unrelocated leftovers.
+                -->
+                <excludes>
+                  <exclude>org.slf4j:slf4j-api</exclude>
+                  <exclude>com.google.code.findbugs:jsr305</exclude>
+                </excludes>
+              </artifactSet>
+              <relocations>
+                <!--
+                  One relocation per shared top-level namespace instead of per library: none of the bundled
+                  libraries' packages overlap outside these namespaces (verified against each jar's contents), so
+                  this also covers their own transitive dependencies automatically - e.g. commons-compress pulling
+                  in commons-io/commons-codec, or gson pulling in error_prone_annotations - without needing a
+                  dedicated relocation entry added by hand for each one.
+                -->
+                <relocation>
+                  <!-- gson, error_prone_annotations (transitive dependency of gson) -->
+                  <pattern>com.google</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.com.google</shadedPattern>
+                </relocation>
+                <relocation>
+                  <!-- commons-compress, commons-lang3, and commons-compress's own commons-io/commons-codec -->
+                  <pattern>org.apache.commons</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.apache.commons</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>de.siegmar.fastcsv</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.de.siegmar.fastcsv</shadedPattern>
+                </relocation>
+                <relocation>
+                  <!-- ayza, sude (transitive dependency of ayza) -->
+                  <pattern>nl.altindag</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.nl.altindag</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.bouncycastle</pattern>
+                  <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.bouncycastle</shadedPattern>
+                  <excludes>
+                    <!--
+                      None of these are classes: they are BouncyCastle system-property names, read as String
+                      literals throughout bcprov (not only in org.bouncycastle.util.Properties, but also
+                      directly at call sites in e.g. ASN1Integer, RSAKeyParameters, ECCurve, PKCS1Encoding,
+                      the PKCS12/BC/BCFKS KeyStoreSpis, Argon2Parameters - see e.g.
+                      HttpClientFactory.BC_IGNORE_USELESS_PASSWD, forwarded as a -D argument by
+                      ScannerEngineLauncher to the forked scanner-engine JVM, which runs its own unrelocated
+                      BouncyCastle). The shade plugin rewrites string constants that look like class names,
+                      which would rename these properties in the shaded jar but not on the other side of that
+                      boundary - both sides must agree on the original name.
+                      Listed individually, one exclude per property, rather than as package wildcards
+                      (e.g. "org.bouncycastle.x509.*"): several properties (x509.*, asn1.*) share their
+                      prefix with a real BouncyCastle package that contains real classes needing relocation
+                      (org.bouncycastle.x509, org.bouncycastle.asn1), so a wildcard exclude there would also
+                      stop those real classes from being relocated. Exact literals only match the property
+                      strings themselves.
+                      BouncyCastleRelocationIT (lib-shaded/src/test/java) scans bcprov-jdk18on for every
+                      org.bouncycastle.* string literal that isn't a real class/resource reference and fails
+                      the build if one is missing here, so this list doesn't need to be re-audited by hand on
+                      a BouncyCastle upgrade - just add whatever the failing test reports.
+                    -->
+                    <exclude>org.bouncycastle.emulate.oracle</exclude>
+                    <exclude>org.bouncycastle.pkcs12.ignore_useless_passwd</exclude>
+                    <exclude>org.bouncycastle.pkcs12.max_it_count</exclude>
+                    <exclude>org.bouncycastle.pkcs12.allow_sun_secret_keys</exclude>
+                    <exclude>org.bouncycastle.pkcs12.default</exclude>
+                    <exclude>org.bouncycastle.x509.crl_cache_ttl</exclude>
+                    <exclude>org.bouncycastle.x509.enableCRLDP</exclude>
+                    <exclude>org.bouncycastle.x509.max_policy_nodes</exclude>
+                    <exclude>org.bouncycastle.x509.max_cert_path_build_nodes</exclude>
+                    <exclude>org.bouncycastle.x509.sgp22_name_constraints</exclude>
+                    <exclude>org.bouncycastle.x509.allow_lenient_rfc822_name</exclude>
+                    <exclude>org.bouncycastle.x509.allow_empty_issuer_cert</exclude>
+                    <exclude>org.bouncycastle.x509.allow_absent_equiv_NULL</exclude>
+                    <exclude>org.bouncycastle.x509.allow_ca_without_crl_sign</exclude>
+                    <exclude>org.bouncycastle.x509.allow_non-der_tbscert</exclude>
+                    <exclude>org.bouncycastle.x509.ignore_repeated_extensions</exclude>
+                    <exclude>org.bouncycastle.pkcs1.strict_digestinfo</exclude>
+                    <exclude>org.bouncycastle.pkcs1.strict</exclude>
+                    <exclude>org.bouncycastle.pkcs1.not_strict</exclude>
+                    <exclude>org.bouncycastle.pkcs8.v1_info_only</exclude>
+                    <exclude>org.bouncycastle.jsse.hostname_check_cn_fallback</exclude>
+                    <exclude>org.bouncycastle.drbg.effective_256bits_entropy</exclude>
+                    <exclude>org.bouncycastle.drbg.entropysource</exclude>
+                    <exclude>org.bouncycastle.drbg.entropy_thread</exclude>
+                    <exclude>org.bouncycastle.drbg.gather_pause_secs</exclude>
+                    <exclude>org.bouncycastle.asn1.allow_non_der_time</exclude>
+                    <exclude>org.bouncycastle.asn1.max_cons_depth</exclude>
+                    <exclude>org.bouncycastle.asn1.max_limit</exclude>
+                    <exclude>org.bouncycastle.asn1.allow_unsafe_integer</exclude>
+                    <exclude>org.bouncycastle.asn1.allow_wrong_oid_enc</exclude>
+                    <exclude>org.bouncycastle.dh.max_size</exclude>
+                    <exclude>org.bouncycastle.dh.allow_unsafe_p_value</exclude>
+                    <exclude>org.bouncycastle.dsa.max_size</exclude>
+                    <exclude>org.bouncycastle.dsa.FIPS186-2for1024bits</exclude>
+                    <exclude>org.bouncycastle.bcfks.max_it_count</exclude>
+                    <exclude>org.bouncycastle.bcfks.max_scrypt_memory</exclude>
+                    <exclude>org.bouncycastle.pbe.max_iteration_count</exclude>
+                    <exclude>org.bouncycastle.pbe.max_scrypt_memory</exclude>
+                    <exclude>org.bouncycastle.pkmac.max_iteration_count</exclude>
+                    <exclude>org.bouncycastle.gcm.allow_short_tags</exclude>
+                    <exclude>org.bouncycastle.bks.enable_v1</exclude>
+                    <exclude>org.bouncycastle.bks.max_it_count</exclude>
+                    <exclude>org.bouncycastle.ec.disable</exclude>
+                    <exclude>org.bouncycastle.ec.disable_f2m</exclude>
+                    <exclude>org.bouncycastle.ec.disable_mqv</exclude>
+                    <exclude>org.bouncycastle.ec.enable_pc</exclude>
+                    <exclude>org.bouncycastle.ec.fp_certainty</exclude>
+                    <exclude>org.bouncycastle.ec.fp_max_size</exclude>
+                    <exclude>org.bouncycastle.ec.max_f2m_field_size</exclude>
+                    <exclude>org.bouncycastle.fpe.disable</exclude>
+                    <exclude>org.bouncycastle.fpe.disable_ff1</exclude>
+                    <exclude>org.bouncycastle.rsa.max_size</exclude>
+                    <exclude>org.bouncycastle.rsa.allow_unsafe_mod</exclude>
+                    <exclude>org.bouncycastle.rsa.no_lenstra_check</exclude>
+                    <exclude>org.bouncycastle.rsa.max_mr_tests</exclude>
+                    <exclude>org.bouncycastle.argon2.max_memory_exp</exclude>
+                    <exclude>org.bouncycastle.argon2.max_passes</exclude>
+                    <exclude>org.bouncycastle.argon2.max_parallelism</exclude>
+                    <exclude>org.bouncycastle.pemreader.lax</exclude>
+                    <exclude>org.bouncycastle.constraints.allow_override</exclude>
+                  </excludes>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <!--
+                    gson, commons-compress, commons-lang3, fastcsv, ayza and bcprov-jdk18on are all JPMS modules.
+                    A shaded/relocated fat jar isn't a valid JPMS module (relocated packages would clash with
+                    split-package rules), and MSHADE-406 is still unfixed in 3.6.2: versioned entries get their
+                    contents relocated but not their paths, so they'd be unusable dead weight even if kept. Dropping
+                    module-info.class and all versioned entries falls back to the base classes for every one of
+                    these libraries.
+                    For gson/commons-compress/commons-lang3 that's a no-op: their only versioned entries are JDK9+
+                    copies of module-info.class. bcprov-jdk18on is different: its META-INF/versions/{17,25} carry
+                    classes with no base-tree counterpart, registered by always-loaded base Mappings classes -
+                    KEM.ML-KEM (versions/17 MLKEMSpi) and the JCE KDF services KDF.PBKDF2*/HKDF-* (versions/25
+                    PBKDF2Spi/HKDFSpi). Dropping them means the shaded provider would advertise those algorithms
+                    but fail to instantiate them (NoSuchAlgorithmException) on a JDK new enough to activate them -
+                    accepted here because this module only ever uses BouncyCastle to load a PKCS12 keystore
+                    (HttpClientFactory/ScannerEngineLauncher), never ML-KEM or the public KDF.* services.
+                  -->
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/**</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.bouncycastle:bcprov-jdk18on</artifact>
+                  <excludes>
+                    <!-- bcprov is a signed jar; repackaging invalidates the signature -->
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <!-- Rewrites META-INF/services/java.security.Provider to the relocated BouncyCastleProvider name -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <!--
+                  This jar bundles Apache-2.0 licensed code (gson, commons-compress, commons-io, commons-codec,
+                  commons-lang3, error_prone_annotations, ayza, sude) alongside MIT-licensed code (BouncyCastle,
+                  fastcsv). ApacheLicenseResourceTransformer is deliberately NOT used here: despite its name, it
+                  doesn't merge or dedupe META-INF/LICENSE(.txt|.md) entries, it unconditionally drops every one of
+                  them (processResource is a no-op and hasTransformedResource() returns false) - which would
+                  silently strip BouncyCastle's own bundled MIT META-INF/LICENSE.md from the shaded jar. Leaving
+                  LICENSE(.txt) resources untransformed instead falls back to the shade plugin's default behaviour
+                  for a colliding path - the first jar processed wins and every later duplicate is silently
+                  skipped - same as the META-INF/MANIFEST.MF overlap warned about above. Harmless here since
+                  commons-compress/io/codec/lang3 all bundle the same Apache-2.0 boilerplate text (so whichever of
+                  them is first doesn't matter), and BouncyCastle's own META-INF/LICENSE.md is a distinct path so
+                  it isn't even part of that collision. ApacheNoticeResourceTransformer genuinely merges
+                  META-INF/NOTICE(.txt) content, so it stays.
+                  Residual gap, not something this shade config can fix: fastcsv, ayza, sude, gson and
+                  error_prone_annotations bundle no META-INF/LICENSE file of their own at all (verified against
+                  their jars) - their license is only declared in their POM's <licenses>, which is why
+                  third-party-licenses.sh (license-maven-plugin, run at the reactor root) remains the source of
+                  truth for full third-party attribution, rather than this jar's own META-INF content.
+                -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- Exposes the resolved bcprov-jdk18on jar path as a property, for BouncyCastleRelocationIT -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>expose-dependency-jar-paths</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <!-- Explicit version: unlike surefire, not pinned by the SonarSource parent's pluginManagement -->
+        <version>3.5.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables>
+                <bcprovJarPath>${org.bouncycastle:bcprov-jdk18on:jar}</bcprovJarPath>
+                <shadedJarPath>${project.build.directory}/${project.build.finalName}.jar</shadedJarPath>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
