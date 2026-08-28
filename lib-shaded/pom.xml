@@ -19,11 +19,50 @@
     This module has no main sources of its own: it only relocates sonar-scanner-java-library and its dependencies.
   </description>
 
+  <properties>
+    <!--
+      This module has no sources of its own, so both the -sources jar (maven-source-plugin, bound by the SonarSource
+      parent in every build) and the -javadoc jar (maven-javadoc-plugin, bound by the same parent in the release
+      profile) silently produce nothing: the former logs "No sources in project. Archive not created.", the latter
+      skips a project with no Java sources altogether. Maven Central rejects a release missing either one
+      ("Sources must be provided but not found in entries" / "Javadocs must be provided but not found in entries"),
+      so both are built below from lib's sources instead.
+      Those are the right content, not a stand-in: only third-party code is relocated here, while this artifact's own
+      API - org.sonarsource.scanner.lib.* - is published under its original names, identical to the classes in
+      sonar-scanner-java-library. So lib's sources document this jar's API exactly, and the sources of the relocated
+      third-party code remain available from the original artifacts.
+      Referenced as a directory rather than through lib's own -sources jar, so that it resolves identically in every
+      invocation: the parent binds attach-sources to the verify phase, i.e. after this module has already been
+      packaged, so lib's -sources artifact isn't reliably available to this module while it builds.
+    -->
+    <lib.sourceDirectory>${project.parent.basedir}/lib/src/main/java</lib.sourceDirectory>
+    <lib.resourcesDirectory>${project.parent.basedir}/lib/src/main/resources</lib.resourcesDirectory>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>sonar-scanner-java-library</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <!--
+      slf4j-api and jsr305 are needed to javadoc the sources above (they are imported by 20 and 32 of lib's classes
+      respectively, and javadoc fails on an unresolvable import). Declared exactly as lib declares them - provided,
+      because the scanner expects both to come from the embedding tool's own classpath - which also keeps them out of
+      the fat jar: the shade plugin resolves dependencies at runtime scope, so provided ones are not bundled, and the
+      artifactSet excludes below spell that out for these two anyway. Being provided, they stay non-transitive for
+      consumers of the published pom.
+    -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -257,6 +296,54 @@
         </executions>
       </plugin>
       <plugin>
+        <!--
+          Builds the -sources jar from lib's sources (see lib.sourceDirectory above). maven-jar-plugin rather than
+          maven-source-plugin, whose jar-no-fork goal only ever archives the project's own compile source roots: the
+          only way to feed it another directory is to register that directory as a compile source root
+          (build-helper add-source), which would also make the compiler build lib's classes a second time here -
+          unrelocated, and against a classpath that lacks lib's provided dependencies.
+        -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-lib-sources</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>sources</classifier>
+              <classesDirectory>${lib.sourceDirectory}</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!--
+          The parent's own attach-sources execution is superseded by the one above: left enabled it is a no-op that
+          logs "No sources in project. Archive not created." on every build - indistinguishable from the missing
+          -sources jar this configuration exists to fix - and would attach a second artifact under the same sources
+          classifier, breaking install/deploy, should this module ever gain sources of its own.
+        -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <configuration>
+          <skipSource>true</skipSource>
+        </configuration>
+      </plugin>
+      <plugin>
+        <!--
+          Configuration only, no execution: the SonarSource parent already binds attach-javadocs in its release
+          profile, so the -javadoc jar keeps being built exactly when it is for every other module of this reactor.
+        -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <sourcepath>${lib.sourceDirectory}</sourcepath>
+        </configuration>
+      </plugin>
+      <plugin>
         <!-- Exposes the resolved bcprov-jdk18on jar path as a property, for BouncyCastleRelocationIT -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -286,6 +373,26 @@
                 <bcprovJarPath>${org.bouncycastle:bcprov-jdk18on:jar}</bcprovJarPath>
                 <shadedJarPath>${project.build.directory}/${project.build.finalName}.jar</shadedJarPath>
               </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.6.3</version>
+        <executions>
+          <execution>
+            <id>check-lib-source-directory</id>
+            <phase>process-resources</phase>
+            <goals><goal>enforce</goal></goals>
+            <configuration>
+              <rules>
+                <!-- Fail fast if the above "<lib.sourceDirectory>" is wrongly set to an invalid path instead of silently producing an empty -sources jar -->
+                <requireFilesExist>
+                  <files><file>${lib.sourceDirectory}</file></files>
+                </requireFilesExist>
+              </rules>
             </configuration>
           </execution>
         </executions>
