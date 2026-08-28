@@ -93,15 +93,52 @@
                   <shadedPattern>org.sonarsource.scanner.lib.internal.shaded.org.bouncycastle</shadedPattern>
                   <excludes>
                     <!--
-                      org.bouncycastle.pkcs12.ignore_useless_passwd is NOT a class but a BouncyCastle
-                      system-property name, read as a plain string constant by PKCS12KeyStoreSpi. The shade
-                      plugin rewrites string constants that look like class names, which would rename this
-                      property in the shaded jar but not in the forked scanner-engine JVM it's forwarded to
-                      (HttpClientFactory.BC_IGNORE_USELESS_PASSWD / ScannerEngineLauncher), which runs its own
-                      unrelocated BouncyCastle. Both sides must agree on the original name.
-                      bcprov has no real org.bouncycastle.pkcs12 package, so nothing else is affected.
+                      None of these are classes: they are the BouncyCastle system-property names defined as
+                      String constants in org.bouncycastle.util.Properties (read via System properties,
+                      java.security, or Properties.setThreadOverride/isOverrideSet - see e.g.
+                      HttpClientFactory.BC_IGNORE_USELESS_PASSWD, forwarded as a -D argument by
+                      ScannerEngineLauncher to the forked scanner-engine JVM, which runs its own unrelocated
+                      BouncyCastle). The shade plugin rewrites string constants that look like class names,
+                      which would rename these properties in the shaded jar but not on the other side of that
+                      boundary - both sides must agree on the original name.
+                      Listed individually, one exclude per property, rather than as package wildcards
+                      (e.g. "org.bouncycastle.x509.*"): several properties (x509.*, asn1.*) share their
+                      prefix with a real BouncyCastle package that contains real classes needing relocation
+                      (org.bouncycastle.x509, org.bouncycastle.asn1), so a wildcard exclude there would also
+                      stop those real classes from being relocated. Exact literals only match the property
+                      strings themselves.
+                      Keep this list in sync with org.bouncycastle.util.Properties in bcprov-jdk18on.
                     -->
-                    <exclude>org.bouncycastle.pkcs12.*</exclude>
+                    <exclude>org.bouncycastle.emulate.oracle</exclude>
+                    <exclude>org.bouncycastle.pkcs12.ignore_useless_passwd</exclude>
+                    <exclude>org.bouncycastle.pkcs12.max_it_count</exclude>
+                    <exclude>org.bouncycastle.pkcs12.allow_sun_secret_keys</exclude>
+                    <exclude>org.bouncycastle.x509.crl_cache_ttl</exclude>
+                    <exclude>org.bouncycastle.x509.enableCRLDP</exclude>
+                    <exclude>org.bouncycastle.x509.max_policy_nodes</exclude>
+                    <exclude>org.bouncycastle.x509.max_cert_path_build_nodes</exclude>
+                    <exclude>org.bouncycastle.x509.sgp22_name_constraints</exclude>
+                    <exclude>org.bouncycastle.x509.allow_lenient_rfc822_name</exclude>
+                    <exclude>org.bouncycastle.x509.allow_empty_issuer_cert</exclude>
+                    <exclude>org.bouncycastle.pkcs1.strict_digestinfo</exclude>
+                    <exclude>org.bouncycastle.jsse.hostname_check_cn_fallback</exclude>
+                    <exclude>org.bouncycastle.drbg.effective_256bits_entropy</exclude>
+                    <exclude>org.bouncycastle.drbg.entropysource</exclude>
+                    <exclude>org.bouncycastle.drbg.entropy_thread</exclude>
+                    <exclude>org.bouncycastle.drbg.gather_pause_secs</exclude>
+                    <exclude>org.bouncycastle.asn1.allow_non_der_time</exclude>
+                    <exclude>org.bouncycastle.asn1.max_cons_depth</exclude>
+                    <exclude>org.bouncycastle.asn1.max_limit</exclude>
+                    <exclude>org.bouncycastle.dh.max_size</exclude>
+                    <exclude>org.bouncycastle.dsa.max_size</exclude>
+                    <exclude>org.bouncycastle.bcfks.max_it_count</exclude>
+                    <exclude>org.bouncycastle.bcfks.max_scrypt_memory</exclude>
+                    <exclude>org.bouncycastle.pbe.max_iteration_count</exclude>
+                    <exclude>org.bouncycastle.pbe.max_scrypt_memory</exclude>
+                    <exclude>org.bouncycastle.pkmac.max_iteration_count</exclude>
+                    <exclude>org.bouncycastle.gcm.allow_short_tags</exclude>
+                    <exclude>org.bouncycastle.bks.enable_v1</exclude>
+                    <exclude>org.bouncycastle.bks.max_it_count</exclude>
                   </excludes>
                 </relocation>
               </relocations>
