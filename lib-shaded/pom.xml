@@ -196,13 +196,20 @@
               <filters>
                 <filter>
                   <!--
-                    gson, commons-compress, commons-lang3, fastcsv, ayza and bcprov-jdk18on are all JPMS modules,
-                    and gson/commons-compress/commons-lang3 are also multi-release jars whose only versioned
-                    entries are JDK9+ copies of module-info.class - no functional code. A shaded/relocated fat jar
-                    isn't a valid JPMS module (relocated packages would clash with split-package rules), and
-                    MSHADE-406 is still unfixed in 3.6.2: versioned entries get their contents relocated but not
-                    their paths, making them unusable dead weight either way. Dropping module-info.class and all
-                    versioned entries falls back to the base classes, which is all this module needs.
+                    gson, commons-compress, commons-lang3, fastcsv, ayza and bcprov-jdk18on are all JPMS modules.
+                    A shaded/relocated fat jar isn't a valid JPMS module (relocated packages would clash with
+                    split-package rules), and MSHADE-406 is still unfixed in 3.6.2: versioned entries get their
+                    contents relocated but not their paths, so they'd be unusable dead weight even if kept. Dropping
+                    module-info.class and all versioned entries falls back to the base classes for every one of
+                    these libraries.
+                    For gson/commons-compress/commons-lang3 that's a no-op: their only versioned entries are JDK9+
+                    copies of module-info.class. bcprov-jdk18on is different: its META-INF/versions/{17,25} carry
+                    classes with no base-tree counterpart, registered by always-loaded base Mappings classes -
+                    KEM.ML-KEM (versions/17 MLKEMSpi) and the JCE KDF services KDF.PBKDF2*/HKDF-* (versions/25
+                    PBKDF2Spi/HKDFSpi). Dropping them means the shaded provider would advertise those algorithms
+                    but fail to instantiate them (NoSuchAlgorithmException) on a JDK new enough to activate them -
+                    accepted here because this module only ever uses BouncyCastle to load a PKCS12 keystore
+                    (HttpClientFactory/ScannerEngineLauncher), never ML-KEM or the public KDF.* services.
                   -->
                   <artifact>*:*</artifact>
                   <excludes>
@@ -230,12 +237,13 @@
                   doesn't merge or dedupe META-INF/LICENSE(.txt|.md) entries, it unconditionally drops every one of
                   them (processResource is a no-op and hasTransformedResource() returns false) - which would
                   silently strip BouncyCastle's own bundled MIT META-INF/LICENSE.md from the shaded jar. Leaving
-                  LICENSE(.txt) resources untransformed instead falls back to the shade plugin's default
-                  last-jar-wins merge for the colliding path, same as the META-INF/MANIFEST.MF overlap warned about
-                  above - harmless here since commons-compress/io/codec/lang3 all bundle the same Apache-2.0
-                  boilerplate text, and BouncyCastle's own META-INF/LICENSE.md is a distinct path so it isn't even
-                  part of that collision. ApacheNoticeResourceTransformer genuinely merges META-INF/NOTICE(.txt)
-                  content, so it stays.
+                  LICENSE(.txt) resources untransformed instead falls back to the shade plugin's default behaviour
+                  for a colliding path - the first jar processed wins and every later duplicate is silently
+                  skipped - same as the META-INF/MANIFEST.MF overlap warned about above. Harmless here since
+                  commons-compress/io/codec/lang3 all bundle the same Apache-2.0 boilerplate text (so whichever of
+                  them is first doesn't matter), and BouncyCastle's own META-INF/LICENSE.md is a distinct path so
+                  it isn't even part of that collision. ApacheNoticeResourceTransformer genuinely merges
+                  META-INF/NOTICE(.txt) content, so it stays.
                   Residual gap, not something this shade config can fix: fastcsv, ayza, sude, gson and
                   error_prone_annotations bundle no META-INF/LICENSE file of their own at all (verified against
                   their jars) - their license is only declared in their POM's <licenses>, which is why
