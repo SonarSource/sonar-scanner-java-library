@@ -25,6 +25,24 @@
       <artifactId>sonar-scanner-java-library</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!--
+      slf4j-api and jsr305 are needed to javadoc the sources above. Declared exactly as lib declares them - provided,
+      because the scanner expects both to come from the embedding tool's own classpath - which also keeps them out of
+      the fat jar: the shade plugin resolves dependencies at runtime scope, so provided ones are not bundled, and the
+      artifactSet excludes below spell that out for these two anyway. Being provided, they stay non-transitive for
+      consumers of the published pom.
+    -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -58,6 +76,7 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <createSourcesJar>true</createSourcesJar>
               <!--
                 Keep createDependencyReducedPom enabled (the default): the published pom must NOT declare gson,
                 commons-compress, commons-lang3, fastcsv, ayza or bcprov-jdk18on, otherwise consumers would still
@@ -255,6 +274,21 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <!--
+          Configuration only, no execution: the SonarSource parent already binds attach-javadocs in its release
+          profile, so the -javadoc jar keeps being built exactly when it is for every other module of this reactor.
+        -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <includeDependencySources>true</includeDependencySources>
+          <dependencySourceIncludes>
+            <dependencySourceInclude>${project.groupId}:sonar-scanner-java-library</dependencySourceInclude>
+          </dependencySourceIncludes>
+          <doclint>none</doclint>
+        </configuration>
       </plugin>
       <plugin>
         <!-- Exposes the resolved bcprov-jdk18on jar path as a property, for BouncyCastleRelocationIT -->
