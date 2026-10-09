@@ -106,9 +106,11 @@ public class ScannerEndpointResolver {
     if (ignoredProperties.isEmpty()) {
       return;
     }
-    var ignoredPropertyList = ignoredProperties.stream().map(p -> "'" + p + "'").collect(toList());
-    LOG.warn("Property '{}' is set and takes precedence over {}, which will be ignored.", ScannerProperties.HOST_URL,
-      StringUtils.join(ignoredPropertyList, " and "));
+    if (LOG.isWarnEnabled()) {
+      var ignoredPropertyList = ignoredProperties.stream().map(p -> "'" + p + "'").collect(toList());
+      LOG.warn("Property '{}' is set and takes precedence over {}, which will be ignored.", ScannerProperties.HOST_URL,
+        StringUtils.join(ignoredPropertyList, " and "));
+    }
   }
 
   private static Optional<ScannerEndpoint> maybeResolveOfficialSonarQubeCloud(Map<String, String> properties, String urlPropName) {
