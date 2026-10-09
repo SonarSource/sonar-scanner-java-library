@@ -19,10 +19,14 @@
  */
 package org.sonarsource.scanner.lib.internal.endpoint;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.scanner.lib.EnvironmentConfig;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
@@ -33,11 +37,14 @@ import static org.apache.commons.lang3.StringUtils.trim;
 
 public class ScannerEndpointResolver {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ScannerEndpointResolver.class);
+
   private ScannerEndpointResolver() {
   }
 
   public static ScannerEndpoint resolveEndpoint(Map<String, String> properties) {
     if (properties.containsKey(ScannerProperties.HOST_URL)) {
+      warnIfSonarQubeCloudUrlPropertiesIgnored(properties);
       return resolveEndpointFromSonarHostUrl(properties);
     }
     return resolveSonarQubeCloudEndpoint(properties);
@@ -86,6 +93,22 @@ public class ScannerEndpointResolver {
   private static ScannerEndpoint resolveEndpointFromSonarHostUrl(Map<String, String> properties) {
     return maybeResolveOfficialSonarQubeCloud(properties, ScannerProperties.HOST_URL)
       .orElse(new SonarQubeServer(cleanUrl(properties.get(ScannerProperties.HOST_URL))));
+  }
+
+  private static void warnIfSonarQubeCloudUrlPropertiesIgnored(Map<String, String> properties) {
+    List<String> ignoredProperties = new ArrayList<>(2);
+    if (properties.containsKey(ScannerProperties.SONARQUBE_CLOUD_URL)) {
+      ignoredProperties.add(ScannerProperties.SONARQUBE_CLOUD_URL);
+    }
+    if (properties.containsKey(ScannerProperties.API_BASE_URL)) {
+      ignoredProperties.add(ScannerProperties.API_BASE_URL);
+    }
+    if (ignoredProperties.isEmpty()) {
+      return;
+    }
+    var ignoredPropertyList = ignoredProperties.stream().map(p -> "'" + p + "'").collect(toList());
+    LOG.warn("Property '{}' is set and takes precedence over {}, which will be ignored.", ScannerProperties.HOST_URL,
+      StringUtils.join(ignoredPropertyList, " and "));
   }
 
   private static Optional<ScannerEndpoint> maybeResolveOfficialSonarQubeCloud(Map<String, String> properties, String urlPropName) {
