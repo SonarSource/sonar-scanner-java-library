@@ -24,6 +24,16 @@
         "ch.qos.logback:logback-classic"
       ],
       "allowedVersions": "<1.3.0"
+    },
+    {
+      "description": "Keep integration-test Jetty dependencies on 10.x until ProxyServer's javax.servlet and Jetty APIs are migrated.",
+      "matchFileNames": [
+        "its/it-tests/pom.xml"
+      ],
+      "matchPackageNames": [
+        "org.eclipse.jetty:*"
+      ],
+      "allowedVersions": "<11.0.0"
     }
   ]
 }
