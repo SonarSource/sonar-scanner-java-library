@@ -4,12 +4,12 @@
   <parent>
     <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>87.0.0.3057</version>
+    <version>88.0.0.3367</version>
   </parent>
 
   <groupId>org.sonarsource.scanner.lib</groupId>
   <artifactId>sonar-scanner-java-library-parent</artifactId>
-  <version>4.2.1-SNAPSHOT</version>
+  <version>4.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>SonarScanner Java Library - Parent</name>
   <description>Common library used by all Java-based Scanners</description>

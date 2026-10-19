@@ -21,15 +21,21 @@ package org.sonarsource.scanner.lib.internal.endpoint;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.sonarsource.scanner.lib.ScannerProperties;
 import org.sonarsource.scanner.lib.internal.MessageException;
+import org.slf4j.event.Level;
+import testutils.LogTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScannerEndpointResolverTest {
+
+  @RegisterExtension
+  private final LogTester logTester = new LogTester();
 
   @Test
   void should_resolve_sonarqube_cloud_global_by_default() {
@@ -212,6 +218,31 @@ class ScannerEndpointResolverTest {
     assertThat(endpoint.isSonarQubeCloud()).isTrue();
     assertThat(endpoint.getWebEndpoint()).isEqualTo("https://preprod.sonarcloud.io");
     assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.preprod.sonarcloud.io");
+  }
+
+  @Test
+  void should_warn_when_host_url_overrides_sonarqube_cloud_url_properties() {
+    var props = Map.of(
+      ScannerProperties.HOST_URL, "https://sonarcloud.io",
+      ScannerProperties.SONARQUBE_CLOUD_URL, "https://dev22.sc-dev22.io",
+      ScannerProperties.API_BASE_URL, "https://api.sc-dev22.io"
+    );
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarcloud.io");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarcloud.io");
+    assertThat(logTester.logs(Level.WARN)).containsOnly(
+      "Property 'sonar.host.url' is set and takes precedence over 'sonar.scanner.sonarcloudUrl' and 'sonar.scanner.apiBaseUrl', which will be ignored.");
+  }
+
+  @Test
+  void should_not_warn_when_only_host_url_is_set() {
+    var props = Map.of(ScannerProperties.HOST_URL, "https://sonarcloud.io");
+
+    ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(logTester.logs(Level.WARN)).isEmpty();
   }
 
 }
