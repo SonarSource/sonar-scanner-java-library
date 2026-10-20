@@ -11,7 +11,7 @@
   <name>SonarScanner Java Library - Batch</name>
 
   <properties>
-    <sonarQubeVersion>26.4.0.121862</sonarQubeVersion>
+    <sonarQubeVersion>26.10.0.133078</sonarQubeVersion>
   </properties>
 
   <dependencies>

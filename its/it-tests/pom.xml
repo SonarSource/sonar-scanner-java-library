@@ -13,7 +13,7 @@
   
   <properties>
     <jetty.version>10.0.26</jetty.version>
-    <logback.version>1.5.34</logback.version>
+    <logback.version>1.6.5</logback.version>
     <sonar.skip>true</sonar.skip>
     <skipTests>true</skipTests>
   </properties>
@@ -28,7 +28,7 @@
     <dependency>
       <groupId>org.sonarsource.orchestrator</groupId>
       <artifactId>sonar-orchestrator-junit4</artifactId>
-      <version>6.4.3.4676</version>
+      <version>6.4.4.4797</version>
       <scope>test</scope>
     </dependency>
     
@@ -90,7 +90,7 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>3.10.0</version>
+      <version>3.13.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
