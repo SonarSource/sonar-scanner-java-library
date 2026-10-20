@@ -1,17 +1,21 @@
 name: Release
-# This workflow is triggered when publishing a GitHub release
+# Run manually with the full version of an existing build to release.
 on:
-  release:
-    types:
-      - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Full version including build number, e.g. 1.2.3.456'
+        type: string
+        required: true
 
 jobs:
   run_release:
     permissions:
       contents: write
       id-token: write
-    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v6
+    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v7
     with:
+      version: ${{ inputs.version }}
       publishToBinaries: true
       mavenCentralSync: true
       slackChannel: ops-ci-experience
