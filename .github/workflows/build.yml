@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
-          version: 2025.7.12
+          version: 2026.10.10
           tool_versions: |
             java temurin-21
 
@@ -64,7 +64,7 @@ jobs:
 
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
-          version: 2025.7.12
+          version: 2026.10.10
           tool_versions: |
             java temurin-${{ matrix.JAVA_VERSION }}
 
@@ -110,7 +110,7 @@ jobs:
       - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
         with:
           cache_save: false
-          version: 2025.7.12
+          version: 2026.10.10
       - uses: SonarSource/ci-github-actions/get-build-number@v1
       - uses: SonarSource/ci-github-actions/promote@v1
         with:
