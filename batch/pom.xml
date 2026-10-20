@@ -11,7 +11,7 @@
   <name>SonarScanner Java Library - Batch</name>
 
   <properties>
-    <sonarQubeVersion>25.9.0.112764</sonarQubeVersion>
+    <sonarQubeVersion>26.4.0.121862</sonarQubeVersion>
   </properties>
 
   <dependencies>
@@ -71,7 +71,7 @@
     <dependency>
       <groupId>org.sonarsource.api.plugin</groupId>
       <artifactId>sonar-plugin-api</artifactId>
-      <version>13.2.0.3137</version>
+      <version>14.2.0.5584</version>
       <scope>test</scope>
     </dependency>
     <dependency>
