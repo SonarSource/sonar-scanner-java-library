@@ -8,6 +8,13 @@
   ],
   "packageRules": [
     {
+      "description": "Keep FastCSV on 3.x while scanner bootstrapping supports Java 11; FastCSV 4.x requires Java 17.",
+      "matchPackageNames": [
+        "de.siegmar:fastcsv"
+      ],
+      "allowedVersions": "<4.0.0"
+    },
+    {
       "description": "Keep SLF4J 1.x compatibility for Scanner for Maven with Maven < 4.",
       "matchPackageNames": [
         "org.slf4j:slf4j-api"
