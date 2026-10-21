@@ -57,7 +57,7 @@
       <!-- Explicit version: not managed by the SonarSource parent -->
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>9.10.1</version>
+      <version>9.11</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -308,7 +308,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <!-- Explicit version: unlike surefire, not pinned by the SonarSource parent's pluginManagement -->
-        <version>3.5.2</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <goals>
