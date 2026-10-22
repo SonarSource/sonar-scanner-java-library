@@ -57,7 +57,7 @@
       <!-- Explicit version: not managed by the SonarSource parent -->
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>9.10.1</version>
+      <version>9.11</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -154,8 +154,10 @@
                     <exclude>org.bouncycastle.pkcs12.max_it_count</exclude>
                     <exclude>org.bouncycastle.pkcs12.allow_sun_secret_keys</exclude>
                     <exclude>org.bouncycastle.pkcs12.default</exclude>
+                    <exclude>org.bouncycastle.pkcs12.store_it_count</exclude>
                     <exclude>org.bouncycastle.x509.crl_cache_ttl</exclude>
                     <exclude>org.bouncycastle.x509.enableCRLDP</exclude>
+                    <exclude>org.bouncycastle.x509.CRLDP_protocols</exclude>
                     <exclude>org.bouncycastle.x509.max_policy_nodes</exclude>
                     <exclude>org.bouncycastle.x509.max_cert_path_build_nodes</exclude>
                     <exclude>org.bouncycastle.x509.sgp22_name_constraints</exclude>
@@ -175,6 +177,7 @@
                     <exclude>org.bouncycastle.drbg.entropy_thread</exclude>
                     <exclude>org.bouncycastle.drbg.gather_pause_secs</exclude>
                     <exclude>org.bouncycastle.asn1.allow_non_der_time</exclude>
+                    <exclude>org.bouncycastle.asn1.allow_zoneless_utctime</exclude>
                     <exclude>org.bouncycastle.asn1.max_cons_depth</exclude>
                     <exclude>org.bouncycastle.asn1.max_limit</exclude>
                     <exclude>org.bouncycastle.asn1.allow_unsafe_integer</exclude>
@@ -184,6 +187,7 @@
                     <exclude>org.bouncycastle.dsa.max_size</exclude>
                     <exclude>org.bouncycastle.dsa.FIPS186-2for1024bits</exclude>
                     <exclude>org.bouncycastle.bcfks.max_it_count</exclude>
+                    <exclude>org.bouncycastle.bcfks.store_it_count</exclude>
                     <exclude>org.bouncycastle.bcfks.max_scrypt_memory</exclude>
                     <exclude>org.bouncycastle.pbe.max_iteration_count</exclude>
                     <exclude>org.bouncycastle.pbe.max_scrypt_memory</exclude>
@@ -209,6 +213,11 @@
                     <exclude>org.bouncycastle.argon2.max_parallelism</exclude>
                     <exclude>org.bouncycastle.pemreader.lax</exclude>
                     <exclude>org.bouncycastle.constraints.allow_override</exclude>
+                    <exclude>org.bouncycastle.openpgp.max_armor_header_length</exclude>
+                    <exclude>org.bouncycastle.openpgp.max_armor_headers</exclude>
+                    <exclude>org.bouncycastle.openssh.max_rounds</exclude>
+                    <exclude>org.bouncycastle.ocsp.max_response_size</exclude>
+                    <exclude>org.bouncycastle.mime.max_depth</exclude>
                   </excludes>
                 </relocation>
               </relocations>
@@ -225,7 +234,8 @@
                     copies of module-info.class. bcprov-jdk18on is different: its META-INF/versions/{17,25} carry
                     classes with no base-tree counterpart, registered by always-loaded base Mappings classes -
                     KEM.ML-KEM (versions/17 MLKEMSpi) and the JCE KDF services KDF.PBKDF2*/HKDF-* (versions/25
-                    PBKDF2Spi/HKDFSpi). Dropping them means the shaded provider would advertise those algorithms
+                    PBKDF2Spi/HKDFSpi), plus SM9KEMSpi in versions/17 starting with bcprov 1.86.
+                    Dropping them means the shaded provider would advertise those algorithms
                     but fail to instantiate them (NoSuchAlgorithmException) on a JDK new enough to activate them -
                     accepted here because this module only ever uses BouncyCastle to load a PKCS12 keystore
                     (HttpClientFactory/ScannerEngineLauncher), never ML-KEM or the public KDF.* services.
@@ -308,7 +318,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <!-- Explicit version: unlike surefire, not pinned by the SonarSource parent's pluginManagement -->
-        <version>3.5.2</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <goals>
