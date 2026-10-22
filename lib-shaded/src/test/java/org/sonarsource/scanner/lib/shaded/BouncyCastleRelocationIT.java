@@ -106,7 +106,8 @@ class BouncyCastleRelocationIT {
         if (entry.isDirectory()) {
           continue;
         }
-        String path = entry.getName();
+        // Multi-release entries use the same class/resource names as their base-tree counterparts.
+        String path = entry.getName().replaceFirst("^META-INF/versions/[0-9]+/", "");
         int lastSlash = path.lastIndexOf('/');
         int lastDotInFileName = path.substring(lastSlash + 1).lastIndexOf('.');
         String withoutExtension = lastDotInFileName < 0 ? path : path.substring(0, lastSlash + 1 + lastDotInFileName);
