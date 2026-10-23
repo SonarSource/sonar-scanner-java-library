@@ -57,7 +57,7 @@
       <!-- Explicit version: not managed by the SonarSource parent -->
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>9.11</version>
+      <version>9.11.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
