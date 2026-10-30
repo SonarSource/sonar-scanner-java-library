@@ -13,7 +13,7 @@
   
   <properties>
     <jetty.version>10.0.26</jetty.version>
-    <logback.version>1.6.5</logback.version>
+    <logback.version>1.6.6</logback.version>
     <sonar.skip>true</sonar.skip>
     <skipTests>true</skipTests>
   </properties>
