@@ -128,6 +128,19 @@ class ScannerEngineBootstrapperTest {
   }
 
   @Test
+  void should_use_new_bootstrapping_on_sonarqube_cloud_au() throws Exception {
+    try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.SONAR_REGION, "au").bootstrap()) {
+      verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());
+      assertThat(bootstrapResult.getEngineFacade().isSonarQubeCloud()).isTrue();
+      assertThat(bootstrapResult.getEngineFacade().getBootstrapProperties()).contains(
+        entry(ScannerProperties.HOST_URL, "https://sonarqube.au"),
+        entry(ScannerProperties.API_BASE_URL, "https://api.sonarqube.au"),
+        entry(ScannerProperties.SONARQUBE_CLOUD_URL, "https://sonarqube.au"));
+      assertThat(logTester.logs(Level.INFO)).contains("Communicating with SonarQube Cloud (AU region)");
+    }
+  }
+
+  @Test
   void should_use_cleaned_urls() throws Exception {
     try (var bootstrapResult = underTest.setBootstrapProperty(ScannerProperties.HOST_URL, "http://www.sonarcloud.io/").bootstrap()) {
       verify(scannerEngineLauncherFactory).createLauncher(eq(scannerHttpClient), any(DownloadCache.class), anyMap());

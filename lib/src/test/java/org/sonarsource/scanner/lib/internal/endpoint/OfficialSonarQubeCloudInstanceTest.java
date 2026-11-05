@@ -27,13 +27,15 @@ class OfficialSonarQubeCloudInstanceTest {
 
   @Test
   void shouldListRegionsCodes() {
-    assertThat(OfficialSonarQubeCloudInstance.getRegionCodesWithoutGlobal()).containsExactlyInAnyOrder("us");
+    assertThat(OfficialSonarQubeCloudInstance.getRegionCodesWithoutGlobal()).containsExactly("us", "au");
   }
 
   @Test
   void shouldGetInstanceFromRegionCodeIgnoringCase() {
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("US")).contains(OfficialSonarQubeCloudInstance.US);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("us")).contains(OfficialSonarQubeCloudInstance.US);
+    assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("AU")).contains(OfficialSonarQubeCloudInstance.AU);
+    assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("au")).contains(OfficialSonarQubeCloudInstance.AU);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("")).contains(OfficialSonarQubeCloudInstance.GLOBAL);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode(null)).contains(OfficialSonarQubeCloudInstance.GLOBAL);
     assertThat(OfficialSonarQubeCloudInstance.fromRegionCode("foo")).isEmpty();
@@ -45,6 +47,7 @@ class OfficialSonarQubeCloudInstanceTest {
   void shouldGetInstanceFromWebEndpoint() {
     assertThat(OfficialSonarQubeCloudInstance.fromWebEndpoint("https://sonarcloud.io")).contains(OfficialSonarQubeCloudInstance.GLOBAL);
     assertThat(OfficialSonarQubeCloudInstance.fromWebEndpoint("https://sonarqube.us")).contains(OfficialSonarQubeCloudInstance.US);
+    assertThat(OfficialSonarQubeCloudInstance.fromWebEndpoint("https://sonarqube.au")).contains(OfficialSonarQubeCloudInstance.AU);
     assertThat(OfficialSonarQubeCloudInstance.fromWebEndpoint("https://sonarqube.fr")).isEmpty();
   }
 }

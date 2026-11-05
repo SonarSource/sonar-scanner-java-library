@@ -183,7 +183,7 @@ class ScannerEndpointResolverTest {
 
     assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
       .isInstanceOf(MessageException.class)
-      .hasMessage("Invalid region 'fr'. Valid regions are: 'us'. Please check the 'sonar.region' property or the 'SONAR_REGION' environment variable.");
+      .hasMessage("Invalid region 'fr'. Valid regions are: 'us', 'au'. Please check the 'sonar.region' property or the 'SONAR_REGION' environment variable.");
   }
 
   @Test
@@ -195,6 +195,41 @@ class ScannerEndpointResolverTest {
     assertThat(endpoint.isSonarQubeCloud()).isTrue();
     assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarqube.us");
     assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarqube.us");
+  }
+
+  @Test
+  void should_support_au_region() {
+    var props = Map.of(ScannerProperties.SONAR_REGION, "au");
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isTrue();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarqube.au");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarqube.au");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"https://sonarqube.au", "https://sonarqube.au/", " https://sonarqube.au ", "https://www.sonarqube.au/"})
+  void should_recognize_sonarqube_cloud_au_endpoint_passed_through_host_url(String hostUrl) {
+    var props = Map.of(ScannerProperties.HOST_URL, hostUrl);
+
+    var endpoint = ScannerEndpointResolver.resolveEndpoint(props);
+
+    assertThat(endpoint.isSonarQubeCloud()).isTrue();
+    assertThat(endpoint.getWebEndpoint()).isEqualTo("https://sonarqube.au");
+    assertThat(endpoint.getApiEndpoint()).isEqualTo("https://api.sonarqube.au");
+  }
+
+  @Test
+  void should_fail_if_region_and_host_url_point_to_different_regions() {
+    var props = Map.of(
+      ScannerProperties.HOST_URL, "https://sonarqube.au",
+      ScannerProperties.SONAR_REGION, "us"
+    );
+
+    assertThatThrownBy(() -> ScannerEndpointResolver.resolveEndpoint(props))
+      .isInstanceOf(MessageException.class)
+      .hasMessage("Inconsistent values for properties 'sonar.region' and 'sonar.host.url'. Please only specify one of the two properties.");
   }
 
   @Test
