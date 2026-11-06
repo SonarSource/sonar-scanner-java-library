@@ -20,6 +20,7 @@
 package org.sonarsource.scanner.lib.internal.endpoint;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,7 +32,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum OfficialSonarQubeCloudInstance {
   GLOBAL("https://sonarcloud.io", "https://api.sonarcloud.io", null),
-  US("https://sonarqube.us", "https://api.sonarqube.us", "US");
+  US("https://sonarqube.us", "https://api.sonarqube.us", "US"),
+  AU("https://sonarqube.au", "https://api.sonarqube.au", "AU");
 
   private final ScannerEndpoint endpoint;
 
@@ -40,7 +42,7 @@ public enum OfficialSonarQubeCloudInstance {
   }
 
   public static Set<String> getRegionCodesWithoutGlobal() {
-    return getRegionsWithoutGlobal().map(Enum::name).map(s -> s.toLowerCase(Locale.ENGLISH)).collect(Collectors.toSet());
+    return getRegionsWithoutGlobal().map(Enum::name).map(s -> s.toLowerCase(Locale.ENGLISH)).collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
   /**
