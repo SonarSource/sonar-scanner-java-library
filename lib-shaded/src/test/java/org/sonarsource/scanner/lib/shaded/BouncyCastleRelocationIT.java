@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * system-property names: bcprov reads many of these as plain String literals (not through
  * org.bouncycastle.util.Properties alone), and the shade plugin rewrites any string constant that looks like a
  * class name, silently breaking such a property in the shaded jar while it keeps working in the plain lib jar.
+ * Also guards legacy serialized XMSS class names, which must remain unchanged when the implementation moves.
  */
 class BouncyCastleRelocationIT {
 
@@ -63,9 +64,9 @@ class BouncyCastleRelocationIT {
 
     assertThat(propertyLikeLiterals)
       .as("bcprov-jdk18on has org.bouncycastle.* string constants that are not real class/resource references, "
-        + "meaning they are BouncyCastle system-property names read as literals. Each one must be added as an "
+        + "meaning they are BouncyCastle system-property names or legacy serialized class names. Each one must be added as an "
         + "<exclude> under the org.bouncycastle relocation in lib-shaded/pom.xml, otherwise it silently gets "
-        + "renamed in the shaded jar and users setting it via -D no longer have any effect there.")
+        + "renamed in the shaded jar, breaking system properties or compatibility with serialized data.")
       .isSubsetOf(excludedProperties);
 
     Path shadedJar = Path.of(System.getProperty("shadedJarPath"));

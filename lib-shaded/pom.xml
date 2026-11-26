@@ -218,6 +218,34 @@
                     <exclude>org.bouncycastle.openssh.max_rounds</exclude>
                     <exclude>org.bouncycastle.ocsp.max_response_size</exclude>
                     <exclude>org.bouncycastle.mime.max_depth</exclude>
+                    <exclude>org.bouncycastle.bcfks.scrypt_p_eq_r</exclude>
+                    <exclude>org.bouncycastle.cms.allow_legacy_keyagree_kdf</exclude>
+                    <exclude>org.bouncycastle.cms.allow_unauthenticated_cbc_mac_iv</exclude>
+                    <exclude>org.bouncycastle.cms.max_digest_algorithms</exclude>
+                    <exclude>org.bouncycastle.constraints.quantum_vulnerable</exclude>
+                    <exclude>org.bouncycastle.dh.allow_short_private_value</exclude>
+                    <exclude>org.bouncycastle.jsse.client.enableDelegatedTasks</exclude>
+                    <exclude>org.bouncycastle.jsse.server.enableDelegatedTasks</exclude>
+                    <exclude>org.bouncycastle.jsse.useNamedGroupsOrder</exclude>
+                    <exclude>org.bouncycastle.lms.max_seed_length</exclude>
+                    <exclude>org.bouncycastle.ocsp.max_response_age</exclude>
+                    <exclude>org.bouncycastle.openpgp.csf_bare_cr_line_ending</exclude>
+                    <exclude>org.bouncycastle.openpgp.strict_partial_body_length</exclude>
+                    <exclude>org.bouncycastle.openpgp.text_sig_allow_legacy_cr</exclude>
+                    <exclude>org.bouncycastle.pbkdf2.legacy_cipher_prf</exclude>
+                    <exclude>org.bouncycastle.pkcs12.pbkdf2_it_count</exclude>
+                    <exclude>org.bouncycastle.sm9.allow_multi_use</exclude>
+                    <exclude>org.bouncycastle.tsp.allow_inconsistent_signing_time</exclude>
+                    <exclude>org.bouncycastle.tsp.allowed_imprint_algorithms</exclude>
+                    <!--
+                      XMSSUtil.CheckingStream maps these legacy serialized class names to their replacements
+                      under org.bouncycastle.crypto.signers.xmss in 1.87. Keep the wire names unchanged;
+                      the replacement classes and their class literals still need normal relocation.
+                    -->
+                    <exclude>org.bouncycastle.pqc.crypto.xmss.BDS</exclude>
+                    <exclude>org.bouncycastle.pqc.crypto.xmss.BDSStateMap</exclude>
+                    <exclude>org.bouncycastle.pqc.crypto.xmss.BDSTreeHash</exclude>
+                    <exclude>org.bouncycastle.pqc.crypto.xmss.XMSSNode</exclude>
                   </excludes>
                 </relocation>
               </relocations>
@@ -235,6 +263,8 @@
                     classes with no base-tree counterpart, registered by always-loaded base Mappings classes -
                     KEM.ML-KEM (versions/17 MLKEMSpi) and the JCE KDF services KDF.PBKDF2*/HKDF-* (versions/25
                     PBKDF2Spi/HKDFSpi), plus SM9KEMSpi in versions/17 starting with bcprov 1.86.
+                    bcprov 1.87 also adds CompositeKEMSpi/XWingSpi in versions/17 and KBKDFSpi/KMACKDFSpi
+                    in versions/25, with no base-tree counterparts.
                     Dropping them means the shaded provider would advertise those algorithms
                     but fail to instantiate them (NoSuchAlgorithmException) on a JDK new enough to activate them -
                     accepted here because this module only ever uses BouncyCastle to load a PKCS12 keystore
